@@ -160,8 +160,23 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE){
   metadata(fit)[["alignment_method"]] <- alignment
   reducedDim(fit, "diffemb_embedding") <- t(align_res$diffemb_embedding)
   metadata(fit)[["alignment_coefficients"]] <- align_res$alignment_coefficients
+  exp_group <- get_groups(fit$design_matrix, 10)
+  exp_group_levels <- unique(exp_group)
+  base_point <- diag(nrow = fit$n_embedding)
+  metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
+    # Rotate all datapoints
+    for(gr in exp_group_levels){
+      dir <- sum_tangent_vectors(-align_res$alignment_coefficients, fit$design_matrix[which(exp_group == gr)[1],])
+      reducedDim(fit, "diffemb_embedding")[gr == exp_group, ] <- t(rotation_map(dir, base_point) %*% samp$diffemb_embedding[,gr == exp_group])
+    }
+    metadata(samp)[["alignment_method"]] <- alignment
+    metadata(samp)[["alignment_coefficients"]] <- align_res$alignment_coefficients
+    samp
+  })
+
   fit
 }
+
 
 align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
                               n_iter = 5, verbose = FALSE){

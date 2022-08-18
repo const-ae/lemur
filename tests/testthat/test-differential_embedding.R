@@ -106,3 +106,23 @@ test_that("bootstrapping works", {
   # The differential embeddings of the bootstraps should be well correlated
   expect_gt(cor(c(fit2$diffemb_embedding), c(fit2$bootstrap_samples[[1]]$diffemb_embedding)), 0.9)
 })
+
+
+test_that("align_embeddings works", {
+  dat <- make_synthetic_data(n_genes = 30)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+  expect_equal(fit$alignment_method, FALSE)
+  expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
+
+  alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
+  fit2 <- align_embeddings(fit, alignment = alignment)
+  expect_equal(fit2$alignment_method, alignment)
+  expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
+  expect_equal(fit2$bootstrap_samples[[1]]$alignment_coefficients, fit2$alignment_coefficients)
+  expect_equal(predict(fit), predict(fit2))
+  expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
+               fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
+})
+
