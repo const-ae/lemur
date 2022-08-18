@@ -33,7 +33,7 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, tang
   if(tangent_regression){
     coef
   }else{
-    warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
     coef
   }
 }
@@ -68,7 +68,7 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
   if(tangent_regression){
     coef
   }else{
-    warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
     coef
   }
 }
@@ -112,7 +112,7 @@ rotation_geodesic_regression <- function(rotations, design, base_point, tangent_
   if(tangent_regression){
     coef
   }else{
-    warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
     coef
   }
 }
@@ -187,7 +187,7 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
   if(tangent_regression){
     coef
   }else{
-    warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
     coef
   }
 }
