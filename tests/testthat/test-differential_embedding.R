@@ -97,7 +97,13 @@ test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
-  fit2 <- estimate_variance(fit, n_bootstrap_samples = 2)
+  fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+
   expect_null(fit$bootstrap_samples)
   expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
+  expect_equal(rownames(fit2$bootstrap_samples[[1]]), rownames(fit2))
+  expect_equal(colnames(fit2$bootstrap_samples[[1]]), colnames(fit2))
+  expect_equal(fit2$bootstrap_samples[[1]]$ambient_coordsystem, fit2$ambient_coordsystem)
+  # The differential embeddings of the bootstraps should be well correlated
+  expect_gt(cor(c(fit2$diffemb_embedding), c(fit2$bootstrap_samples[[1]]$diffemb_embedding)), 0.9)
 })

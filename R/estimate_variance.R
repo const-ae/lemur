@@ -57,17 +57,27 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 diffemb_embedding = diffemb_embedding,
                                 alignment_coefficients = alignment_coefficients, verbose = FALSE)
 
-    DiffEmbFit(NULL, col_data = as.data.frame(matrix(nrow = ncol(fit), ncol = 0)),
+    # Use the results of the resampled fit, to make 'diffemb_embedding' corresponding to the original data
+    refitted_Y_clean <- t(res$ambient_coordsystem) %*% (assay(fit, "expr") - res$ambient_offset) - res$linear_coefficients %*% t(fit$design_matrix)
+    refitted_diffemb_embedding <-project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
+                                                         diffemb_coefficients = res$diffemb_coefficients,
+                                                         base_point = base_point)
+
+    # Create DiffEmbFit object
+    samp <- DiffEmbFit(NULL, col_data = as.data.frame(matrix(nrow = ncol(fit), ncol = 0)),
                row_data = as.data.frame(matrix(nrow = nrow(fit), ncol = 0)),
                n_ambient = res$n_ambient, n_embedding = res$n_embedding,
                ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,
-               design = fit$design, design_matrix = res$design_matrix,
+               design = fit$design, design_matrix = fit$design_matrix,
                linear_coefficients = res$linear_coefficients,
                diffemb_basepoint = res$diffemb_basepoint,
                diffemb_coefficients = res$diffemb_coefficients,
-               diffemb_embedding = unname(res$diffemb_embedding),
-               alignment_method = res$alignment_method,
+               diffemb_embedding = refitted_diffemb_embedding,
+               alignment_method = alignment_method,
                alignment_coefficients = res$alignment_coefficients)
+    rownames(samp) <- rownames(fit)
+    colnames(samp) <- colnames(fit)
+    samp
   })
   metadata(fit)[["bootstrap_samples"]] <- bootstraps
   fit
