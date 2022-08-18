@@ -1,0 +1,7 @@
+*.Rproj
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+tmp_scripts
+inst/doc
