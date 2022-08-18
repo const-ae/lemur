@@ -7,9 +7,8 @@ test_that("parse contrasts works", {
   C <- 3
   expect_equal(parse_contrast(A + C, coefficient_names = LETTERS[1:4]),
                c(A = 1, B = 0, C = 1, D = 0))
-  expect_equal(parse_contrast(A + .data$C, coefficient_names = LETTERS[1:4]),
+  expect_equal(parse_contrast(A + .cntrst$C, coefficient_names = LETTERS[1:4]),
                c(A = 1, B = 0, C = 1, D = 0))
-
   expect_equal(parse_contrast(A + .env$C, coefficient_names = LETTERS[1:4]),
                c(A = 4, B = 3, C = 3, D = 3))
 
