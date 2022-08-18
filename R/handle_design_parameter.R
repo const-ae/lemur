@@ -91,6 +91,7 @@ convert_formula_to_model_matrix <- function(formula, col_data){
     terms <- attr(mf, "terms")
     attr(terms, "xlevels") <- stats::.getXlevels(terms, mf)
     mm <- stats::model.matrix.default(terms, mf)
+    attr(terms, "contrasts") <- attr(mm, "contrasts")
   }, error = function(e){
     # Try to extract text from error message
     match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]

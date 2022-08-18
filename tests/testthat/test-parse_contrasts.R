@@ -58,5 +58,22 @@ test_that("factor based contrast specification works", {
                list(lhs = c(1, 0, 0, 3), rhs = c(1, 0, 0, 5), relation = "less_than"),
                ignore_attr = "names")
 
+})
 
+
+test_that("fact() works with custom contrasts", {
+  n_obs <- 50
+  col_data <- data.frame(group = sample(LETTERS[1:3], size = n_obs, replace = TRUE),
+                         cont = rnorm(n_obs),
+                         city = sample(c("New York", "Paris", "London"), size = n_obs, replace = TRUE),
+                         y = rnorm(n_obs),
+                         stringsAsFactors = TRUE)
+  col_data$group <- C(col_data$group, contr.sum)
+  Y <- matrix(0, nrow = 10, ncol = n_obs)
+  des <- handle_design_parameter(data = Y, design = ~ group + cont, col_data = col_data)
+  form <- des$design_formula
+  mm <- des$model_matrix
+  expect_equal(parse_contrast(fact(group = "A"), colnames(mm), form), c(1, 1, 0, 0), ignore_attr = "names")
+  expect_equal(parse_contrast(fact(group = "B"), colnames(mm), form), c(1, 0, 1, 0), ignore_attr = "names")
+  expect_equal(parse_contrast(fact(group = "C"), colnames(mm), form), c(1, -1, -1, 0), ignore_attr = "names")
 })

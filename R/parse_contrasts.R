@@ -98,7 +98,7 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
       new_dat[[n]] <- level_sets[[n]]
     }
   }
-  res <- drop(model.matrix(formula, new_dat))
+  res <- drop(model.matrix(formula, new_dat, contrasts.arg = attr(formula, "contrasts")))
   attr(res, "assign") <- NULL
   attr(res, "contrasts") <- NULL
   res
