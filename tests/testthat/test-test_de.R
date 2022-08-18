@@ -14,10 +14,6 @@ test_that("test_differential_expression works", {
   parse_contrast(fact(condition = "a") - fact(condition = "b"), colnames(fit$design_matrix), fit$design)
   parse_contrast(conditionb, colnames(fit$design_matrix), fit$design)
 
-  res3 |>
-    as_tibble() |>
-    arrange(pval)
-
   plot(res3$pval, res2$pval, log = "xy")
 
 })
