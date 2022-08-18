@@ -100,6 +100,4 @@ test_that("bootstrapping works", {
   fit2 <- estimate_variance(fit, n_bootstrap_samples = 2)
   expect_null(fit$bootstrap_samples)
   expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
-  test_differential_expression(fit, contrast = a - b)
-
 })
