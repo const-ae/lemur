@@ -35,6 +35,8 @@ make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_la
   linear_embedding <- LinearEmbeddingMatrix(t(true_Z), plane)
   interaction_embedding <- LinearEmbeddingMatrix(t(t(design_matrix) * duplicate_rows(t(dir) %*% true_Z, 3)), true_P)
 
+  colnames(Y) <- paste0("cell_", seq_len(n_cells))
+  rownames(Y) <- paste0("gene_", seq_len(n_genes))
   sce <- SingleCellExperiment(list(logcounts = Y), colData = data.frame(condition = condition, cell_type = cell_type),
                        reducedDims = list(linear_embedding = linear_embedding, interaction_embedding = interaction_embedding))
 
