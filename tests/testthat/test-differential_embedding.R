@@ -3,7 +3,7 @@ test_that("making data works", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5)
+                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_ambient, 40)
   expect_equal(fit$n_embedding, 5)
@@ -21,7 +21,7 @@ test_that("making data works", {
 test_that("the fit is valid", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5)
+                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
 
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_ambient, 30)
@@ -46,7 +46,7 @@ test_that("subsetting works", {
   colnames(dat) <- paste0("Cell_", 1:200)
   dat
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_embedding = 5, n_ambient = 30)
+                                n_embedding = 5, n_ambient = 30, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 2)
   fit2 <- fit[1:10, 101:120]
   expect_true(validObject(fit2))
@@ -77,7 +77,7 @@ test_that("subsetting works", {
 test_that("predicting works", {
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_ambient = 10, n_embedding = 5)
+                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
   # predict(fit)
   # plot(logcounts(dat), pred); abline(0,1)
   # sum((logcounts(dat) - pred)^2)
@@ -96,7 +96,7 @@ test_that("predicting works", {
 test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5)
+                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
   fit2 <- estimate_variance(fit, n_bootstrap_samples = 2)
   expect_null(fit$bootstrap_samples)
   expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
