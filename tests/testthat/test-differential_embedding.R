@@ -42,9 +42,6 @@ test_that("the fit is valid", {
 test_that("subsetting works", {
 
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
-  rownames(dat) <- paste0("Gene_", 1:40)
-  colnames(dat) <- paste0("Cell_", 1:200)
-  dat
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_embedding = 5, n_ambient = 30, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 2)
@@ -67,10 +64,12 @@ test_that("subsetting works", {
   expect_equal(dim(fit3$design_matrix), c(20, 3))
   expect_equal(dim(fit3$linear_coefficients), c(30, 3))
   expect_equal(length(fit3$alignment_method), 20)
-  expect_equal(rownames(fit3), c("Gene_1", "Gene_3"))
-  expect_equal(colnames(fit3), paste0("Cell_", 101:120))
+  expect_equal(rownames(fit3), c("gene_1", "gene_3"))
+  expect_equal(colnames(fit3), paste0("cell_", 101:120))
 
-
+  fit4 <- fit["gene_13", ]
+  expect_equal(nrow(fit4), 1)
+  expect_equal(nrow(fit4$bootstrap_samples[[1]]), 1)
 })
 
 
