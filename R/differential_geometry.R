@@ -91,3 +91,50 @@ rotation_log <- function(p, q){
 #   qr.Q(qr(x))
 # }
 
+# Sphere
+
+
+project_sphere <- function(x){
+  x
+}
+
+project_sphere_tangent <- function(x, base_point){
+  base_point <- base_point / sqrt(sum(base_point^2))
+  x - drop(t(base_point) %*% x) * base_point
+}
+
+sphere_map <- function(x, base_point){
+  radius <- sqrt(sum(base_point^2))
+  base_point <- base_point  / radius
+  norm_x <- sqrt(sum(x^2))
+  radius * (cos(norm_x) * base_point + sin(norm_x) * x / norm_x)
+}
+
+sphere_log <- function(p, q){
+  tol <- 1e-12
+  radius_p <- sqrt(sum(p^2))
+  radius_q <- sqrt(sum(q^2))
+  stopifnot(abs(radius_p - radius_q) < tol)
+  p <- p / radius_p
+  q <- q / radius_q
+
+  # Following https://github.com/JuliaManifolds/Manifolds.jl/blob/9cdc063df740dd0579f12469e3e663935de2df0e/src/manifolds/Sphere.jl#L296-L309
+  cosAngle <- drop(pmin(pmax(t(p) %*% q, -1), 1))
+  res <- if(abs(cosAngle + 1) < tol){ # cosAngle \approx -1
+    res <- matrix(0, nrow = nrow(p))
+    if(abs(p[1] - 1) < tol && nrow(p) > 1){
+      res[2] <- 1
+    }else{
+      res[1] <- 1
+    }
+    res <- res - drop(t(p) %*% res) * p
+    res * pi / sqrt(sum(res^2))
+  }else if(abs(cosAngle - 1) < tol){ # cosAngle \approx 1
+    q
+  }else{
+    angle <- acos(cosAngle)
+    (q - cosAngle * p) * angle / sin(angle)
+  }
+  project_sphere_tangent(res, p)
+}
+
