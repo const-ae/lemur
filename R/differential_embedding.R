@@ -144,7 +144,7 @@ sum_tangent_vectors <- function(tangent_block, covariates){
 }
 
 
-align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE){
+align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE, ...){
   if(isTRUE(alignment)){
     # Cluster each condition
     exp_group <- get_groups(design_matrix, 10)
@@ -156,10 +156,10 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE){
   }
 
 
-  align_res <- align_points_impl(alignment, fit$diffemb_embedding, fit$design_matrix, verbose = verbose)
+  align_res <- align_points_impl(alignment, fit$diffemb_embedding, fit$design_matrix, verbose = verbose, ...)
   metadata(fit)[["alignment_method"]] <- alignment
   reducedDim(fit, "diffemb_embedding") <- t(align_res$diffemb_embedding)
-  metadata(fit)[["alignment_coefficients"]] <- align_res$alignment_coefficients
+  metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + align_res$alignment_coefficients
   exp_group <- get_groups(fit$design_matrix, 10)
   exp_group_levels <- unique(exp_group)
   base_point <- diag(nrow = fit$n_embedding)
@@ -170,7 +170,7 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE){
       reducedDim(fit, "diffemb_embedding")[gr == exp_group, ] <- t(rotation_map(dir, base_point) %*% samp$diffemb_embedding[,gr == exp_group])
     }
     metadata(samp)[["alignment_method"]] <- alignment
-    metadata(samp)[["alignment_coefficients"]] <- align_res$alignment_coefficients
+    metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + align_res$alignment_coefficients
     samp
   })
 
@@ -179,7 +179,42 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE){
 
 
 align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
-                              n_iter = 5, verbose = FALSE){
+                              n_iter = 1, tolerance = 1e-8, target_layout = c("mean", "spherical_mds"), verbose = FALSE){
+
+  target_layout <- if(target_layout[1] == "mean"){
+    function(embedding, alignment_red, exp_group_red){
+      t(mply_dbl(unique(alignment_red), \(al) rowMeans(embedding[,al == alignment_red,drop=FALSE], na.rm = TRUE), ncol = nrow(embedding)))
+    }
+  }else if(target_layout[1] == "spherical_mds"){
+    function(embedding, alignment_red, exp_group_red){
+      dists <- lapply(unique(exp_group_red), \(gr) as.matrix(dist_sphere(t(embedding[,exp_group_red == gr,drop=FALSE]))))
+      median_dists <- apply(stack_slice(dists), 1:2, median, na.rm = TRUE)
+      sphere_mds <- smacof::smacofSphere(median_dists, ndim = min(nrow(embedding), ncol(median_dists)-1), eps = 1e-10, itmax = 1e4)
+      mds_layout <- normalize_vec_length(rbind(t(sphere_mds$conf), matrix(0, nrow = nrow(embedding) - ncol(sphere_mds$conf), ncol = ncol(median_dists))))
+      n_emb <-  nrow(mds_layout)
+      reflec_mat <- diag(c(rep(1, n_emb - 1), -1), nrow = n_emb)
+      rot1 <- rotation_map(drop(rotation_lm(data = embedding[,exp_group_red == exp_group_red[1],drop=FALSE], design = matrix(1, nrow = ncol(mds_layout)),
+                                                obs = mds_layout, base_point = diag(nrow = n_emb))), base_point = diag(nrow = n_emb))
+      rot2 <- rotation_map(drop(rotation_lm(data = embedding[,exp_group_red == exp_group_red[1],drop=FALSE],
+                                                design = matrix(1, nrow = ncol(mds_layout)), obs = reflec_mat %*% mds_layout,
+                                                base_point = diag(nrow = n_emb))), base_point = diag(nrow = n_emb))
+      if(sum((embedding[,exp_group_red == exp_group_red[1],drop=FALSE] - rot1 %*% mds_layout)^2) <
+         sum((embedding[,exp_group_red == exp_group_red[1],drop=FALSE] - rot2  %*% reflec_mat %*% mds_layout)^2)){
+        rot1 %*% mds_layout
+      }else{
+        rot2 %*% reflec_mat %*% mds_layout
+      }
+    }
+  }else if(is.matrix(target_layout)){
+    tl <- target_layout
+    function(...){
+      tl
+    }
+  }else{
+    stopifnot(is.function(target_layout))
+    target_layout
+  }
+
   n_embedding <- nrow(diffemb_embedding)
   n_obs <- nrow(design_matrix)
   base_point <- diag(nrow = n_embedding)
@@ -211,33 +246,65 @@ align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
         idx <- idx + 1
       }
     }
+    new_embedding <- normalize_vec_length(new_embedding)
+    if(verbose) check_alignment_prerequisites(new_embedding, alignment_red)
+
+    # Calculate the mean per alignment level and replicate for each experimental design group
+    mean_embeddings <- target_layout(new_embedding, alignment_red, exp_group_red) |>
+      duplicate_cols(each = n_exp_group_levels) |>
+      normalize_vec_length()
+
     coef <- array(0, dim  = c(n_embedding, n_embedding, ncol(design_matrix)))
     new_embedding_cp <- new_embedding
+    last_round_error <- Inf
     for(iter in seq_len(n_iter)){
+
+      # Align data to centers
+      coef <- coef + rotation_lm(data = mean_embeddings,  design = new_design, obs_embedding = new_embedding,
+                                 base_point = base_point, tangent_regression = TRUE)
+
       # Rotate centers
       for(gr in exp_group_levels){
         new_embedding[,gr == exp_group_red] <- rotation_map(sum_tangent_vectors(coef, design_matrix[which(exp_group == gr)[1],]), base_point) %*% new_embedding_cp[,gr == exp_group_red]
       }
-      # Calculate the mean per alignment level and replicate for each experimental design group
-      mean_embeddings <- t(mply_dbl(alignment_levels, \(al) rowMeans(new_embedding[,al == alignment_red,drop=FALSE], na.rm = TRUE), ncol = n_embedding)) |>
-        duplicate_cols(each = n_exp_group_levels)
-      if(verbose) message("Iter: ", iter, "\tError: ", sum((new_embedding - mean_embeddings)^2, na.rm = TRUE))
-      # Align data to centers
-      coef <- coef + rotation_lm(data = mean_embeddings,  design = new_design, obs_embedding = new_embedding,
-                                 base_point = base_point, tangent_regression = TRUE)
+
+      error <- sum((new_embedding - mean_embeddings)^2, na.rm = TRUE)
+      if(verbose) message("Iter: ", iter, "\tError: ", error)
+      if(abs(error - last_round_error) / (error + 0.1) < tolerance){
+        break
+      }
+      last_round_error <- error
     }
 
+    for(gr in exp_group_levels){
+      new_embedding[,gr == exp_group_red] <- rotation_map(sum_tangent_vectors(coef, design_matrix[which(exp_group == gr)[1],]), base_point) %*% new_embedding_cp[,gr == exp_group_red]
+    }
+    if(verbose) message("Final result\tError: ", sum((new_embedding - mean_embeddings)^2, na.rm = TRUE))
 
     # Rotate all datapoints
     for(gr in exp_group_levels){
       diffemb_embedding[,gr == exp_group] <- rotation_map(sum_tangent_vectors(coef, design_matrix[which(exp_group == gr)[1],]), base_point) %*% diffemb_embedding[,gr == exp_group]
     }
-
   }
 
   list(alignment_coefficients = -coef, diffemb_embedding = diffemb_embedding)
 }
 
+
+check_alignment_prerequisites <- function(embedding, alignment){
+  n_obs <- ncol(embedding) / length(unique(alignment))
+  dist_var <- matrixStats::colSds(mply_dbl(unique(alignment), \(al){
+    stopifnot(sum(alignment == al) == n_obs)
+    c(as.matrix(dist(t(embedding[,alignment == al,drop=FALSE]))))
+  }, ncol = n_obs^2), na.rm = TRUE)
+  df <- data.frame(obs1 = rep(seq(n_obs), times = n_obs), obs2 = rep(seq(n_obs), each = n_obs),
+             dist_var = dist_var, row.names = NULL, stringsAsFactors = FALSE)
+  res <- tapply(df$dist_var, df$obs1, mean, na.rm = TRUE)
+  res <- data.frame(group = seq_len(n_obs), distance_from_diagonal = res)
+  message("Distance from diagonal: \n",
+          paste0(capture.output(res[order(-res$distance_from_diagonal)[seq_len(min(4, n_obs))],,drop=FALSE]), collapse = "\n"))
+  invisible(res)
+}
 
 #' Predict values from `DiffEmbFit` object
 #'
