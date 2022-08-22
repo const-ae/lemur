@@ -184,6 +184,22 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     }
   })
   coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
+  # line search
+  original_error <- sum(vapply(groups, \(gr){
+    sel <- mm_groups == gr
+    sum((data[,sel,drop=FALSE] - obs_embedding[,sel,drop=FALSE])^2)
+  }, FUN.VALUE = 0.0))
+  for(idx in 0:20){
+    error <- sum(vapply(groups, \(gr){
+      sel <- mm_groups == gr
+      sum((data[,sel,drop=FALSE] - rotation_map(sum_tangent_vectors(0.5^idx * coef, reduced_design[groups == gr, ]), base_point) %*% obs_embedding[,sel,drop=FALSE])^2)
+    }, FUN.VALUE = 0.0))
+    if(error < original_error){
+      coef <- 0.5^idx * coef
+      break
+    }
+  }
+  if(idx == 20) coef <- 0 * coef
   if(tangent_regression){
     coef
   }else{
