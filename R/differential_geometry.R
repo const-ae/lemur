@@ -107,7 +107,11 @@ sphere_map <- function(x, base_point){
   radius <- sqrt(sum(base_point^2))
   base_point <- base_point  / radius
   norm_x <- sqrt(sum(x^2))
-  radius * (cos(norm_x) * base_point + sin(norm_x) * x / norm_x)
+  if(abs(norm_x < 1e-18)){
+    radius * (cos(norm_x) * base_point + x)
+  }else{
+    radius * (cos(norm_x) * base_point + sin(norm_x) / norm_x * x )
+  }
 }
 
 sphere_log <- function(p, q){
@@ -121,8 +125,8 @@ sphere_log <- function(p, q){
   # Following https://github.com/JuliaManifolds/Manifolds.jl/blob/9cdc063df740dd0579f12469e3e663935de2df0e/src/manifolds/Sphere.jl#L296-L309
   cosAngle <- drop(pmin(pmax(t(p) %*% q, -1), 1))
   res <- if(abs(cosAngle + 1) < tol){ # cosAngle \approx -1
-    res <- matrix(0, nrow = nrow(p))
-    if(abs(p[1] - 1) < tol && nrow(p) > 1){
+    res <- matrix(0, nrow = length(p))
+    if(abs(p[1] - 1) < tol && length(p) > 1){
       res[2] <- 1
     }else{
       res[1] <- 1
