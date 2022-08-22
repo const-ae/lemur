@@ -138,3 +138,17 @@ duplicate_cols <- function(m, times, each){
 
 
 sum_third_dimension <- einsum::einsum_generator("ijk->ij")
+
+dist_sphere <- function(x){
+  x <- t(x)
+  radii <- colSums(x^2)
+  stopifnot(all(abs(radii - radii[1] < 1e-12)))
+  n_elem <- ncol(x)
+  res <- matrix(NA, nrow = n_elem, ncol = n_elem)
+  for(i in seq_len(n_elem)){
+    for(j in seq_len(i)){
+      res[j, i] <- sqrt(sum(sphere_log(x[,i], x[,j])^2))
+    }
+  }
+  as.dist(t(res))
+}
