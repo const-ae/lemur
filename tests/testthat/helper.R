@@ -1,6 +1,6 @@
 
 
-make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_lat = 2){
+make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_lat = 2, treatment_effect = 0.1){
   skew <- function(M) (M - t(M)) / 2
 
   randn <- function(n, m, ...){
@@ -17,7 +17,7 @@ make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_la
 
 
   centers <- randn(n_centers, n_lat, sd = 2)
-  true_Z <- matrix(c(centers) + rnorm(n_cells * n_lat, sd = 0.1), nrow = n_lat, ncol = n_cells)
+  true_Z <- matrix(c(centers) + rnorm(n_cells * n_centers * n_lat, sd = 0.1), nrow = n_lat, ncol = n_cells)
   stopifnot(n_centers <= length(LETTERS))
   cell_type <- rep(LETTERS[seq_len(n_centers)], length.out = n_cells)
   condition <- sample(letters[1:3], n_cells, replace = TRUE)
@@ -25,8 +25,8 @@ make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_la
   plane <- qr.Q(qr(randn(n_genes, n_genes)))[seq_len(n_genes), seq_len(n_lat)]
 
   true_P <- MASS::Null(plane) %*% cbind(intercept = randn(n_genes - n_lat, 1, sd = 0),
-                                        beta1 = randn(n_genes - n_lat, 1, sd = 0.1),
-                                        beta2 = randn(n_genes - n_lat, 1, sd = 0.1))
+                                        beta1 = randn(n_genes - n_lat, 1, sd = treatment_effect),
+                                        beta2 = randn(n_genes - n_lat, 1, sd = treatment_effect))
   true_P <- true_P + rnorm(prod(dim(true_P)), sd = 1e-8)
 
   dir <- scale(randn(n_lat, 1), center = FALSE)
