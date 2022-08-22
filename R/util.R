@@ -152,3 +152,8 @@ dist_sphere <- function(x){
   }
   as.dist(t(res))
 }
+
+normalize_vec_length <- function(x){
+  vec_lens <- sqrt(colSums(x^2))
+  t(t(x) / vec_lens)
+}
