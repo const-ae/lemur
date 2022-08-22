@@ -68,7 +68,24 @@ rotation_log <- function(p, q){
   })
   if(all(is.na(logm))){
     # The Higham08 algorithm failed. Try Eigen
-    logm <- expm::logm(t(p) %*% q, method = "Eigen")
+    logm <- tryCatch({
+       expm::logm(t(p) %*% q, method = "Eigen")
+    }, error = function(error){
+      for(idx in 1:10){
+        tmp <- tryCatch({
+          expm::logm(t(p) %*% q + randn(nrow(p), ncol(p), sd = 1e-12), method = "Eigen")
+        }, error = function(error2) NULL)
+        if(is.null(tmp)){
+          # try once more
+        }else{
+          break
+        }
+      }
+      tmp
+    })
+    if(is.null(logm)){
+      stop("Cannot calculate the matrix logarithm. It may not exist")
+    }
   }
 
   skew(logm)
