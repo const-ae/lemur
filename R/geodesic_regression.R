@@ -160,7 +160,7 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
       anti_space <- qr_space[,-seq_len(n_red),drop=FALSE]
 
       # Approximate the rotation using linear regression
-      coef_lower_dim <- t(lm.fit(t(x) %*% space, t(y) %*% space)$coefficient)
+      coef_lower_dim <- t(lm.fit(round(t(x) %*% space, 10), round(t(y) %*% space, 10))$coefficient)
       coef_is_na <- apply(coef_lower_dim, 2, anyNA)
 
       # Tricky bit! [x,y] has 2n dim, but we only have n observations.
