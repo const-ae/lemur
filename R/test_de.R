@@ -36,13 +36,17 @@ test_differential_expression <- function(fit,
       rep(colnames(fit), each = nrow(fit))
     }
   }
+  consider <- match.arg(consider)
+  with_lm <- consider == "embedding+linear" || consider == "linear"
+  with_emb <- consider == "embedding+linear" || consider == "embedding"
 
 
   cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$design_matrix), formula = fit$design)
   diff <- if(inherits(cntrst, "contrast_relation")){
-    predict(fit, newdesign = cntrst$lhs) - predict(fit, newdesign = cntrst$rhs)
+    predict(fit, newdesign = cntrst$lhs, with_linear_model = with_lm, with_differential_embedding = with_emb) -
+      predict(fit, newdesign = cntrst$rhs, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }else{
-    predict(fit, newdesign = cntrst)
+    predict(fit, newdesign = cntrst, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }
   if(variance_est == "bootstrap"){
     preds <- vapply(fit$bootstrap_samples, \(bs){
