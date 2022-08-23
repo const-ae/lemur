@@ -50,6 +50,7 @@ test_that("spheres are correctly implemented", {
   x <- project_sphere_tangent(randn(5, 1), p)
   expect_lt(t(p) %*% x, 1e-12)
 
+  expect_equal(sphere_map(0 * x, p), p)
 
   # Going once around brings you back to beginning
   z <- x / sqrt(sum(x^2)) * 2 * pi
