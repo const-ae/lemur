@@ -330,23 +330,21 @@ setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, 
   approx <- if(with_linear_model){
     object$linear_coefficients %*% t(newdesign)
   }else{
-    matrix(0, nrow = object$n_embedding, ncol = nrow(newdesign))
+    matrix(0, nrow = object$n_ambient, ncol = nrow(newdesign))
   }
 
-  mm_groups <- get_groups(newdesign, n_groups = 100)
-  for(gr in unique(mm_groups)){
-    covar <- newdesign[which(mm_groups == gr)[1],]
-    diffemb <- if(with_differential_embedding){
-      grassmann_map(sum_tangent_vectors(object$diffemb_coefficients, covar), object$diffemb_basepoint)
-    }else{
-      diag(nrow = object$n_ambient, ncol = object$n_embedding)
+  if(with_differential_embedding){
+    mm_groups <- get_groups(newdesign, n_groups = 100)
+    for(gr in unique(mm_groups)){
+      covar <- newdesign[which(mm_groups == gr)[1],]
+      diffemb <- grassmann_map(sum_tangent_vectors(object$diffemb_coefficients, covar), object$diffemb_basepoint)
+      alignment <- if(with_alignment){
+        rotation_map(sum_tangent_vectors(object$alignment_coefficients, covar), diag(nrow = object$n_embedding))
+      }else{
+        diag(nrow = object$n_embedding)
+      }
+      approx[,gr == mm_groups] <- approx[,gr == mm_groups] + diffemb %*% alignment %*% diffemb_embedding[,gr == mm_groups]
     }
-    alignment <- if(with_alignment){
-      rotation_map(sum_tangent_vectors(object$alignment_coefficients, covar), diag(nrow = object$n_embedding))
-    }else{
-      diag(nrow = object$n_embedding)
-    }
-    approx[,gr == mm_groups] <- diffemb %*% alignment %*% diffemb_embedding[,gr == mm_groups]
   }
 
   if(with_ambient_pca){
