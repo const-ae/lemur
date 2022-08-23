@@ -4,23 +4,30 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                               refit_ambient_pca = TRUE,
                               refit_linear_model = TRUE,
                               refit_differential_embedding = TRUE,
-                              refit_alignment = TRUE){
+                              refit_alignment = TRUE,
+                              verbose = TRUE){
+  if(! refit_ambient_pca){
+    # This is the slowest step of the bootstrapping
+    # (I don't think I can do much about it though)
+    original_embedding <- t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset)
+  }
 
   bootstraps <- lapply(seq_len(n_bootstrap_samples), function(idx){
-
+    if(verbose) message("Start bootstrap iteration ", idx)
     resampling <- sample(seq_len(ncol(fit)), size = ncol(fit), replace = TRUE)
+
     design_matrix <- fit$design_matrix[resampling,,drop=FALSE]
-    data_mat <- assay(fit, "expr")[,resampling,drop=FALSE]
     base_point <- fit$diffemb_basepoint
 
     if(refit_ambient_pca){
+      data_mat <- assay(fit, "expr")[,resampling,drop=FALSE]
       amb_pca <- NULL
     }else{
       # Project data on coordinate system
-      embedding <- t(fit$ambient_coordsystem) %*% data_mat
+      embedding <- original_embedding[,resampling,drop=FALSE]
       # If amb_pca is provided, 'differential_embedding_impl' doesn't need 'data_mat'
       # except to check that 'n_ambient' is correct
-      data_mat <- matrix(nrow = nrow(data_mat), ncol = 0)
+      data_mat <- matrix(nrow = nrow(fit), ncol = 0)
       amb_pca <- list(coordsystem = fit$ambient_coordsystem, embedding = embedding, offset = fit$ambient_offset)
     }
 
@@ -57,11 +64,15 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 diffemb_embedding = diffemb_embedding,
                                 alignment_coefficients = alignment_coefficients, verbose = FALSE)
 
-    # Use the results of the resampled fit, to make 'diffemb_embedding' corresponding to the original data
-    refitted_Y_clean <- t(res$ambient_coordsystem) %*% (assay(fit, "expr") - res$ambient_offset) - res$linear_coefficients %*% t(fit$design_matrix)
-    refitted_diffemb_embedding <-project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
-                                                         diffemb_coefficients = res$diffemb_coefficients,
-                                                         base_point = base_point)
+    # Use the results of the resampled fit, to make 'diffemb_embedding' correspond to the original data
+    refitted_Y_clean <- if(refit_ambient_pca){
+      t(res$ambient_coordsystem) %*% assay(fit, "expr") - t(res$ambient_coordsystem) %*% res$ambient_offset - res$linear_coefficients %*% t(fit$design_matrix)
+    }else{
+      original_embedding - res$linear_coefficients %*% t(fit$design_matrix)
+    }
+    refitted_diffemb_embedding <- project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
+                                                          diffemb_coefficients = res$diffemb_coefficients,
+                                                          base_point = base_point)
 
     # Create DiffEmbFit object
     samp <- DiffEmbFit(NULL, col_data = as.data.frame(matrix(nrow = ncol(fit), ncol = 0)),
