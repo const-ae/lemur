@@ -5,10 +5,11 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
                                    n_ambient = 30, n_embedding = 15,
                                    alignment = FALSE,
                                    base_point = c("global_embedding", "mean"),
+                                   use_assay = "logcounts",
                                    ...,
                                    verbose = TRUE){
 
-  data_mat <- glmGamPoi:::handle_data_parameter(data, FALSE)
+  data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
 
   col_data <- glmGamPoi:::get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data)
@@ -53,6 +54,17 @@ differential_embedding_impl <- function(Y, design_matrix,
   if(is.null(amb_pca)){
     if(verbose) message("Fit ambient PCA")
     amb_pca <- pca(Y, n_ambient)
+  }else{
+    # Check that amb_pca is correct
+    stopifnot(all(names(amb_pca) %in% c("coordsystem", "embedding", "offset")))
+    stopifnot(ncol(amb_pca$coordsystem) == n_ambient)
+    stopifnot(nrow(amb_pca$embedding) == n_ambient)
+    stopifnot(length(amb_pca$offset) == nrow(Y))
+    rand_sel <- sample(seq_len(ncol(Y)), min(ncol(Y), 100))
+    pred_emb <- t(amb_pca$coordsystem) %*% (Y[,rand_sel,drop=FALSE] - amb_pca$offset)
+    if(! all(abs(pred_emb - amb_pca$embedding[,rand_sel,drop=FALSE]) < 1e-8)){
+      stop("The provided ambient PCA ('amb_pca') does not match the observed data. Does 'use_assay' match the assay that was used to calculate the PCA?")
+    }
   }
 
   # Regress out overall effects

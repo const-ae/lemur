@@ -90,7 +90,25 @@ test_that("predicting works", {
 
 })
 
+test_that("providing a pre-calculated PCA works", {
+  dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
+  pca <- pca(assay(dat), n = 20)
+  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 20,
+                                n_embedding = 5, verbose = FALSE,
+                                amb_pca = pca)
 
+  expect_error(differential_embedding(dat, design = ~ condition, n_ambient = 10,
+                                       n_embedding = 5, verbose = FALSE, amb_pca = pca))
+
+  assay(dat, "sin") <- sin(assay(dat, "logcounts"))
+  expect_error(differential_embedding(dat, design = ~ condition, n_ambient = 20,
+                                      n_embedding = 5, verbose = FALSE,
+                                      use_assay = "sin", amb_pca = pca))
+  expect_silent(
+    estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+  )
+
+})
 
 test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
