@@ -15,6 +15,27 @@ test_that("test_differential_expression works", {
   expect_equal(res[, c("feature", "obs")], res2[, c("feature", "obs")])
 })
 
+test_that("test_differential_expression works with custom diffemb_embedding", {
+  dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 5, n_embedding = 3, verbose = FALSE)
+  fit <- align_embeddings(fit, alignment = dat$cell_type, verbose = FALSE)
+
+  fit <- estimate_variance(fit, n_bootstrap_samples = 3, verbose = FALSE)
+  fit <- fit[,1:10]
+  test_point <- matrix(0, nrow = 3, ncol = 1)
+  colnames(test_point) <- "zero"
+  res <- test_differential_expression(fit, fact(condition = "b") == fact(condition = "a"),
+                                      diffemb_embedding = test_point)
+  res2 <- test_differential_expression(fit, conditionb, diffemb_embedding = test_point)
+
+  expect_equal(nrow(res), 30)
+  expect_equal(res$obs, rep("zero", 30))
+  expect_equal(nrow(res2), 30)
+  expect_equal(res2$obs, rep("zero", 30))
+  expect_equal(res[, c("feature", "obs")], res2[, c("feature", "obs")])
+})
+
 
 test_that("test_differential_embedding works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)

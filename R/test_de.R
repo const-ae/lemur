@@ -3,8 +3,8 @@
 test_differential_expression <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
+                                        diffemb_embedding = fit$diffemb_embedding,
                                         consider = c("embedding+linear", "embedding", "linear"),
-                                        pseudobulk_by = NULL,
                                         variance_est = c("bootstrap", "none"),
                                         return = c("table", "matrix")){
   variance_est <- match.arg(variance_est)
@@ -17,14 +17,14 @@ test_differential_expression <- function(fit,
   }
   if(return == "table"){
     feature_names <- if(is.null(rownames(fit))){
-      paste0("feature_", seq_len(nrow(fit)))
+      rep(paste0("feature_", seq_len(nrow(fit))), times = ncol(diffemb_embedding))
     }else{
-      rep(rownames(fit), times = ncol(fit))
+      rep(rownames(fit), times = ncol(diffemb_embedding))
     }
-    obs_names <- if(is.null(colnames(fit))){
-      paste0("obs_", seq_len(nrow(fit)))
+    obs_names <- if(is.null(colnames(diffemb_embedding))){
+      rep(paste0("obs_", seq_len(ncol(diffemb_embedding))), each = nrow(fit))
     }else{
-      rep(colnames(fit), each = nrow(fit))
+      rep(colnames(diffemb_embedding), each = nrow(fit))
     }
   }
   consider <- match.arg(consider)
@@ -34,15 +34,16 @@ test_differential_expression <- function(fit,
 
   cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$design_matrix), formula = fit$design)
   diff <- if(inherits(cntrst, "contrast_relation")){
-    predict(fit, newdesign = cntrst$lhs, with_linear_model = with_lm, with_differential_embedding = with_emb) -
-      predict(fit, newdesign = cntrst$rhs, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    predict(fit, newdesign = cntrst$lhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb) -
+      predict(fit, newdesign = cntrst$rhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }else{
-    predict(fit, newdesign = cntrst, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    predict(fit, newdesign = cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }
   if(variance_est == "bootstrap"){
     preds <- vapply(fit$bootstrap_samples, \(bs){
-      test_differential_expression(bs, cntrst, consider = consider, variance_est = "none", return = "matrix")
-    }, FUN.VALUE = array(0.0, dim(fit)))
+      test_differential_expression(bs, cntrst, reduced_design = reduced_design, diffemb_embedding = diffemb_embedding,
+                                   consider = consider, variance_est = "none", return = "matrix")
+    }, FUN.VALUE = array(0.0, c(nrow(fit), ncol(diffemb_embedding))))
     diff <- apply(preds, c(1,2), mean)
     sd <- apply(preds, c(1,2), sd)
 
@@ -81,7 +82,6 @@ test_differential_embedding <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),
-                                        pseudobulk_by = NULL,
                                         variance_est = c("bootstrap", "analytical", "none"), verbose = TRUE){
 
 
@@ -181,7 +181,6 @@ test_differential_embedding <- function(fit,
 test_differential_abundance <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
-                                        pseudobulk_by = NULL,
                                         variance_est = c("none", "bootstrap")){
 
   stop("Not implemented")

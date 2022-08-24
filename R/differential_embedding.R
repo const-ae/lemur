@@ -328,7 +328,7 @@ setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, 
                                                         with_differential_embedding = TRUE,
                                                         with_alignment = TRUE,
                                                         ...){
-  predict_impl(object, newdata = newdata, newdesign = newdesign,
+  predict_impl(object, newdata = newdata, newdesign = newdesign, diffemb_embedding = diffemb_embedding,
                with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
                with_differential_embedding = with_differential_embedding, with_alignment = with_alignment)
 
@@ -353,7 +353,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     if(is.null(design)) stop("'newdata' is provided, but 'object' does not contain a design formula.")
     newdesign <- model.matrix(design, newdata)
   }else if(! is.matrix(newdesign)){
-    newdesign <- matrix(newdesign, nrow = ncol(object), ncol = length(newdesign), byrow = TRUE)
+    newdesign <- matrix(newdesign, nrow = ncol(diffemb_embedding), ncol = length(newdesign), byrow = TRUE)
   }
   if(nrow(newdesign) != ncol(diffemb_embedding)){
     stop("The number of rows in 'newdesign' must match the number of columns in 'diffemb_embedding'")
