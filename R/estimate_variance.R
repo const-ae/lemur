@@ -1,5 +1,18 @@
 
-
+#' Bootstrap the fit to get an estimate of the parameter variances
+#'
+#' @param fit the result produced by [`differential_embedding`]
+#' @param n_bootstrap_samples how many bootstrap samples to produce. Note that
+#'   the function has a high startup cost, but each additional bootstrap is fast.
+#' @param refit_ambient_pca Fitting the ambient PCA is often the slowest step when
+#'   fitting the differential embedding model. Thus, by default, it is set to `FALSE`
+#'   for the bootstrap samples.
+#' @param refit_linear_model,refit_differential_embedding,refit_alignment additional
+#'   flags to set which part of the model are copied from the original fit and which are
+#'   bootstrapped. By default, they are all `TRUE`
+#' @param verbose Should the method print information during the fitting. Default: `TRUE`.
+#'
+#' @export
 estimate_variance <- function(fit, n_bootstrap_samples = 100,
                               refit_ambient_pca = FALSE,
                               refit_linear_model = TRUE,

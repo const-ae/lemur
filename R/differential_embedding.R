@@ -1,6 +1,29 @@
 
 
-
+#' Main function to fit the differential embedding object
+#'
+#' @param data a matrix with obsevations in the columns and features in the rows.
+#'   Or a `SummarizedExperiment` / `SingleCellExperiment` object
+#' @param design a formula referring to global objects or column in the `colData` of `data`
+#'   and `col_data` argument
+#' @param col_data an optional data frame with `ncol(data)` rows.
+#' @param n_ambient the dimension of the ambient PCA. This should be large enough
+#'   to capture all relevant variation in the data
+#' @param n_embedding the dimension of the $k$-plane that is rotated through space.
+#'   Needs to be smaller than `n_ambient`.
+#' @param alignment optional specification how or if points should be aligned. This
+#'   can also be done in a separate step by calling [`align_embeddings`].
+#' @param base_point a string specifying how to find the base point for the geodesic
+#'   regression. Alternatively, an orthogonal matrix with `n_ambient` \eqn{\times} `n_embedding`
+#'   dimension.
+#' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
+#'   which assay should be used.
+#' @param ... additional parameters that are passed on to the internal function `differential_embedding_impl`.
+#'   For example, if you have pre-calculated the ambient PCA, you can provide it as a list with
+#'   the `coordsystem`, `embedding` and `offset` fields, to speed-up the fit.
+#' @param verbose Should the method print information during the fitting. Default: `TRUE`.
+#'
+#' @export
 differential_embedding <- function(data, design = ~ 1, col_data = NULL,
                                    n_ambient = 30, n_embedding = 15,
                                    alignment = FALSE,
@@ -156,7 +179,18 @@ sum_tangent_vectors <- function(tangent_block, covariates){
 }
 
 
-align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE, ...){
+
+#' Enforce additional alignment of cell clusters beyond the direct differential embedding
+#'
+#' @param alignment a factor of length `ncol(data)`. The method tries to put elements with the
+#'   the same factor level close to each other. `NA` entries are ignored.
+#' @param verbose Should the method print information during the fitting. Default: `TRUE`.
+#' @param ... additional parameters that are passed on to the internal function `align_points_impl`.
+#'   For example, `n_iter`, `tolerance`, and `target_layout`
+#'
+#'
+#' @export
+align_embeddings <- function(fit, alignment = TRUE, verbose = TRUE, ...){
   if(isTRUE(alignment)){
     # Cluster each condition
     exp_group <- get_groups(design_matrix, 10)
