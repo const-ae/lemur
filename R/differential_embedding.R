@@ -206,9 +206,9 @@ align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
       n_emb <-  nrow(mds_layout)
       reflec_mat <- diag(c(rep(1, n_emb - 1), -1), nrow = n_emb)
       rot1 <- rotation_map(drop(rotation_lm(data = embedding[,exp_group_red == exp_group_red[1],drop=FALSE], design = matrix(1, nrow = ncol(mds_layout)),
-                                                obs = mds_layout, base_point = diag(nrow = n_emb))), base_point = diag(nrow = n_emb))
+                                            obs_embedding = mds_layout, base_point = diag(nrow = n_emb))), base_point = diag(nrow = n_emb))
       rot2 <- rotation_map(drop(rotation_lm(data = embedding[,exp_group_red == exp_group_red[1],drop=FALSE],
-                                                design = matrix(1, nrow = ncol(mds_layout)), obs = reflec_mat %*% mds_layout,
+                                                design = matrix(1, nrow = ncol(mds_layout)), obs_embedding = reflec_mat %*% mds_layout,
                                                 base_point = diag(nrow = n_emb))), base_point = diag(nrow = n_emb))
       if(sum((embedding[,exp_group_red == exp_group_red[1],drop=FALSE] - rot1 %*% mds_layout)^2) <
          sum((embedding[,exp_group_red == exp_group_red[1],drop=FALSE] - rot2  %*% reflec_mat %*% mds_layout)^2)){

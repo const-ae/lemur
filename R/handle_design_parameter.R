@@ -19,7 +19,7 @@ handle_design_parameter <- function(design, data, col_data){
              "the number of samples: ", n_samples)
       }
     }
-    tmp <- glmGamPoi:::convert_chr_vec_to_model_matrix(design, reference_level)
+    tmp <- glmGamPoi:::convert_chr_vec_to_model_matrix(design, NULL)
     model_matrix <- tmp$model_matrix
     design_formula <- tmp$formula
     attr(design_formula, "constructed_from") <- "vector"
@@ -57,8 +57,8 @@ handle_design_parameter <- function(design, data, col_data){
     stop("The model_matrix has more columns (", ncol(model_matrix),
          ") than the there are samples in the data matrix (", n_samples, " columns).\n",
          "Too few replicates / too many coefficients to fit model.\n",
-         "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)), "\n",
-         "The head of the data: \n", format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)))
+         "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(model_matrix, n = 3)), "\n",
+         "The head of the data: \n", glmGamPoi:::format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)))
   }
 
   # Check rank of model_matrix
@@ -68,11 +68,11 @@ handle_design_parameter <- function(design, data, col_data){
     if(any(is_zero_column)){
       stop("The model matrix seems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
            "Column ", paste0(head(which(is_zero_column), n=10), collapse = ", "), " contains only zeros. \n",
-           "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)))
+           "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(model_matrix, n = 3)))
     }else{
       stop("The model matrix seems degenerate ('matrix_rank(model_matrix) < ncol(model_matrix)'). ",
            "Some columns are perfectly collinear. Did you maybe include the same coefficient twice?\n",
-           "The head of the design matrix: \n", format_matrix(head(model_matrix, n = 3)))
+           "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(model_matrix, n = 3)))
     }
   }
 

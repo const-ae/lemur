@@ -137,7 +137,7 @@ test_differential_embedding <- function(fit,
   }
   if(variance_est == "analytical"){
     warning("Analytical calculation of p-values doesn't work yet.")
-    fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design = reduced_design_mat,
+    fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
                                            n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                            alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
                                            amb_pca = list(coordsystem = fit$ambient_coordsystem,
