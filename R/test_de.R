@@ -18,7 +18,7 @@
 #' @param variance_est How or if the variance should be estimated
 #' @param return Should the function return a matrix or a long table of the results
 #'
-#'
+#' @export
 test_differential_expression <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
