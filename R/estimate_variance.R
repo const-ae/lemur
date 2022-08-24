@@ -66,7 +66,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
 
     # Use the results of the resampled fit, to make 'diffemb_embedding' correspond to the original data
     refitted_Y_clean <- if(refit_ambient_pca){
-      t(res$ambient_coordsystem) %*% assay(fit, "expr") - t(res$ambient_coordsystem) %*% res$ambient_offset - res$linear_coefficients %*% t(fit$design_matrix)
+      t(res$ambient_coordsystem) %*% (assay(fit, "expr") - res$ambient_offset) - res$linear_coefficients %*% t(fit$design_matrix)
     }else{
       original_embedding - res$linear_coefficients %*% t(fit$design_matrix)
     }

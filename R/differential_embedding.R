@@ -328,11 +328,30 @@ setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, 
                                                         with_differential_embedding = TRUE,
                                                         with_alignment = TRUE,
                                                         ...){
+  predict_impl(object, newdata = newdata, newdesign = newdesign,
+               with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
+               with_differential_embedding = with_differential_embedding, with_alignment = with_alignment)
+
+})
+
+predict_impl <- function(object, newdata = NULL, newdesign = NULL,
+                         diffemb_embedding = object$diffemb_embedding,
+                         with_ambient_pca = TRUE,
+                         with_linear_model = TRUE,
+                         with_differential_embedding = TRUE,
+                         with_alignment = TRUE,
+                         n_ambient = object$n_ambient, n_embedding = object$n_embedding,
+                         design_matrix = object$design_matrix, design = object$design,
+                         ambient_coordsystem = object$ambient_coordsystem, ambient_offset = object$ambient_offset,
+                         linear_coefficients = object$linear_coefficients,
+                         diffemb_coefficients = object$diffemb_coefficients,
+                         diffemb_basepoint = object$diffemb_basepoint,  alignment_coefficients = object$alignment_coefficients,
+                         ...){
   if(is.null(newdesign) && is.null(newdata)){
-    newdesign <- object$design_matrix
+    newdesign <- design_matrix
   }else if(! is.null(newdata)){
-    if(is.null(fit$design)) stop("'newdata' is provided, but 'object' does not contain a design formula.")
-    newdesign <- model.matrix(fit$design, newdata)
+    if(is.null(design)) stop("'newdata' is provided, but 'object' does not contain a design formula.")
+    newdesign <- model.matrix(design, newdata)
   }else if(! is.matrix(newdesign)){
     newdesign <- matrix(newdesign, nrow = ncol(object), ncol = length(newdesign), byrow = TRUE)
   }
@@ -340,31 +359,31 @@ setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, 
     stop("The number of rows in 'newdesign' must match the number of columns in 'diffemb_embedding'")
   }
   approx <- if(with_linear_model){
-    object$linear_coefficients %*% t(newdesign)
+    linear_coefficients %*% t(newdesign)
   }else{
-    matrix(0, nrow = object$n_ambient, ncol = nrow(newdesign))
+    matrix(0, nrow = n_ambient, ncol = nrow(newdesign))
   }
 
   if(with_differential_embedding){
     mm_groups <- get_groups(newdesign, n_groups = 100)
     for(gr in unique(mm_groups)){
       covar <- newdesign[which(mm_groups == gr)[1],]
-      diffemb <- grassmann_map(sum_tangent_vectors(object$diffemb_coefficients, covar), object$diffemb_basepoint)
+      diffemb <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covar), diffemb_basepoint)
       alignment <- if(with_alignment){
-        rotation_map(sum_tangent_vectors(object$alignment_coefficients, covar), diag(nrow = object$n_embedding))
+        rotation_map(sum_tangent_vectors(alignment_coefficients, covar), diag(nrow = n_embedding))
       }else{
-        diag(nrow = object$n_embedding)
+        diag(nrow = n_embedding)
       }
       approx[,gr == mm_groups] <- approx[,gr == mm_groups] + diffemb %*% alignment %*% diffemb_embedding[,gr == mm_groups]
     }
   }
 
   if(with_ambient_pca){
-    object$ambient_coordsystem %*% approx + object$ambient_offset
+    ambient_coordsystem %*% approx + ambient_offset
   }else{
     approx
   }
-})
+}
 
 
 
