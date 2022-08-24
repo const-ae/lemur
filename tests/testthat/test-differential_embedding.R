@@ -50,7 +50,7 @@ test_that("subsetting works", {
 
   # Align cells
   align <- fit2$colData$cell_type
-  fit2 <- align_embeddings(fit2, alignment = align)
+  fit2 <- align_embeddings(fit2, alignment = align, verbose = FALSE)
   expect_true(validObject(fit2))
   fit3 <- fit2[rep(c(TRUE, FALSE), length = 10), ][1:2,]
   expect_true(validObject(fit3))
@@ -80,7 +80,7 @@ test_that("predicting works", {
   # predict(fit)
   # plot(logcounts(dat), pred); abline(0,1)
   # sum((logcounts(dat) - pred)^2)
-  fit2 <- align_embeddings(fit, alignment = sample(letters[1:3], ncol(fit), replace = TRUE))
+  fit2 <- align_embeddings(fit, alignment = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
   expect_equal(predict(fit), predict(fit2))
   # plot(predict(fit, with_differential_embedding = FALSE, with_alignment = FALSE),
   #      predict(fit2, with_differential_embedding = FALSE, with_alignment = FALSE))
@@ -135,7 +135,7 @@ test_that("align_embeddings works", {
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
-  fit2 <- align_embeddings(fit, alignment = alignment)
+  fit2 <- align_embeddings(fit, alignment = alignment, verbose = FALSE)
   expect_equal(fit2$alignment_method, alignment)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_coefficients, fit2$alignment_coefficients)

@@ -95,7 +95,7 @@ differential_embedding_impl <- function(Y, design_matrix,
     stop("Fixing 'alignment_coefficients' without fixing 'diffemb_embedding' is not implemented")
   }else if(is.null(alignment_coefficients)){
     if(verbose) message("Align points")
-    align_res <- align_points_impl(alignment, diffemb_embedding, design_matrix)
+    align_res <- align_points_impl(alignment, diffemb_embedding, design_matrix, verbose = verbose)
     diffemb_embedding <- align_res$diffemb_embedding
     alignment_coefficients <- align_res$alignment_coefficients
   }
@@ -191,7 +191,7 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = FALSE, ...){
 
 
 align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
-                              n_iter = 1, tolerance = 1e-8, target_layout = c("mean", "spherical_mds"), verbose = FALSE){
+                              n_iter = 1, tolerance = 1e-8, target_layout = c("mean", "spherical_mds"), verbose = TRUE){
 
   target_layout <- if(target_layout[1] == "mean"){
     function(embedding, alignment_red, exp_group_red){

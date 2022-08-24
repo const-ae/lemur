@@ -1,7 +1,7 @@
 
 
 estimate_variance <- function(fit, n_bootstrap_samples = 100,
-                              refit_ambient_pca = TRUE,
+                              refit_ambient_pca = FALSE,
                               refit_linear_model = TRUE,
                               refit_differential_embedding = TRUE,
                               refit_alignment = TRUE,
