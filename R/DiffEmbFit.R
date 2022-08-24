@@ -1,7 +1,5 @@
 
 #' @export
-#' @importFrom S4Vectors metadata `metadata<-`
-#' @importFrom SummarizedExperiment assayNames assay
 .DiffEmbFit <- setClass("DiffEmbFit", contains = "SingleCellExperiment")
 
 DiffEmbFit <- function(data_mat, col_data, row_data,

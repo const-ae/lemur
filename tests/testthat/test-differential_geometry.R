@@ -68,7 +68,7 @@ test_that("spheres are correctly implemented", {
 
   #### Check log
 
-  expect_true(all(sphere_log(p, p) == 0))
+  expect_equal(c(sphere_log(p, p)), rep(0, times = 5))
 
   p <- randn(5, 1)
   x <- project_sphere_tangent(randn(5, 1), p)

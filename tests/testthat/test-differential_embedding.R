@@ -44,7 +44,7 @@ test_that("subsetting works", {
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_embedding = 5, n_ambient = 30, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 2)
+  fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
   fit2 <- fit[1:10, 101:120]
   expect_true(validObject(fit2))
 
@@ -105,7 +105,7 @@ test_that("providing a pre-calculated PCA works", {
                                       n_embedding = 5, verbose = FALSE,
                                       use_assay = "sin", amb_pca = pca))
   expect_silent(
-    estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+    estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   )
 
 })
@@ -114,7 +114,7 @@ test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
-  fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+  fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
 
   expect_null(fit$bootstrap_samples)
   expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
@@ -130,7 +130,7 @@ test_that("align_embeddings works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE)
+  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 

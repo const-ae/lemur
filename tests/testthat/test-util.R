@@ -15,7 +15,7 @@ test_that("dist_sphere works", {
   y <- scale(randn(6, 4), center = FALSE)
   dists <- dist_sphere(t(y))
   expect_s3_class(dists, "dist")
-  expect_equal(dim(dists), c(4,4))
+  expect_equal(dim(as.matrix(dists)), c(4,4))
 
   p <- randn(6, 1)
   v <- project_sphere_tangent(randn(6, 1), p)
