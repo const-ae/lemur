@@ -137,8 +137,6 @@ duplicate_cols <- function(m, times, each){
 }
 
 
-sum_third_dimension <- einsum::einsum_generator("ijk->ij")
-
 dist_sphere <- function(x){
   x <- t(x)
   radii <- colSums(x^2)
