@@ -41,9 +41,9 @@ random_grassmann_tangent <- function(p, ...){
   n <- nrow(p)
   k <- ncol(p)
   Z <- randn(n, k, ...)
-  X <- project_grassmann_tangent(p, Z)
-  norm_X <- sqrt(sum(X^2))
-  X / norm_X
+  project_grassmann_tangent(Z, p)
+  # norm_X <- sqrt(sum(X^2))
+  # X / norm_X
 }
 
 # Rotations (SO(n))

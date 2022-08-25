@@ -1,3 +1,29 @@
+
+test_that("Grassmann manifold functions are correct", {
+  p <- random_grassmann_point(5, 2)
+  expect_equal(t(p) %*% p, diag(nrow = 2))
+
+  v <- random_grassmann_tangent(p)
+  expect_equal(t(p) %*% v + t(v) %*% p, matrix(0, nrow = 2, ncol = 2))
+
+  p2 <- grassmann_map(v, p)
+  valt <- grassmann_log(p, p2)
+  expect_equal(qr(cbind(grassmann_map(valt, p),  grassmann_map(v, p)))$rank, 2)
+  # v and valt are somehow equivalent, in the sense that going to direction
+  # v/valt from p results in the same space.
+  # valt is the minimal transition from p to p2
+  expect_lt(sum(valt^2), sum(v^2))
+
+  # check that grassmann_map and log are consistent
+  p3 <- random_grassmann_point(5, 2)
+  p4 <- random_grassmann_point(5, 2)
+
+  v34 <- grassmann_log(p3, p4)
+  expect_equal(t(p3) %*% v34 + t(v34) %*% p3, matrix(0, nrow = 2, ncol = 2))
+  expect_equal(qr(grassmann_map(v34, p3), p4)$rank, 2) # They span the same space
+  expect_equal(grassmann_log(p3, grassmann_map(v34, p3)), v34)
+})
+
 test_that("projection to rotation manifold works", {
 
   mat <- randn(5, 5)
