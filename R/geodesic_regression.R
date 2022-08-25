@@ -98,14 +98,16 @@ rotation_geodesic_regression <- function(rotations, design, base_point, tangent_
 
   # Initialize with tangent regression (if possible)
   tangent_vecs <- lapply(rotations, \(rot){
-    # TODO: only extract upper triangular matrix, because
-    # the other elements are redundant.
-    as.vector(rotation_log(base_point, rot))
+    c(rotation_log(base_point, rot)[upper.tri(rot)])
   })
   merged_vecs <- stack_cols(tangent_vecs)
   tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
   tangent_fit[is.na(tangent_fit)] <- 0
-  coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx) matrix(tangent_fit[,idx], nrow = n_amb, ncol = n_amb)))
+  coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx){
+    res <- matrix(0, nrow = n_amb, ncol = n_amb)
+    res[upper.tri(res)] <- tangent_fit[,idx]
+    res - t(res)
+  }))
   dimnames(coef) <- list(NULL, NULL, colnames(tangent_fit))
 
 

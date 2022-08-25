@@ -38,6 +38,19 @@ test_that("rotation_geodesic_regression works", {
   rot <- rotation_map(fit[,,2], base_point)
   expect_lt(sum((t(rot) %*% rot - diag(nrow = 5))^2), 1e-8)
 
+  # rotation_geodesic_regression produces reasonable output
+  p <- random_rotation_point(5)
+  v <- random_rotation_tangent(p, sd = 0.1)
+  p2 <- rotation_map(v, p)
+  fit <- rotation_geodesic_regression(list(p2), design = matrix(1),
+                                      base_point = p)
+  expect_equal(drop(fit), v)
+
+  fit <- rotation_geodesic_regression(list(p, p2), design = cbind(1, c(0,1)),
+                                      base_point = diag(nrow = 5))
+  expect_equal(fit[,,1], expm::logm(p))
+  expect_equal(fit[,,1] + fit[,,2], expm::logm(p2))
+
 })
 
 
