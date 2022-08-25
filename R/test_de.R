@@ -67,6 +67,9 @@ test_differential_expression <- function(fit,
     sd <- apply(preds, c(1,2), sd)
 
     if(return == "matrix"){
+      colnames(sd) <- colnames(diff) <- colnames(diffemb_embedding)
+      rownames(sd) <- rownames(diff) <- rownames(fit)
+
       list(diff = diff, sd = sd)
     }else{
       pval <- if(! inherits(cntrst, "contrast_relation") || cntrst$relation == "equal"){
@@ -87,6 +90,8 @@ test_differential_expression <- function(fit,
     }
   }else{ # variance_est == "none"
     if(return == "matrix"){
+      colnames(diff) <- colnames(diffemb_embedding)
+      rownames(diff) <- rownames(fit)
       diff
     }else{
       data.frame(feature = feature_names,

@@ -413,8 +413,13 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   }
 
   if(with_ambient_pca){
-    ambient_coordsystem %*% approx + ambient_offset
+    res <- ambient_coordsystem %*% approx + ambient_offset
+    colnames(res) <- rownames(newdesign)
+    rownames(res) <- rownames(object)
+    res
   }else{
+    colnames(approx) <- rownames(newdesign)
+    rownames(approx) <- paste0("latent_", seq_len(nrow(approx)))
     approx
   }
 }
