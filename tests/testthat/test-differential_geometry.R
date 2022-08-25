@@ -1,5 +1,5 @@
 
-test_that("Grassmann manifold functions are correct", {
+test_that("Random Grassmann manifold functions are correct", {
   p <- random_grassmann_point(5, 2)
   expect_equal(t(p) %*% p, diag(nrow = 2))
 
@@ -33,6 +33,29 @@ test_that("projection to rotation manifold works", {
   expect_lt(sum((rot_mat %*% t(rot_mat) - diag(nrow = 5))^2), 1e-8)
 
 })
+
+test_that("Random rotation manifold functions are correct", {
+  p <- random_rotation_point(5)
+  expect_equal(t(p) %*% p, diag(nrow = 5))
+  expect_equal(p %*% t(p), diag(nrow = 5))
+
+  v <- random_rotation_tangent(p)
+  expect_equal(v, -t(v))
+
+  p2 <- rotation_map(v, p)
+  valt <- rotation_log(p, p2)
+  expect_equal(v, valt)
+
+  # check that rotation_map and log are consistent
+  p3 <- random_rotation_point(5)
+  p4 <- random_rotation_point(5)
+
+  v34 <- rotation_log(p3, p4)
+  expect_equal(v34, -t(v34))
+  expect_equal(rotation_map(v34, p3), p4)
+  expect_equal(rotation_log(p3, rotation_map(v34, p3)), v34)
+})
+
 
 
 test_that("projection to rotation manifold is minimal for incomplete matrices", {

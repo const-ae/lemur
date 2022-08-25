@@ -92,6 +92,19 @@ rotation_log <- function(p, q){
 }
 
 
+random_rotation_point <- function(n, ...){
+  V <- randn(n, n, ...)
+  project_rotation(V)
+}
+
+random_rotation_tangent <- function(p, ...){
+  n <- nrow(p)
+  stopifnot(n == ncol(p))
+  Z <- randn(n, n, ...)
+  project_rotation_tangent(Z, p)
+}
+
+
 # # Stiefel
 #
 # stiefel_map <- function(x, base_point){
