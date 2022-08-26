@@ -69,7 +69,7 @@ differential_embedding_impl <- function(Y, design_matrix,
   alignment_fixed_but_embedding_fitted <- ! is.null(alignment_coefficients) && is.null(diffemb_embedding)
 
   # Set reduced dimensions
-  stopifnot(n_embedding > 0 && n_embedding > 0)
+  stopifnot(n_ambient >= 0 && n_embedding >= 0)
   n_ambient <- min(nrow(Y), n_ambient)
   n_embedding <- min(n_embedding, n_ambient)
 

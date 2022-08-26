@@ -25,7 +25,11 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, tang
   # Initialize with tangent regression (if possible)
   tangent_vecs <- lapply(coordsystems, \(emb) as.vector(grassmann_log(base_point, emb)))
   merged_vecs <- stack_cols(tangent_vecs)
-  tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+  tangent_fit <- if(nrow(merged_vecs) == 0){
+    matrix(nrow = 0, ncol = ncol(merged_vecs))
+  }else{
+    t(lm.fit(design, t(merged_vecs))$coefficients)
+  }
   coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx) matrix(tangent_fit[,idx], nrow = n_amb, ncol = n_emb)))
   dimnames(coef) <- list(NULL, NULL, colnames(tangent_fit))
 
@@ -101,7 +105,11 @@ rotation_geodesic_regression <- function(rotations, design, base_point, tangent_
     c(rotation_log(base_point, rot)[upper.tri(rot)])
   })
   merged_vecs <- stack_cols(tangent_vecs)
-  tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+  tangent_fit <- if(nrow(merged_vecs) == 0){
+    matrix(nrow = 0, ncol = ncol(merged_vecs))
+  }else{
+    tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+  }
   tangent_fit[is.na(tangent_fit)] <- 0
   coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx){
     res <- matrix(0, nrow = n_amb, ncol = n_amb)
@@ -151,7 +159,7 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     y <- data[,sel,drop=FALSE]
     data_rank <- min(qr(x)$rank, qr(y)$rank)
     if(data_rank == 0){
-      stop("Not sure what to do now")
+      matrix(NA_real_, nrow = 0, ncol = 0)
     }else if(data_rank < n_amb){
       # The system is underdetermined.
 

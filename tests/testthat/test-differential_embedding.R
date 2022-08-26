@@ -110,6 +110,25 @@ test_that("providing a pre-calculated PCA works", {
 
 })
 
+test_that("n_embedding = 0 works", {
+
+  dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
+  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 5,
+                                n_embedding = 0, verbose = FALSE)
+  zero_dim_mat <- matrix(nrow = 5, ncol = 0)
+  expect_equal(fit$diffemb_basepoint, zero_dim_mat)
+  expect_equal(fit$diffemb_coefficients, array(dim = c(5, 0, 3)), ignore_attr = "dimnames")
+  expect_equal(fit$diffemb_embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
+  expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
+
+  fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
+  fit <- align_embeddings(fit, alignment = sample(LETTERS[1:2], 500, replace = TRUE), verbose = FALSE)
+  expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
+  res1 <- test_differential_expression(fit, contrast = c(1,0,0))
+  res2 <- test_differential_expression(fit, contrast = c(1,0,0), consider = "linear")
+  expect_equal(res1, res2)
+})
+
 test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
