@@ -139,3 +139,17 @@ test_that("spheres are correctly implemented", {
   expect_equal(sphere_map(v, p), q)
 })
 
+
+test_that("zero-dimensional arguments work", {
+  zero_dim_mat <- matrix(NA_real_, nrow = 0, ncol = 0)
+  expect_equal(random_grassmann_point(0, 0), zero_dim_mat)
+  expect_equal(random_rotation_point(0), zero_dim_mat)
+  expect_equal(random_grassmann_tangent(zero_dim_mat), zero_dim_mat)
+  expect_equal(random_rotation_tangent(zero_dim_mat), zero_dim_mat)
+
+  expect_equal(rotation_map(zero_dim_mat, zero_dim_mat), zero_dim_mat)
+  expect_equal(grassmann_map(zero_dim_mat, zero_dim_mat), zero_dim_mat)
+  expect_equal(rotation_log(zero_dim_mat, zero_dim_mat), zero_dim_mat)
+  expect_equal(grassmann_log(zero_dim_mat, zero_dim_mat), zero_dim_mat)
+})
+

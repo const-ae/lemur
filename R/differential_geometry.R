@@ -3,11 +3,15 @@
 
 grassmann_map <- function(x, base_point){
   # Adapted from https://github.com/JuliaManifolds/Manifolds.jl/blob/master/src/manifolds/GrassmannStiefel.jl#L93
-  svd <- svd(x)
-  z <- base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)) %*% t(svd$v) +
-    svd$u %*% diag(sin(svd$d), nrow = length(svd$d)) %*% t(svd$v)
-  # qr.Q(qr(z))
-  z
+  if(ncol(base_point) == 0 || nrow(base_point) == 0){
+    base_point
+  }else{
+    svd <- svd(x)
+    z <- base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)) %*% t(svd$v) +
+      svd$u %*% diag(sin(svd$d), nrow = length(svd$d)) %*% t(svd$v)
+    # qr.Q(qr(z))
+    z
+  }
 }
 
 grassmann_log <- function(p, q){
@@ -15,12 +19,15 @@ grassmann_log <- function(p, q){
   n <- nrow(p)
   k <- ncol(p)
   stopifnot(nrow(q) == n, ncol(q) == k)
-
-  z <- t(q) %*% p
-  At <- t(q) - z %*% t(p)
-  Bt <- lm.fit(z, At)$coefficients
-  svd <- svd(t(Bt), k, k)
-  svd$u %*% diag(atan(svd$d), nrow = k) %*% t(svd$v)
+  if(n == 0 || k == 0){
+    p
+  }else{
+    z <- t(q) %*% p
+    At <- t(q) - z %*% t(p)
+    Bt <- lm.fit(z, At)$coefficients
+    svd <- svd(t(Bt), k, k)
+    svd$u %*% diag(atan(svd$d), nrow = k) %*% t(svd$v)
+  }
 }
 
 project_grassmann <- function(x){
@@ -49,9 +56,13 @@ random_grassmann_tangent <- function(p, ...){
 # Rotations (SO(n))
 
 project_rotation <- function(x){
-  svd <- svd(x)
-  diag_elem <- c(rep(1, times = ncol(x) - 1), Matrix::det(svd$u %*% t(svd$v)))
-  svd$u %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(svd$v)
+  if(nrow(x) == 0){
+    x
+  }else{
+    svd <- svd(x)
+    diag_elem <- c(rep(1, times = ncol(x) - 1), Matrix::det(svd$u %*% t(svd$v)))
+    svd$u %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(svd$v)
+  }
 }
 
 project_rotation_tangent <- function(x, base_point){
@@ -63,32 +74,36 @@ rotation_map <- function(x, base_point){
 }
 
 rotation_log <- function(p, q){
-  suppressWarnings({
-    logm <- expm::logm(t(p) %*% q)
-  })
-  if(all(is.na(logm))){
-    # The Higham08 algorithm failed. Try Eigen
-    logm <- tryCatch({
-       expm::logm(t(p) %*% q, method = "Eigen")
-    }, error = function(error){
-      for(idx in 1:10){
-        tmp <- tryCatch({
-          expm::logm(t(p) %*% q + randn(nrow(p), ncol(p), sd = 1e-12), method = "Eigen")
-        }, error = function(error2) NULL)
-        if(is.null(tmp)){
-          # try once more
-        }else{
-          break
-        }
-      }
-      tmp
+  if(nrow(p) == 0){
+    p
+  }else{
+    suppressWarnings({
+      logm <- expm::logm(t(p) %*% q)
     })
-    if(is.null(logm)){
-      stop("Cannot calculate the matrix logarithm. It may not exist")
+    if(all(is.na(logm))){
+      # The Higham08 algorithm failed. Try Eigen
+      logm <- tryCatch({
+         expm::logm(t(p) %*% q, method = "Eigen")
+      }, error = function(error){
+        for(idx in 1:10){
+          tmp <- tryCatch({
+            expm::logm(t(p) %*% q + randn(nrow(p), ncol(p), sd = 1e-12), method = "Eigen")
+          }, error = function(error2) NULL)
+          if(is.null(tmp)){
+            # try once more
+          }else{
+            break
+          }
+        }
+        tmp
+      })
+      if(is.null(logm)){
+        stop("Cannot calculate the matrix logarithm. It may not exist")
+      }
     }
-  }
 
-  skew(logm)
+    skew(logm)
+  }
 }
 
 
