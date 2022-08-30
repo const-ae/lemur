@@ -91,52 +91,37 @@ residuals_impl <- function(object,
 
 
 
-get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_differential_embedding = TRUE,
-                                      redo_pca_fit = FALSE){
-  if(redo_pca_fit){
-    fit_alt <- differential_embedding_impl(Y, design_matrix = reduced_design_mat,
+get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_differential_embedding = TRUE){
+  if(with_differential_embedding){
+    fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
                                            n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                            alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
+                                           amb_pca = list(coordsystem = fit$ambient_coordsystem,
+                                                          embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
+                                                          offset = fit$ambient_offset),
                                            verbose = FALSE)
-    predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
+    Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
                  with_linear_model = TRUE, with_differential_embedding = TRUE,
                  n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients) - Y
+                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients)
   }else{
-    if(with_differential_embedding){
-      fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
-                                             n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
-                                             alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
-                                             amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                            embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
-                                                            offset = fit$ambient_offset),
-                                             verbose = FALSE)
-      predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
-                   with_linear_model = TRUE, with_differential_embedding = TRUE,
-                   n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
-                   design_matrix = fit_alt$design_matrix, design = fit_alt$design,
-                   ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
-                   linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                   diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients) - Y
-    }else{
-      fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
-                                             n_ambient = fit$n_ambient, n_embedding = 0,
-                                             alignment = fit$alignment_method, base_point = matrix(nrow = fit$n_ambient, ncol = 0),
-                                             amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                            embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
-                                                            offset = fit$ambient_offset),
-                                             verbose = FALSE)
-      predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
-                   with_linear_model = TRUE, with_differential_embedding = FALSE,
-                   n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
-                   design_matrix = fit_alt$design_matrix, design = fit_alt$design,
-                   ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
-                   linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                   diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients) - Y
-    }
+    fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
+                                           n_ambient = fit$n_ambient, n_embedding = 0,
+                                           alignment = fit$alignment_method, base_point = matrix(nrow = fit$n_ambient, ncol = 0),
+                                           amb_pca = list(coordsystem = fit$ambient_coordsystem,
+                                                          embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
+                                                          offset = fit$ambient_offset),
+                                           verbose = FALSE)
+    Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
+                 with_linear_model = TRUE, with_differential_embedding = FALSE,
+                 n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
+                 design_matrix = fit_alt$design_matrix, design = fit_alt$design,
+                 ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
+                 linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
+                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients)
   }
 }
 
