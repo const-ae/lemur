@@ -223,9 +223,6 @@ test_differential_embedding <- function(fit,
     }
     if(verbose) message("Estimating null distribution of deviance using ", n_resampling_iter, " iterations.")
     # Applying the Freedman-Lane (1983) permutation method of the residuals
-    # Split the design matrix into shared columns and columns specific to H1
-    separation_mat <- matrix(lm.fit(full_design, reduced_design_mat)$coefficients, ncol = ncol(reduced_design_mat))
-    shared_coefficients <- abs(rowSums(separation_mat^2)) > 1e-12
     # Fit the full
     deviance_ref <- sum(residuals(fit, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
     # Fit the reduced model
