@@ -74,19 +74,26 @@ test_that("subsetting works", {
 
 
 test_that("predicting works", {
+  # Cpmpare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
+  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 10, n_embedding = 3, verbose = FALSE)
+  fit_lm <- lm(t(assay(dat) - fit$ambient_offset) ~ condition, data = colData(dat))
+  expect_equal(fit$ambient_coordsystem %*% fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
+  expect_equal(predict(fit, with_differential_embedding = FALSE),
+               t(predict(fit_lm)) +  fit$ambient_offset, ignore_attr = "dimnames")
+  expect_equal(residuals(fit, with_differential_embedding = FALSE), t(residuals(fit_lm)))
+  expect_equal(predict(fit) + residuals(fit), assay(fit))
+
+
+
+  # Bootstrap works
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  # predict(fit)
-  # plot(logcounts(dat), pred); abline(0,1)
-  # sum((logcounts(dat) - pred)^2)
   fit2 <- align_embeddings(fit, alignment = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
   expect_equal(predict(fit), predict(fit2))
-  # plot(predict(fit, with_differential_embedding = FALSE, with_alignment = FALSE),
-  #      predict(fit2, with_differential_embedding = FALSE, with_alignment = FALSE))
-
   red_fit <- fit[1:3, 1:5]
   expect_equal(dim(predict(red_fit)), c(3, 5))
+
 
 })
 
