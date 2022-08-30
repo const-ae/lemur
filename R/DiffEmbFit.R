@@ -109,7 +109,6 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
 
 #' @export
 setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
-  x <- updateObject(x)
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
     S4Vectors:::disableValidity(TRUE)
@@ -292,6 +291,12 @@ setMethod("bootstrap_samples", signature = "DiffEmbFit", function(object){
 #' @aliases dollar_methods
 setMethod("$", "DiffEmbFit",
           function(x, name){
+            old <- S4Vectors:::disableValidity()
+            if (!isTRUE(old)) {
+              S4Vectors:::disableValidity(TRUE)
+              on.exit(S4Vectors:::disableValidity(old))
+            }
+
             if(! name %in% .methods_to_suggest){
               stop("Illegal name after '$' sign: ", name)
             }
