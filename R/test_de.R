@@ -106,13 +106,17 @@ test_differential_embedding <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),
-                                        variance_est = c("bootstrap", "analytical", "none"), verbose = TRUE){
+                                        variance_est = c("bootstrap", "analytical", "resampling", "none"), verbose = TRUE,
+                                        ...){
 
 
   variance_est <- match.arg(variance_est)
+  if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
+    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_differential_expression()'.")
+  }else if(variance_est == "bootstrap" && missing(contrast)){
+    stop("Boostrap test is only compatible with 'contrast' argument. Not with a 'reduced_design'.")
+  }
   full_design <- fit$design_matrix
-  two_sided <- TRUE
-  dir_less_than <- NA
   consider <- match.arg(consider)
   with_lm <- consider == "embedding+linear" || consider == "linear"
   with_emb <- consider == "embedding+linear" || consider == "embedding"
@@ -121,16 +125,17 @@ test_differential_embedding <- function(fit,
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast.")
   }else if(! missing(contrast)){
-    cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$design_matrix), formula = fit$design)
+    cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(full_design), formula = fit$design)
     if(inherits(cntrst, "contrast_relation")){
-      two_sided <- cntrst$relation == "equal"
-      direction_less_than <- if(two_sided) NA else cntrst$relation == "less_than"
+      if(cntrst$relation != "equal"){
+        stop("differential embedding test can only be two-sided.")
+      }
       cntrst <- cntrst$rhs - cntrst$lhs
     }
     cntrst <- as.matrix(cntrst)
-    if(nrow(cntrst) != ncol(fit$design_matrix)){
+    if(nrow(cntrst) != ncol(full_design)){
       stop("The length of the contrast vector does not match the number of coefficients in the model (",
-           ncol(fit$design_matrix), ")\n", glmGamPoi:::format_matrix(cntrst))
+           ncol(full_design), ")\n", glmGamPoi:::format_matrix(cntrst))
     }
     # The modifying matrix of reduced_design has ncol(design_matrix) - 1 columns and rank.
     # The columns are all orthogonal to cntrst.
@@ -141,7 +146,7 @@ test_differential_embedding <- function(fit,
     # The following is a simplified version of edgeR's glmLRT (line 159 in glmfit.R)
     qrc <- qr(cntrst)
     rot <- qr.Q(qrc, complete = TRUE)[,-1,drop=FALSE]
-    reduced_design_mat <- fit$design_matrix %*% rot
+    reduced_design_mat <- full_design %*% rot
     lfc_diffemb <- sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst))
     lfc_linear_model <- fit$linear_coefficients %*% cntrst
   }else{
@@ -159,30 +164,60 @@ test_differential_embedding <- function(fit,
               "statistical test will be unreliable.")
     }
   }
+
+
+
   if(variance_est == "analytical"){
-    warning("Analytical calculation of p-values doesn't work yet.")
-    fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
-                                           n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
-                                           alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
-                                           amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                          embedding = t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset),
-                                                          offset = fit$ambient_offset),
-                                           verbose = verbose)
-    dev_full <- sum((predict(fit, with_linear_model = with_lm, with_differential_embedding = with_emb) - assay(fit, "expr"))^2)
-    dev_red <- sum((predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
-                                 with_linear_model = with_lm, with_differential_embedding = with_emb,
-                                 n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
-                                 design_matrix = fit_alt$design_matrix, design = fit_alt$design,
-                                 ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
-                                 linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_coefficients = fit_alt$alignment_coefficients) - assay(fit, "expr"))^2)
-    log_likelihood_ratio <- dev_red - dev_full
-    df_test <- (ncol(fit$design_matrix) - ncol(fit_alt$design_matrix)) * (ifelse(with_lm, nrow(fit$design_matrix), 0) +
-                                                                            ifelse(with_emb, fit$n_ambient * fit$n_embedding, 0))
-    if(! two_sided) warning("Only two-sided tests are implemented.")
-    pval <- pchisq(log_likelihood_ratio, df = df_test, lower.tail = FALSE)
+    if(with_emb){
+      stop("Analytical differential embedding test is not implemented. You can set 'consider=\"linear\"")
+    }else{  # only linear test
+      resid_full <- t(fit$ambient_coordsystem) %*% residuals(fit, with_linear_model = TRUE, with_differential_embedding = FALSE, with_ambient_pca = TRUE)
+      resid_red <- t(fit$ambient_coordsystem) %*% get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = TRUE, with_differential_embedding = FALSE)
+      pval <- multivar_wilks_ftest(RSS_full = resid_full %*% t(resid_full),
+                                   RSS_red = resid_red %*% t(resid_red),
+                                   n_features = fit$n_ambient, full_design, reduced_design_mat)
+    }
   }else if(variance_est == "bootstrap"){
-    stop("I am not sure what I need to do here")
+    # Get all fit values and check if they are different from zero
+    vals <- matrix(nrow = 0L, ncol = length(fit$bootstrap_samples))
+    if(with_lm){
+      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(bs$linear_coefficients %*% cntrst), ncol = fit$n_ambient)))
+    }
+    if(with_emb){
+      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$diffemb_coefficients, cntrst)), ncol = fit$n_ambient * fit$n_embedding)))
+    }
+    # Filter out zero variance obs
+    vals <- vals[matrixStats::rowSds(vals) > 1e-12,,drop=FALSE]
+
+    # Do an adapted version of the Hotelling z-test (based on the Mahalanobis distance)
+    # that can handle n_bootstrap < n_ambient * n_coef * (n_embedding + 1)
+    # see https://stats.stackexchange.com/a/514628/130486
+    zstat <- drop(t(rowMeans(vals)) %*% corpcor::invcov.shrink(t(vals), verbose = FALSE) %*% rowMeans(vals))
+    pval <- pchisq(zstat, df = nrow(vals), lower.tail = FALSE)
+  }else if(variance_est == "resampling"){
+    if("n_resampling_iter" %in% ...names()){
+      n_resampling_iter <- list(...)[["n_resampling_iter"]]
+    }else{
+      n_resampling_iter <- 99
+    }
+    if(verbose) message("Estimating null distribution of deviance using ", n_resampling_iter, " iterations.")
+    # Applying the Freedman-Lane (1983) permutation method of the residuals
+    # Split the design matrix into shared columns and columns specific to H1
+    separation_mat <- matrix(lm.fit(full_design, reduced_design_mat)$coefficients, ncol = ncol(reduced_design_mat))
+    shared_coefficients <- abs(rowSums(separation_mat^2)) > 1e-12
+    # Fit the full
+    deviance_ref <- sum(residuals(fit, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
+    # Fit the reduced model
+    resid_red <- get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    predict_red <- assay(fit, "expr") - resid_red
+    deviance_red <- sum(resid_red^2)
+    deviance_delta_null <- vapply(seq_len(n_resampling_iter), \(iter){
+      new_Y <- predict_red + resid_red[,sample.int(ncol(resid_red), replace = FALSE),drop=FALSE]
+      deviance_ref_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = full_design, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
+      deviance_red_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
+      deviance_red_new - deviance_ref_new
+    }, FUN.VALUE = numeric(1L))
+    pval <- (sum((deviance_red - deviance_ref) < deviance_delta_null) + 1) / (n_resampling_iter + 1)
   }else{ # variance_est == "none"
     pval <- NA
   }
@@ -192,12 +227,11 @@ test_differential_embedding <- function(fit,
     data.frame(contrast = rlang::as_label(rlang::enquo(contrast)),
                pval = pval,
                change_diffemb = I(list(lfc_diffemb)),
-               change_linear = I(list(lfc_linear_model)),
-               dev_full = dev_full, dev_red = dev_red, df = df_test)
+               change_linear = I(list(lfc_linear_model)))
   }else{
-    data.frame(full_design = if(! is.null(fit$design)) rlang::as_label(fit$design) else paste0("design matrix with ", ncol(fit$design_matrix), " columns"),
+    data.frame(full_design = if(! is.null(fit$design)) rlang::as_label(fit$design) else rlang::as_label(fit$design_matrix),
                reduced_design = rlang::as_label(reduced_design),
-               pval = pval, dev_full = dev_full, dev_red = dev_red, df = df_test)
+               pval = pval)
   }
 }
 
@@ -212,4 +246,19 @@ test_differential_abundance <- function(fit,
 }
 
 
+multivar_wilks_ftest <- function(RSS_full, RSS_red, n_features, design_matrix_full, design_matrix_red){
+  # Following https://socialsciences.mcmaster.ca/jfox/Books/Companion/appendices/Appendix-Multivariate-Linear-Models.pdf
+  stopifnot(nrow(design_matrix_full) == nrow(design_matrix_red))
+  k1 <- ncol(design_matrix_full)
+  k2 <- ncol(design_matrix_red)
+
+  lambdas <- eigen((RSS_red - RSS_full) %*% solve(RSS_full))$values
+  wilks_lambda <- prod(1/(1 + lambdas))
+  df <- k1 - k2
+  r <- nrow(design_matrix_full) - k1 - 1 - (n_features - df + 1) / 2
+  u <- (n_features * df - 2) / 4
+  t <- ifelse(n_features^2 + df^2 - 5 <= 0, 0, sqrt(n_features^2 * df^2 - 4) / (n_features^2 + df^2 - 5))
+  fstat <- (1 - wilks_lambda^(1/t)) / wilks_lambda^(1/t) * (r * t - 2 * u) / (n_features * df)
+  pf(fstat, df1 = n_features * df, df2 = r * t - 2 * u, lower.tail = FALSE)
+}
 

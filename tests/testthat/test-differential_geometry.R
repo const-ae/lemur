@@ -120,7 +120,7 @@ test_that("spheres are correctly implemented", {
   expect_equal(c(sphere_log(p, p)), rep(0, times = 5))
 
   p <- randn(5, 1)
-  x <- project_sphere_tangent(randn(5, 1), p)
+  x <- project_sphere_tangent(randn(5, 1, sd = 0.1), p)
   q <- sphere_map(x, p)
   v <- sphere_log(p, q)
   expect_lt(t(p) %*% v, 1e-12)
