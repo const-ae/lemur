@@ -26,7 +26,7 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, tang
   tangent_vecs <- lapply(coordsystems, \(emb) as.vector(grassmann_log(base_point, emb)))
   merged_vecs <- stack_cols(tangent_vecs)
   tangent_fit <- if(nrow(merged_vecs) == 0){
-    matrix(nrow = 0, ncol = ncol(merged_vecs))
+    matrix(nrow = 0, ncol = ncol(design))
   }else{
     t(lm.fit(design, t(merged_vecs))$coefficients)
   }
