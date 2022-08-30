@@ -151,7 +151,7 @@ test_differential_embedding <- function(fit,
       if(cntrst$relation != "equal"){
         stop("differential embedding test can only be two-sided.")
       }
-      cntrst <- cntrst$rhs - cntrst$lhs
+      cntrst <- cntrst$lhs - cntrst$rhs
     }
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(full_design)){
