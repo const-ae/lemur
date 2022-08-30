@@ -273,7 +273,7 @@ multivar_wilks_ftest <- function(RSS_full, RSS_red, n_features, design_matrix_fu
   k1 <- ncol(design_matrix_full)
   k2 <- ncol(design_matrix_red)
 
-  lambdas <- eigen((RSS_red - RSS_full) %*% solve(RSS_full))$values
+  lambdas <- Re(eigen((RSS_red - RSS_full) %*% solve(RSS_full))$values)
   wilks_lambda <- prod(1/(1 + lambdas))
   df <- k1 - k2
   r <- nrow(design_matrix_full) - k1 - 1 - (n_features - df + 1) / 2
