@@ -65,6 +65,7 @@ differential_embedding_impl <- function(Y, design_matrix,
                                         diffemb_coefficients = NULL,
                                         diffemb_embedding = NULL,
                                         alignment_coefficients = NULL,
+                                        n_iter = 10, tol = 1e-8,
                                         verbose = TRUE){
   alignment_fixed_but_embedding_fitted <- ! is.null(alignment_coefficients) && is.null(diffemb_embedding)
 
@@ -72,6 +73,10 @@ differential_embedding_impl <- function(Y, design_matrix,
   stopifnot(n_ambient >= 0 && n_embedding >= 0)
   n_ambient <- min(nrow(Y), n_ambient)
   n_embedding <- min(n_embedding, n_ambient)
+  linear_coef_fixed <-  ! is.null(linear_coefficients)
+  diffemb_coef_fixed <- ! is.null(diffemb_coefficients)
+  diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
+  alignment_coef_fixed <- ! is.null(alignment_coefficients)
 
   # Reduce to ambient space
   if(is.null(amb_pca)){
@@ -90,38 +95,57 @@ differential_embedding_impl <- function(Y, design_matrix,
     }
   }
 
-  # Regress out overall effects
-  if(is.null(linear_coefficients)){
-    if(verbose) message("Regress out global effects")
-    linear_fit <- lm.fit(design_matrix, t(amb_pca$embedding))
-    linear_coefficients <- t(linear_fit$coefficients)
-    Y_clean <- t(linear_fit$residuals)
-  }else{
+  # Initialize values
+  if(linear_coef_fixed){
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
+  }else{
+    Y_clean <- amb_pca$embedding
   }
-
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
     base_point <- find_base_point(Y_clean, base_point, n_embedding = n_embedding)
   }
-  if(is.null(diffemb_coefficients)){
-    if(verbose) message("Fit Grassmann linear model")
-    diffemb_coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
-  }
-  if(is.null(diffemb_embedding)){
-    diffemb_embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
-                                                 diffemb_coefficients = diffemb_coefficients, base_point = base_point)
+
+  last_round_error <- sum(amb_pca$embedding^2)
+  if(verbose) message("Fit differential embedding model")
+  if(verbose) message("-Iteration: ", 0, "\terror: ", sprintf("%.3g", last_round_error))
+  for(iter in seq_len(n_iter)){
+    if(! diffemb_coef_fixed){
+      if(verbose) message("---Fit Grassmann linear model")
+      diffemb_coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
+    }
+    if(! diffemb_embedding_fixed){
+      diffemb_embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
+                                                   diffemb_coefficients = diffemb_coefficients, base_point = base_point)
+    }
+    if(! linear_coef_fixed){
+      if(verbose) message("---Update linear regression")
+      Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix,
+                                                                     diffemb_coefficients = diffemb_coefficients, base_point = base_point)
+      linear_fit <- lm.fit(design_matrix, t(Y_clean))
+      linear_coefficients <- t(linear_fit$coefficients)
+    }
+    Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
+    error <- sum(linear_fit$residuals^2)
+    if(verbose) message("-Iteration: ", iter, "\terror: ", sprintf("%.3g", error))
+    if(abs(last_round_error - error) / (error + 0.5) < tol){
+      if(verbose) message("Converged")
+      break
+    }else{
+      last_round_error <- error
+    }
   }
 
   if(alignment_fixed_but_embedding_fitted){
     # Rotate the diffemb_embedding if it wasn't provided
     stop("Fixing 'alignment_coefficients' without fixing 'diffemb_embedding' is not implemented")
-  }else if(is.null(alignment_coefficients)){
-    if(verbose) message("Align points")
+  }else if(! alignment_coef_fixed){
+    if(verbose && ! isFALSE(alignment)) message("Align points")
     align_res <- align_points_impl(alignment, diffemb_embedding, design_matrix, verbose = verbose)
     diffemb_embedding <- align_res$diffemb_embedding
     alignment_coefficients <- align_res$alignment_coefficients
   }
+
 
   list(n_ambient = n_ambient, n_embedding = n_embedding,
        ambient_coordsystem = amb_pca$coordsystem, ambient_offset = amb_pca$offset,
@@ -158,13 +182,24 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
 }
 
 
+project_diffemb_into_data_space <- function(diffemb_embedding, design, diffemb_coefficients, base_point){
+  n_amb <- nrow(base_point)
+  res <- matrix(NA, nrow = n_amb, ncol = ncol(diffemb_embedding))
+  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  for(gr in unique(mm_groups)){
+    covars <- design[which(mm_groups == gr)[1], ]
+    res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covars), base_point) %*% diffemb_embedding[,mm_groups == gr,drop=FALSE]
+  }
+  res
+}
+
 project_data_on_diffemb <- function(Y_clean, design, diffemb_coefficients, base_point){
   n_emb <- ncol(base_point)
   res <- matrix(NA, nrow = n_emb, ncol = ncol(Y_clean))
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(diffemb_coefficients, covars), base_point)) %*% Y_clean[,mm_groups ==gr,drop=FALSE]
+    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(diffemb_coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]
   }
   res
 }

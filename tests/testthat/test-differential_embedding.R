@@ -34,7 +34,6 @@ test_that("the fit is valid", {
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
   expect_equal(dim(fit$linear_coefficients), c(30, 3))
   expect_equal(fit$alignment_coefficients, array(0, dim = c(5, 5, 3)))
-
 })
 
 
@@ -76,7 +75,7 @@ test_that("subsetting works", {
 test_that("predicting works", {
   # Cpmpare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
-  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 10, n_embedding = 3, verbose = FALSE)
+  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 10, n_embedding = 0, verbose = FALSE)
   fit_lm <- lm(t(assay(dat) - fit$ambient_offset) ~ condition, data = colData(dat))
   expect_equal(fit$ambient_coordsystem %*% fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
   expect_equal(predict(fit, with_differential_embedding = FALSE),
@@ -141,7 +140,6 @@ test_that("bootstrapping works", {
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
   fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
-
   expect_null(fit$bootstrap_samples)
   expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
   expect_equal(rownames(fit2$bootstrap_samples[[1]]), rownames(fit2))
@@ -149,6 +147,15 @@ test_that("bootstrapping works", {
   expect_equal(fit2$bootstrap_samples[[1]]$ambient_coordsystem, fit2$ambient_coordsystem)
   # The differential embeddings of the bootstraps should be well correlated
   expect_gt(cor(c(fit2$diffemb_embedding), c(fit2$bootstrap_samples[[1]]$diffemb_embedding)), 0.9)
+})
+
+
+test_that("linear fit and embedding don't work against each other", {
+  Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
+  group <- c(sample(letters[1:2], 100, replace = TRUE),
+           sample(letters[1:2], 60, replace = TRUE, prob = c(5,1)))
+  fit <- differential_embedding(Y, design = ~ group, verbose = FALSE)
+  expect_equal(fit$linear_coefficients, matrix(0, ncol = 2), ignore_attr = "dimnames")
 })
 
 

@@ -181,7 +181,7 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
                           base_point = bp, tangent_regression = TRUE))
   rot <- rotation_map(res, bp)
   # x are rotated to y
-  expect_lt(sum((rot %*% x - y)^2), 1e-18)
+  expect_lt(sum((rot %*% x - y)^2), 1e-12)
   # points in the null space of [x,y] are not affected by the rotation
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
