@@ -20,8 +20,22 @@ test_that("grassmann_lm works", {
   col_data <- data.frame(x = sample(letters[1:3], size = n_obs, replace = TRUE))
   des <- model.matrix(~ x, col_data)
   base_point <- qr.Q(qr(randn(5, 2)))
-  grassmann_lm(data, des, base_point)
+  fit <- grassmann_lm(data, des, base_point)
+  plane_a <- pca(data[,col_data$x == "a"], n = 2)$coordsystem
+  plane_b <- pca(data[,col_data$x == "b"], n = 2)$coordsystem
+  plane_c <- pca(data[,col_data$x == "c"], n = 2)$coordsystem
+  expect_equal(principal_angle(grassmann_map(fit[,,"(Intercept)"], base_point), plane_a), c(0,0))
+  expect_equal(principal_angle(grassmann_map(fit[,,"(Intercept)"] + fit[,,"xb"], base_point), plane_b), c(0,0))
+  expect_equal(principal_angle(grassmann_map(fit[,,"(Intercept)"] + fit[,,"xc"], base_point), plane_c), c(0,0))
 
+  expect_equal(fit[,,"(Intercept)"], grassmann_log(base_point, plane_a))
+  expect_equal(fit[,,"(Intercept)"] + fit[,,"xb"], grassmann_log(base_point, plane_b))
+  # x = f(p, a)
+  # x + y = f(p, b)
+  # -!-> y = f(b, a)
+  #expect_equal(fit[,,"xb"], grassmann_log(plane_b, plane_a))
+  # ---> y  = f(p, b) - f(p, a)
+  expect_equal(fit[,,"xb"], grassmann_log(base_point, plane_b) - grassmann_log(base_point, plane_a))
 })
 
 
