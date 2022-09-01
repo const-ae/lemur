@@ -60,13 +60,21 @@ test_differential_expression <- function(fit,
   }
   if(variance_est == "bootstrap"){
     # Welfords's online algorithm to calculate mean and sd of bootstrap estimates
-    preds <- fold_left(list(mean = array(0, dim(fit)),
-                            msq = array(0, dim(fit)), iter = 1))(fit$bootstrap_samples, \(elem, accum){
-      de <- test_differential_expression(elem, cntrst, reduced_design = reduced_design, diffemb_embedding = diffemb_embedding,
-                                   consider = consider, variance_est = "none", return = "matrix")
-      delta <- de - accum$mean
+    msq_init <- mean_init <- matrix(0, nrow = nrow(fit), ncol = ncol(diffemb_embedding))
+    preds <- fold_left(list(mean = mean_init, msq = msq_init, iter = 1))(fit$bootstrap_samples, \(elem, accum){
+      diff <- if(inherits(cntrst, "contrast_relation")){
+        linearCoefficients <- elem$linear_coefficients
+        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+                with_differential_embedding = with_emb) -
+          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+                  with_differential_embedding = with_emb)
+      }else{
+        predict(elem, newdesign = cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+                with_differential_embedding = with_emb)
+      }
+      delta <- diff - accum$mean
       accum$mean <- accum$mean + delta / accum$iter
-      accum$msq <- delta * (de - accum$mean)
+      accum$msq <- delta * (diff - accum$mean)
       accum$iter <- accum$iter + 1
       accum
     })
