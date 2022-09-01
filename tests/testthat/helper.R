@@ -54,3 +54,6 @@ make_vectors <- function(n_genes, n_obs, sd = 0.1){
   list(x=x, y=y, z=z, bp=bp, pert=pert)
 }
 
+principal_angle <- function(A, B){
+  acos(pmax(0, pmin(1, svd(t(qr.Q(qr(A))) %*% qr.Q(qr(B)))$d))) / pi * 180
+}

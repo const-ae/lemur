@@ -24,6 +24,18 @@ test_that("Random Grassmann manifold functions are correct", {
   expect_equal(grassmann_log(p3, grassmann_map(v34, p3)), v34)
 })
 
+test_that("Grassmann angles work", {
+  for(idx in 1:10){
+    p <- random_grassmann_point(10, 3)
+    v <- random_grassmann_tangent(p, sd =  runif(n = 1, 0.01, 2))
+    theta <- grassmann_angle_from_tangent(v, normalized = TRUE)
+    expect_gt(theta, 0)
+    expect_lt(theta, 90)
+    q <- grassmann_map(v, p)
+    expect_equal(theta, tail(principal_angle(p, q), n = 1))
+  }
+})
+
 test_that("projection to rotation manifold works", {
 
   mat <- randn(5, 5)

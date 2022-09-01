@@ -16,6 +16,7 @@ grassmann_map <- function(x, base_point){
 
 grassmann_log <- function(p, q){
   # Adapted from https://github.com/JuliaManifolds/Manifolds.jl/blob/master/src/manifolds/GrassmannStiefel.jl#L174
+  # The Grassmann manifold handbook proposes an alternative algorithm in section 5.2
   n <- nrow(p)
   k <- ncol(p)
   stopifnot(nrow(q) == n, ncol(q) == k)
@@ -52,6 +53,24 @@ random_grassmann_tangent <- function(p, ...){
   # norm_X <- sqrt(sum(X^2))
   # X / norm_X
 }
+
+
+grassmann_angle_from_tangent <- function(x, normalized = TRUE){
+  # Conversion of tangent vector to angle taken from Proposition 5.1 of the Grassmann manifold handbook
+  thetas <- (svd(x)$d / pi * 180)
+  if(normalized){
+    thetas <- thetas %% 180
+    max(pmin(thetas, 180 - thetas))
+  }else{
+    thetas[1]
+  }
+}
+
+grassmann_angle_from_points <- function(p, q){
+  grassmann_angle_from_tangent(grassmann_log(p, q))
+}
+
+
 
 # Rotations (SO(n))
 
