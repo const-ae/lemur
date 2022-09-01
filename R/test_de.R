@@ -59,12 +59,19 @@ test_differential_expression <- function(fit,
     predict(fit, newdesign = cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }
   if(variance_est == "bootstrap"){
-    preds <- vapply(fit$bootstrap_samples, \(bs){
-      test_differential_expression(bs, cntrst, reduced_design = reduced_design, diffemb_embedding = diffemb_embedding,
+    # Welfords's online algorithm to calculate mean and sd of bootstrap estimates
+    preds <- fold_left(list(mean = array(0, dim(fit)),
+                            msq = array(0, dim(fit)), iter = 1))(fit$bootstrap_samples, \(elem, accum){
+      de <- test_differential_expression(elem, cntrst, reduced_design = reduced_design, diffemb_embedding = diffemb_embedding,
                                    consider = consider, variance_est = "none", return = "matrix")
-    }, FUN.VALUE = array(0.0, c(nrow(fit), ncol(diffemb_embedding))))
-    diff <- apply(preds, c(1,2), mean)
-    sd <- apply(preds, c(1,2), sd)
+      delta <- de - accum$mean
+      accum$mean <- accum$mean + delta / accum$iter
+      accum$msq <- delta * (de - accum$mean)
+      accum$iter <- accum$iter + 1
+      accum
+    })
+    diff <- preds$mean
+    sd <- sqrt(preds$msq / (length(fit$bootstrap_samples) - 1))
 
     if(return == "matrix"){
       colnames(sd) <- colnames(diff) <- colnames(diffemb_embedding)
