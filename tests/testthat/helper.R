@@ -1,20 +1,6 @@
 
 
 make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_lat = 2, treatment_effect = 0.1){
-  skew <- function(M) (M - t(M)) / 2
-
-  randn <- function(n, m, ...){
-    matrix(rnorm(n * m, ...), nrow = n, ncol = m)
-  }
-
-  duplicate_rows <- function(m, times = 1){
-    do.call(rbind, lapply(seq_len(times), \(i) m))
-  }
-
-  duplicate_cols <- function(m, times = 1){
-    do.call(cbind, lapply(seq_len(times), \(i) m))
-  }
-
   n_lat <- min(n_lat, n_genes)
   centers <- randn(n_centers, n_lat, sd = 2)
   true_Z <- matrix(c(centers) + rnorm(n_cells * n_centers * n_lat, sd = 0.1), nrow = n_lat, ncol = n_cells)
