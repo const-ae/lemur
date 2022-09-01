@@ -248,8 +248,9 @@ test_differential_embedding <- function(fit,
   if(! missing(contrast)){
     data.frame(contrast = rlang::as_label(rlang::enquo(contrast)),
                pval = pval,
-               change_diffemb = I(list(lfc_diffemb)),
-               change_linear = I(list(lfc_linear_model)))
+               delta_diffemb = I(list(lfc_diffemb)),
+               delta_linear = I(list(lfc_linear_model)),
+               angle_degrees = grassmann_angle_from_tangent(lfc_diffemb, normalized = TRUE))
   }else{
     data.frame(full_design = if(! is.null(fit$design)) rlang::as_label(fit$design) else rlang::as_label(fit$design_matrix),
                reduced_design = rlang::as_label(reduced_design),

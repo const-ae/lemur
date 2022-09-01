@@ -56,6 +56,26 @@ test_that("test_differential_embedding works", {
   expect_s3_class(res2, "data.frame")
 })
 
+test_that("the angle between planes is correctly calculated", {
+  n_emb <- 4
+  dat <- make_synthetic_data(n_genes = 30, n_cells = 5000, n_lat = 5, n_centers = 3)
+  fitlm <- lm(t(assay(dat)) ~ dat$condition)
+  assay(dat) <- t(fitlm$residuals)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 8, n_embedding = n_emb, verbose = FALSE)
+  expect_equal(fit$linear_coefficients, matrix(0, nrow = fit$n_ambient, ncol = 3), ignore_attr = "dimnames")
+  # The angle and delta_diffemb for a left-right contrast are slightly different than the results
+  # for a one-sided contrast. The left-right contrast is slighly more accurate because it calculate
+  # log(map(a, p), map(b, p)) instead of simply a - b
+  res <- test_differential_embedding(fit, contrast = fact(condition = "a") - fact(condition = "b"),
+                                      variance_est = "none", verbose = FALSE)
+  res2 <- test_differential_embedding(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+                                     variance_est = "none", verbose = FALSE)
+  plane_a <- pca(assay(dat)[,dat$condition == "a"], n = n_emb)$coordsystem
+  plane_b <- pca(assay(dat)[,dat$condition == "b"], n = n_emb)$coordsystem
+  expect_equal(res2$angle_degrees, tail(principal_angle(plane_a, plane_b), n = 1))
+})
+
 test_that("test_differential_embedding's analytical test produces uniform p-values", {
   skip("Long running test")
 
