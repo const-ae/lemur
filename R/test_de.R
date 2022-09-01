@@ -227,12 +227,13 @@ test_differential_embedding <- function(fit,
       vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$diffemb_coefficients, cntrst)), ncol = fit$n_ambient * fit$n_embedding)))
     }
     # Filter out zero variance obs
-    vals <- vals[matrixStats::rowSds(vals) > 1e-6,,drop=FALSE]
+    # vals <- vals[matrixStats::rowSds(vals) > 1e-6,,drop=FALSE]
 
     # Do an adapted version of the Hotelling z-test (based on the Mahalanobis distance)
     # that can handle n_bootstrap < n_ambient * n_coef * (n_embedding + 1)
     # see https://stats.stackexchange.com/a/514628/130486
-    zstat <- drop(t(rowMeans(vals)) %*% corpcor::invcov.shrink(t(vals), verbose = FALSE) %*% rowMeans(vals))
+    # zstat <- drop(t(rowMeans(vals)) %*% corpcor::invcov.shrink(t(vals), verbose = FALSE) %*% rowMeans(vals))
+    zstat <- drop(t(rowMeans(vals)) %*% diag(1/(matrixStats::rowVars(vals)+1e-5), nrow = nrow(vals)) %*% rowMeans(vals))
     pval <- pchisq(zstat, df = nrow(vals), lower.tail = FALSE)
   }else if(variance_est == "resampling"){
     if("n_resampling_iter" %in% ...names()){
