@@ -151,7 +151,11 @@ test_differential_embedding <- function(fit,
       if(cntrst$relation != "equal"){
         stop("differential embedding test can only be two-sided.")
       }
+      lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$lhs)), fit$diffemb_basepoint),
+                                   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$rhs)), fit$diffemb_basepoint))
       cntrst <- cntrst$lhs - cntrst$rhs
+    }else{
+      lfc_diffemb <- sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst))
     }
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(full_design)){
@@ -168,7 +172,7 @@ test_differential_embedding <- function(fit,
     qrc <- qr(cntrst)
     rot <- qr.Q(qrc, complete = TRUE)[,-1,drop=FALSE]
     reduced_design_mat <- full_design %*% rot
-    lfc_diffemb <- sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst))
+
     lfc_linear_model <- fit$linear_coefficients %*% cntrst
   }else{
     reduced_design_mat <- handle_design_parameter(reduced_design, fit, fit$colData)$model_matrix
