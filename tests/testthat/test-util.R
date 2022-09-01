@@ -31,3 +31,11 @@ test_that("dist_sphere works", {
 
 
 })
+
+
+test_that("fold_left works", {
+  expect_equal(fold_left(0)(1:10, \(elem, accum) accum + elem), sum(1:10))
+  expect_equal(fold_left(1)(1:10, \(elem, accum) accum * elem), prod(1:10))
+  expect_equal(fold_left(NULL)(2:10, \(elem, accum) if(is.null(accum)) elem * 5 else accum * elem), 5 * prod(2:10))
+  expect_error(fold_left(0)(1:10, \(x, y) accum + elem))
+})

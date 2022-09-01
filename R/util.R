@@ -155,3 +155,46 @@ normalize_vec_length <- function(x){
   vec_lens <- sqrt(colSums(x^2))
   t(t(x) / vec_lens)
 }
+
+#' Fold left over a sequence
+#'
+#' @param init initial value. If not specified `NULL`
+#' @param x the sequence to iterate over
+#' @param FUN a function with first argument named `elem` and second argument
+#'   named `accum`
+#'
+#'
+#' @examples
+#'   # This produces ...
+#'   fold_left(0)(1:10, \(elem, accum) accum + elem)
+#'   # ... the same as
+#'   sum(1:10)
+fold_left <- function(init){
+  if(missing(init)){
+    init <- NULL
+  }
+  function(x, FUN){
+    val <- init
+    for(elem in x){
+      val <- FUN(elem = elem, accum = val)
+    }
+    val
+  }
+}
+
+#' Fold right over a sequence
+#' @rdname fold_left
+fold_right<- function(init){
+  if(missing(init)){
+    init <- NULL
+  }
+  function(x, FUN){
+    val <- init
+    for(elem in rev(x)){
+      val <- FUN(elem = elem, accum = val)
+    }
+    val
+  }
+}
+
+
