@@ -74,7 +74,7 @@ test_differential_expression <- function(fit,
       }
       delta <- diff - accum$mean
       accum$mean <- accum$mean + delta / accum$iter
-      accum$msq <- delta * (diff - accum$mean)
+      accum$msq <- accum$msq + delta * (diff - accum$mean)
       accum$iter <- accum$iter + 1
       accum
     })

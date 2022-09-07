@@ -15,6 +15,21 @@ test_that("test_differential_expression works", {
   expect_equal(res[, c("feature", "obs")], res2[, c("feature", "obs")])
 })
 
+test_that("my implementation of Welford's algorithm works", {
+  x <- rnorm(1000)
+  res <- fold_left(list(mean = 0, msq = 0, iter = 1))(x, \(elem, accum){
+    diff <- elem
+    delta <- diff - accum$mean
+    accum$mean <- accum$mean + delta / accum$iter
+    accum$msq <- accum$msq + delta * (diff - accum$mean)
+    accum$iter <- accum$iter + 1
+    accum
+  })
+  expect_equal(res$mean, mean(x))
+  sd <- sqrt(res$msq / (length(x) - 1))
+  expect_equal(sd, sd(x))
+})
+
 test_that("test_differential_expression works with custom diffemb_embedding", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
   fit <- differential_embedding(dat, design = ~ condition,
