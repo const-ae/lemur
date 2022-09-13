@@ -22,7 +22,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
   if(! refit_ambient_pca){
     # This is the slowest step of the bootstrapping
     # (I don't think I can do much about it though)
-    original_embedding <- t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset)
+    original_embedding <- as.matrix(t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset))
   }
 
   bootstraps <- lapply(seq_len(n_bootstrap_samples), function(idx){
