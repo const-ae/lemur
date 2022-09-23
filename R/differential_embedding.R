@@ -66,6 +66,7 @@ differential_embedding_impl <- function(Y, design_matrix,
                                         diffemb_embedding = NULL,
                                         alignment_coefficients = NULL,
                                         n_iter = 10, tol = 1e-8,
+                                        reshuffling_fraction = 0,
                                         verbose = TRUE){
   alignment_fixed_but_embedding_fitted <- ! is.null(alignment_coefficients) && is.null(diffemb_embedding)
 
@@ -93,6 +94,17 @@ differential_embedding_impl <- function(Y, design_matrix,
     if(! all(abs(pred_emb - amb_pca$embedding[,rand_sel,drop=FALSE]) < 1e-8)){
       stop("The provided ambient PCA ('amb_pca') does not match the observed data. Does 'use_assay' match the assay that was used to calculate the PCA?")
     }
+  }
+
+  if(reshuffling_fraction != 0){
+    stopifnot(reshuffling_fraction > 0 && reshuffling_fraction <= 1)
+    warning("Reshuffling elements from the design matrix is a beta feature, that was ",
+            "designed to regularize the differential inference for unmatched populations.\n",
+            "On the down-side a large 'reshuffle_fraction' can adversely affect the accuracy of the inference.",
+            "Please use with care.", call. = FALSE)
+    sel <- sample.int(nrow(design_matrix), size = round(nrow(design_matrix) * reshuffling_fraction), replace = FALSE)
+    shuf_sel <- sample(sel)
+    design_matrix[sel,] <- design_matrix[shuf_sel,]
   }
 
   # Initialize values
