@@ -39,3 +39,15 @@ test_that("fold_left works", {
   expect_equal(fold_left(NULL)(2:10, \(elem, accum) if(is.null(accum)) elem * 5 else accum * elem), 5 * prod(2:10))
   expect_error(fold_left(0)(1:10, \(x, y) accum + elem))
 })
+
+
+test_that("resample works", {
+
+  samp <- resample(3)
+  expect_equal(length(samp), 3)
+  expect_true(all(samp %in% (1:3)))
+
+  group <- sample(letters[1:3], 100, replace = TRUE)
+  samp <- resample(100, group)
+
+})

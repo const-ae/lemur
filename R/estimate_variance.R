@@ -14,6 +14,7 @@
 #'
 #' @export
 estimate_variance <- function(fit, n_bootstrap_samples = 100,
+                              replicates_by = NULL,
                               refit_ambient_pca = FALSE,
                               refit_linear_model = TRUE,
                               refit_differential_embedding = TRUE,
@@ -25,9 +26,15 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     original_embedding <- as.matrix(t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset))
   }
 
+  replicates <- rlang::eval_tidy(rlang::enquo(replicates_by), data = as.data.frame(fit$colData))
+  if(! is.null(replicates)){
+    if(length(unique(replicates)) <= 5) warning("The number of replicates is small. The variance estimates might be unreliable.")
+  }
+
   bootstraps <- lapply(seq_len(n_bootstrap_samples), function(idx){
     if(verbose) message("Start bootstrap iteration ", idx)
-    resampling <- sample(seq_len(ncol(fit)), size = ncol(fit), replace = TRUE)
+    # resampling <- sample(seq_len(ncol(fit)), size = ncol(fit), replace = TRUE)
+    resampling <- resample(ncol(fit), cluster = replicates)
 
     design_matrix <- fit$design_matrix[resampling,,drop=FALSE]
     base_point <- fit$diffemb_basepoint
@@ -67,7 +74,6 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     }else{
       alignment_coefficients <- fit$alignment_coefficients
     }
-
     res <- differential_embedding_impl(data_mat, design_matrix = design_matrix,
                                 n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                 alignment = alignment_method, base_point = base_point,

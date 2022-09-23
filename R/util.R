@@ -198,3 +198,18 @@ fold_right<- function(init){
 }
 
 
+
+resample <- function(size, cluster = NULL){
+  if(is.null(cluster)){
+    sample.int(size, replace = TRUE)
+  }else{
+    # For a description see "Using Cluster Bootstrapping to Analyze Nested Data With a Few Clusters"
+    # by Huang (2018)
+    stopifnot(length(cluster) == size)
+    indices <- seq_len(size)
+    cluster_levels <- unique(cluster)
+    resamp <- sample(cluster_levels, size = length(cluster_levels), replace = TRUE)
+    unlist(lapply(resamp, \(lvl) indices[cluster == lvl]))
+  }
+}
+

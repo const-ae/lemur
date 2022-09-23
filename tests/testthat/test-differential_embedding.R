@@ -177,3 +177,15 @@ test_that("align_embeddings works", {
                fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
 })
 
+
+test_that("Under-determined fits run successfully", {
+  dat <- make_synthetic_data()
+  dat$condition <- as.factor(dat$condition)
+  dat <- dat[,dat$condition != "c"]
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 10, n_embedding = 2, verbose = FALSE)
+  expect_warning({
+    fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition)
+  })
+  expect_silent(test_differential_expression(fit, conditionb))
+})
