@@ -64,12 +64,12 @@ test_differential_expression <- function(fit,
     preds <- fold_left(list(mean = mean_init, msq = msq_init, iter = 1))(fit$bootstrap_samples, \(elem, accum){
       diff <- if(inherits(cntrst, "contrast_relation")){
         linearCoefficients <- elem$linear_coefficients
-        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb) -
-          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
                   with_differential_embedding = with_emb)
       }else{
-        predict(elem, newdesign = cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb)
       }
       delta <- diff - accum$mean
