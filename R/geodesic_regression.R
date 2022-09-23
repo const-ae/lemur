@@ -2,7 +2,7 @@
 #' Solve d(P, exp_p(V * x))^2 for V
 #'
 #'
-grassmann_geodesic_regression <- function(coordsystems, design, base_point, tangent_regression = FALSE){
+grassmann_geodesic_regression <- function(coordsystems, design, base_point, weights = rep(1, length(coordsystems)), tangent_regression = FALSE){
   # Validate input
   n_obs <- nrow(design)
   n_coef <- ncol(design)
@@ -17,9 +17,10 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, tang
   }else{
     stop("Cannot handle coordsystems of type: ", paste0(class(coordsystems), collapse = ", "))
   }
-  stopifnot(length(coordsystems) == nrow(design))
+  stopifnot(length(coordsystems) == n_obs)
   stopifnot(all(vapply(coordsystems, \(emb) nrow(emb) == n_amb && ncol(emb) == n_emb, FUN.VALUE = logical(1L))))
   # stopifnot(all(vapply(coordsystems, \(emb) is_grassmann_element(emb), FUN.VALUE = logical(1L))))
+  stopifnot(length(weights) == n_obs)
 
 
   # Initialize with tangent regression (if possible)
@@ -28,7 +29,7 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, tang
   tangent_fit <- if(nrow(merged_vecs) == 0){
     matrix(nrow = 0, ncol = ncol(design))
   }else{
-    t(lm.fit(design, t(merged_vecs))$coefficients)
+    t(lm.wfit(design, t(merged_vecs), w = weights)$coefficients)
   }
   coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx) matrix(tangent_fit[,idx], nrow = n_amb, ncol = n_emb)))
   dimnames(coef) <- list(NULL, NULL, colnames(tangent_fit))
@@ -68,7 +69,8 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
   groups <- unique(mm_groups)
   reduced_design <- mply_dbl(groups, \(gr) design[which(mm_groups == gr)[1],], ncol = ncol(design))
   group_planes <- lapply(groups, \(gr) pca(data[,mm_groups == gr,drop=FALSE], n = n_emb)$coordsystem)
-  coef <- grassmann_geodesic_regression(group_planes, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
+  elem_per_group <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = 0L)
+  coef <- grassmann_geodesic_regression(group_planes, design = reduced_design, base_point = base_point, weights = elem_per_group, tangent_regression = TRUE)
   if(tangent_regression){
     coef
   }else{
