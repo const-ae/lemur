@@ -78,7 +78,9 @@ test_differential_expression <- function(fit,
       accum$iter <- accum$iter + 1
       accum
     })
-    diff <- preds$mean
+    # The point estimate using the original data is better
+    # than the mean of the bootstrap samples (although they are close anyways)
+    # diff <- preds$mean
     sd <- sqrt(preds$msq / (length(fit$bootstrap_samples) - 1))
 
     if(return == "matrix"){
