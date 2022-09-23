@@ -5,6 +5,8 @@ grassmann_map <- function(x, base_point){
   # Adapted from https://github.com/JuliaManifolds/Manifolds.jl/blob/master/src/manifolds/GrassmannStiefel.jl#L93
   if(ncol(base_point) == 0 || nrow(base_point) == 0){
     base_point
+  }else if(any(is.na(x))){
+    matrix(NA, nrow = nrow(x), ncol = ncol(x))
   }else{
     svd <- svd(x)
     z <- base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)) %*% t(svd$v) +
