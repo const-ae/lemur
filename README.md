@@ -21,7 +21,7 @@ You can install the released version of DiffEmbSeq from
 <https://git.embl.de/ahlmanne/DiffEmbSeq>
 
 To get read access you have set the following *access token* which is
-valid until the 31.08.2022.
+valid until the 05.11.2022.
 
 ``` r
 Sys.setenv(GITLAB_PAT = "glpat-KvTnh36v4jitb_yQaEch")
