@@ -24,7 +24,7 @@ To get read access you have set the following *access token* which is
 valid until the 31.08.2022.
 
 ``` r
-Sys.setenv(GITLAB_PAT = "glpat-_2uHibDPXsgcs9kYxMsM")
+Sys.setenv(GITLAB_PAT = "glpat-KvTnh36v4jitb_yQaEch")
 remotes::install_gitlab(repo = "ahlmanne/DiffEmbSeq", host = "https://git.embl.de/")
 ```
 
@@ -43,10 +43,16 @@ Fit the model
 fit <- DiffEmbSeq::differential_embedding(mat, design = ~ condition, col_data = col_data,
                                           n_ambient = 10, n_embedding = 2)
 #> Fit ambient PCA
-#> Regress out global effects
 #> Find base point for differential embedding
-#> Fit Grassmann linear model
-#> Align points
+#> Fit differential embedding model
+#> -Iteration: 0    error: 6.47e+03
+#> ---Fit Grassmann linear model
+#> ---Update linear regression
+#> -Iteration: 1    error: 4.85e+03
+#> ---Fit Grassmann linear model
+#> ---Update linear regression
+#> -Iteration: 2    error: 4.85e+03
+#> Converged
 fit
 #> class: DiffEmbFit 
 #> dim: 30 500 
@@ -68,30 +74,30 @@ round(fit$diffemb_coefficients, 5)
 #> , , Intercept
 #> 
 #>           [,1]     [,2]
-#>  [1,]  0.00201 -0.00393
-#>  [2,] -0.00119  0.00207
-#>  [3,]  0.06324  0.33867
-#>  [4,] -0.23304 -0.46719
-#>  [5,]  0.08602  0.46378
-#>  [6,] -0.13781  0.09502
-#>  [7,] -0.09884 -0.14099
-#>  [8,] -0.13983  0.24415
-#>  [9,]  0.15734 -0.05495
-#> [10,] -0.03631 -0.03797
+#>  [1,]  0.00000  0.00000
+#>  [2,]  0.00000  0.00000
+#>  [3,] -0.51930  0.61979
+#>  [4,] -0.32508  0.06652
+#>  [5,]  0.20514 -0.29096
+#>  [6,]  0.22391  0.01630
+#>  [7,] -0.24185 -0.07071
+#>  [8,]  0.17054 -0.16438
+#>  [9,] -0.07646 -0.06271
+#> [10,] -0.03062  0.00817
 #> 
 #> , , conditionb
 #> 
 #>           [,1]     [,2]
-#>  [1,] -0.01751  0.01812
-#>  [2,]  0.01143 -0.01220
-#>  [3,]  0.19583 -1.18850
-#>  [4,]  1.05134  0.32174
-#>  [5,]  0.13315 -0.93826
-#>  [6,]  0.78204 -0.32090
-#>  [7,] -0.01098  0.25181
-#>  [8,] -0.15715  0.20281
-#>  [9,] -0.16325 -0.04712
-#> [10,] -0.22024  0.10941
+#>  [1,]  0.00000  0.00000
+#>  [2,]  0.00000  0.00000
+#>  [3,]  0.58501 -1.38694
+#>  [4,]  0.60686  0.51942
+#>  [5,] -0.20612  0.10382
+#>  [6,] -0.54786 -0.03385
+#>  [7,]  0.34128  0.27822
+#>  [8,] -0.16600  0.07207
+#>  [9,]  0.11197  0.20350
+#> [10,] -0.03057  0.01884
 plot(t(fit$diffemb_embedding), col = as.factor(col_data$condition))
 ```
 
@@ -138,13 +144,13 @@ res <- DiffEmbSeq::test_differential_expression(fit, contrast = fact(condition =
                                                 consider = "embedding+linear", variance_est = "bootstrap", 
                                                 return = "table")
 head(res)
-#>     feature   obs       pval  adj_pval          diff     adj_diff        sd
-#> 1 feature_1 obs_1 0.99885395 0.9998219  0.0003341028  0.001436355 0.2326046
-#> 2 feature_2 obs_1 0.33439082 0.9998219 -0.2372139626 -0.965307483 0.2457393
-#> 3 feature_3 obs_1 0.07314758 0.9998219  0.5001220937  1.791908762 0.2791002
-#> 4 feature_4 obs_1 0.44902426 0.9998219  0.2108653023  0.757042729 0.2785382
-#> 5 feature_5 obs_1 0.63679548 0.9998219 -0.0851523931 -0.472183976 0.1803373
-#> 6 feature_6 obs_1 0.94997553 0.9998219 -0.0183343559 -0.062737513 0.2922391
+#>     feature   obs      pval  adj_pval        diff   adj_diff        sd
+#> 1 feature_1 obs_1 0.8689930 0.9956089 -0.04006239 -0.1649377 0.2428940
+#> 2 feature_2 obs_1 0.5717281 0.9750561  0.17651967  0.5655083 0.3121434
+#> 3 feature_3 obs_1 0.6291247 0.9837155 -0.16292456 -0.4829591 0.3373465
+#> 4 feature_4 obs_1 0.7890687 0.9899962  0.06962060  0.2675201 0.2602444
+#> 5 feature_5 obs_1 0.6699281 0.9878032  0.08134729  0.4262467 0.1908456
+#> 6 feature_6 obs_1 0.8437783 0.9931445 -0.04825848 -0.1970630 0.2448886
 ```
 
 Show the gene expression changes on the latent embedding

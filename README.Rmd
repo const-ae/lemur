@@ -26,7 +26,7 @@ You can install the released version of DiffEmbSeq from https://git.embl.de/ahlm
 
 To get read access you have set the following _access token_ which is valid until the 31.08.2022.
 ``` r
-Sys.setenv(GITLAB_PAT = "glpat-_2uHibDPXsgcs9kYxMsM")
+Sys.setenv(GITLAB_PAT = "glpat-KvTnh36v4jitb_yQaEch")
 remotes::install_gitlab(repo = "ahlmanne/DiffEmbSeq", host = "https://git.embl.de/")
 ```
 
