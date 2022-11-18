@@ -116,6 +116,29 @@ test_that("providing a pre-calculated PCA works", {
 
 })
 
+
+test_that("skipping ambient PCA step works", {
+  dat <- make_synthetic_data(n_genes = 5)
+  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 5, n_embedding = 5, verbose = TRUE)
+  fit2 <- differential_embedding(dat, design = ~ condition, n_ambient = 6, n_embedding = 5, verbose = TRUE)
+
+  expect_equal(dim(fit), dim(fit2))
+  expect_equal(fit$n_ambient, nrow(dat))
+  expect_equal(fit2$n_ambient, Inf)
+  expect_equal(fit2$ambient_coordsystem, Matrix::Diagonal(n = nrow(dat)))
+
+  expect_equal(fit$n_embedding, fit2$n_embedding)
+  expect_equal(format(fit$design), format(fit2$design))
+  expect_equal(fit$design_matrix, fit2$design_matrix)
+  # The base points are equal up to the sign
+  expect_equal(abs(fit$ambient_coordsystem %*% fit$diffemb_basepoint), abs(fit2$diffemb_basepoint))
+  sign_equalizer <- lm.fit(fit$ambient_coordsystem %*% fit$diffemb_basepoint, fit2$diffemb_basepoint)$coef
+  plot(fit$ambient_coordsystem %*% fit$linear_coefficients, fit2$linear_coefficients)
+  plot(fit$diffemb_embedding, fit2$diffemb_embedding); abline(0,1)
+  plot(fit$ambient_coordsystem %*% fit$linear_coefficients, fit2$linear_coefficients)
+})
+
+
 test_that("n_embedding = 0 works", {
 
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)

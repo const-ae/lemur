@@ -6,6 +6,10 @@ skew <- function(M){
   0.5 * (M - t(M))
 }
 
+sym <- function(M){
+  0.5 * (M + t(M))
+}
+
 
 #' Iterating function that returns a matrix
 #'

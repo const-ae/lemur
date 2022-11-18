@@ -143,6 +143,10 @@ random_rotation_tangent <- function(p, ...){
 
 # # Stiefel
 #
+# project_stiefel <- function(x){
+#   qr.Q(qr(x))
+# }
+#
 # stiefel_map <- function(x, base_point){
 #   # Implementation based on https://juliamanifolds.github.io/Manifolds.jl/latest/manifolds/stiefel.html#Base.exp-Tuple{Stiefel,%20Vararg{Any,%20N}%20where%20N}
 #   n <- ncol(base_point)
@@ -152,13 +156,9 @@ random_rotation_tangent <- function(p, ...){
 #   block <- cbind(rbind(ptx, I_n), rbind(-t(x) %*% x), ptx)
 #   rbind(p, x) %*% expm::expm(block) %*% rbind(expm::expm(-ptx), Zero_n)
 # }
-#
-# project_stiefel <- function(x){
-#   qr.Q(qr(x))
-# }
+
 
 # Sphere
-
 
 project_sphere <- function(x){
   x
@@ -207,4 +207,55 @@ sphere_log <- function(p, q){
   }
   project_sphere_tangent(res, p)
 }
+
+
+
+# Symmetric Positive Definite Matrix (SPD)
+# based on JuliaManifolds
+
+project_spd_tangent <- function(x, base_point = NULL){
+  sym(x)
+}
+
+spd_map <- function(x, base_point){
+  ps <- spd_sqrt(base_point)
+  psi <- spd_sqrt_inv(base_point)
+
+  ps %*% expm::expm(psi %*% x %*% psi) %*% ps
+}
+
+spd_log <- function(p, q){
+  ps <- spd_sqrt(p)
+  psi <- spd_sqrt_inv(p)
+
+  ps %*% expm::logm(psi %*% q %*% psi) %*% ps
+}
+
+spd_sqrt <- function(x){
+  e <- eigen(sym(x))
+  sqrt_s <- pmax(sqrt(e$values), .Machine$double.xmin)
+  sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+}
+
+spd_sqrt_inv <- function(x){
+  e <- eigen(sym(x))
+  sqrt_s <- 1/pmax(sqrt(e$values), .Machine$double.xmin)
+  sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+}
+
+random_spd_point <- function(n, ...){
+  V <- sym(randn(n, n, ...))
+  V + diag(n, nrow = n)
+}
+
+random_spd_tangent <- function(p, ...){
+  stopifnot(nrow(p) == ncol(p))
+  n <- nrow(p)
+  Z <- randn(n, n, ...)
+  project_spd_tangent(Z, p)
+}
+
+
+
+
 
