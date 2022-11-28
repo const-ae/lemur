@@ -165,3 +165,30 @@ test_that("zero-dimensional arguments work", {
   expect_equal(grassmann_log(zero_dim_mat, zero_dim_mat), zero_dim_mat)
 })
 
+
+test_that("Symmetric positive definite matrices work", {
+  p <- random_spd_point(4)
+  expect_true(all(eigen(p)$values > 0))
+
+  psqrt <- spd_sqrt(p)
+  psqrt_inv <- spd_sqrt_inv(p)
+  expect_equal(psqrt %*% psqrt, p)
+  expect_equal(psqrt_inv %*% psqrt_inv, solve(p))
+  #
+  v <- random_spd_tangent(p)
+  expect_equal(v, t(v))
+
+  p2 <- spd_map(v, p)
+  valt <- spd_log(p, p2)
+  expect_equal(v, valt)
+
+  # check that rotation_map and log are consistent
+  p3 <- random_spd_point(5)
+  p4 <- random_spd_point(5)
+
+  v34 <- spd_log(p3, p4)
+  expect_equal(v34, t(v34))
+  expect_equal(spd_map(v34, p3), p4)
+  expect_equal(spd_log(p3, spd_map(v34, p3)), v34)
+})
+
