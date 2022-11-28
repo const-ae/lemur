@@ -26,6 +26,7 @@ Imports:
     MatrixGenerics,
     matrixStats,
     BiocNeighbors,
+    igraph
 Suggests: 
     testthat (>= 3.0.0),
     MASS,
