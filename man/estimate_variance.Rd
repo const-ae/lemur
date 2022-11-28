@@ -7,6 +7,7 @@
 estimate_variance(
   fit,
   n_bootstrap_samples = 100,
+  replicates_by = NULL,
   refit_ambient_pca = FALSE,
   refit_linear_model = TRUE,
   refit_differential_embedding = TRUE,

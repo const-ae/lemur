@@ -8,6 +8,7 @@ grassmann_geodesic_regression(
   coordsystems,
   design,
   base_point,
+  weights = rep(1, length(coordsystems)),
   tangent_regression = FALSE
 )
 }
