@@ -223,11 +223,12 @@ test_differential_embedding <- function(fit,
   }else if(variance_est == "bootstrap"){
     # Get all fit values and check if they are different from zero
     vals <- matrix(nrow = 0L, ncol = length(fit$bootstrap_samples))
+    n_ambient_eff <- min(fit$n_ambient, nrow(fit))
     if(with_lm){
-      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(bs$linear_coefficients %*% cntrst), ncol = fit$n_ambient)))
+      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(bs$linear_coefficients %*% cntrst), ncol = n_ambient_eff)))
     }
     if(with_emb){
-      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$diffemb_coefficients, cntrst)), ncol = fit$n_ambient * fit$n_embedding)))
+      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$diffemb_coefficients, cntrst)), ncol = n_ambient_eff * fit$n_embedding)))
     }
     # Filter out zero variance obs
     # vals <- vals[matrixStats::rowSds(vals) > 1e-6,,drop=FALSE]

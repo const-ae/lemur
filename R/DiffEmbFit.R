@@ -51,6 +51,11 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   n_obs <- ncol(obj)
 
   n_ambient <-  obj$n_ambient
+  eff_n_ambient <- if(is.infinite(n_ambient)){
+    n_features
+  }else{
+    n_ambient
+  }
   if(is.null(n_ambient)) msg <- c(msg, "'n_ambient' must not be NULL")
   n_embedding <-  obj$n_embedding
   if(is.null(n_embedding)) msg <- c(msg, "'n_embedding' must not be NULL")

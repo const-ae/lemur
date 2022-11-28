@@ -72,8 +72,7 @@ differential_embedding_impl <- function(Y, design_matrix,
 
   # Set reduced dimensions
   stopifnot(n_ambient >= 0 && n_embedding >= 0)
-  n_ambient <- min(nrow(Y), n_ambient)
-  n_embedding <- min(n_embedding, n_ambient)
+  n_embedding <- min(n_embedding, nrow(Y), n_ambient)
   linear_coef_fixed <-  ! is.null(linear_coefficients)
   diffemb_coef_fixed <- ! is.null(diffemb_coefficients)
   diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
@@ -81,8 +80,18 @@ differential_embedding_impl <- function(Y, design_matrix,
 
   # Reduce to ambient space
   if(is.null(amb_pca)){
-    if(verbose) message("Fit ambient PCA")
-    amb_pca <- pca(Y, n_ambient)
+    if(n_ambient > nrow(Y)){
+      if(verbose) message("Skip ambient PCA step")
+      n_ambient <- Inf
+      amb_pca <- list(
+        coordsystem = Matrix::Diagonal(n = nrow(Y)),
+        embedding = Y,
+        offset = rep(0, nrow(Y))
+      )
+    }else{
+      if(verbose) message("Fit ambient PCA")
+      amb_pca <- pca(Y, n_ambient)
+    }
   }else{
     # Check that amb_pca is correct
     stopifnot(all(names(amb_pca) %in% c("coordsystem", "embedding", "offset")))
