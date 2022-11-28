@@ -68,7 +68,7 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
   }
   groups <- unique(mm_groups)
   reduced_design <- mply_dbl(groups, \(gr) design[which(mm_groups == gr)[1],], ncol = ncol(design))
-  group_planes <- lapply(groups, \(gr) pca(data[,mm_groups == gr,drop=FALSE], n = n_emb)$coordsystem)
+  group_planes <- lapply(groups, \(gr) pca(data[,mm_groups == gr,drop=FALSE], n = n_emb, center = FALSE)$coordsystem)
   elem_per_group <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = 0L)
   coef <- grassmann_geodesic_regression(group_planes, design = reduced_design, base_point = base_point, weights = elem_per_group, tangent_regression = TRUE)
   if(tangent_regression){
