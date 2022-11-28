@@ -22,7 +22,7 @@
 test_differential_expression <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
-                                        diffemb_embedding = fit$diffemb_embedding,
+                                        diffemb_embedding = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),
                                         variance_est = c("bootstrap", "none"),
                                         return = c("table", "matrix")){
@@ -34,6 +34,13 @@ test_differential_expression <- function(fit,
   if(! is.null(reduced_design)){
     stop("'reduced_design' is not implemented for 'test_differential_expression'.")
   }
+  if(is.null(diffemb_embedding)){
+    diffemb_embedding <- fit$diffemb_embedding
+    use_provided_diff_emb <- FALSE
+  }else{
+    use_provided_diff_emb <- TRUE
+  }
+
   if(return == "table"){
     feature_names <- if(is.null(rownames(fit))){
       rep(paste0("feature_", seq_len(nrow(fit))), times = ncol(diffemb_embedding))
@@ -62,14 +69,19 @@ test_differential_expression <- function(fit,
     # Welfords's online algorithm to calculate mean and sd of bootstrap estimates
     msq_init <- mean_init <- matrix(0, nrow = nrow(fit), ncol = ncol(diffemb_embedding))
     preds <- fold_left(list(mean = mean_init, msq = msq_init, iter = 1))(fit$bootstrap_samples, \(elem, accum){
+      bs_diffemb_embedding <- if(use_provided_diff_emb){
+        diffemb_embedding
+      }else{
+        elem$diffemb_embedding
+      }
       diff <- if(inherits(cntrst, "contrast_relation")){
         linearCoefficients <- elem$linear_coefficients
-        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb) -
-          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
+          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                   with_differential_embedding = with_emb)
       }else{
-        predict(elem, newdesign = cntrst, diffemb_embedding = elem$diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb)
       }
       delta <- diff - accum$mean
