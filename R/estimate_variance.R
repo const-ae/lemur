@@ -26,7 +26,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     original_embedding <- as.matrix(t(fit$ambient_coordsystem) %*% (assay(fit, "expr") - fit$ambient_offset))
   }
 
-  replicates <- rlang::eval_tidy(rlang::enquo(replicates_by), data = as.data.frame(fit$colData))
+  replicates <- rlang::eval_tidy(rlang::enquo(replicates_by), data = as.list(fit$colData))
   if(! is.null(replicates)){
     if(length(unique(replicates)) <= 5) warning("The number of replicates is small. The variance estimates might be unreliable.")
   }
