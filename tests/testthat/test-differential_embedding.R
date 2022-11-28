@@ -212,3 +212,138 @@ test_that("Under-determined fits run successfully", {
   })
   expect_silent(test_differential_expression(fit, conditionb))
 })
+
+
+test_that("regularization helps", {
+
+  # dat <- make_synthetic_data(n_genes = 30, treatment_effect = 0.04, n_centers = 3)
+  # dat <- dat[,dat$condition != "c"]
+  # dat <- dat[,dat$cell_type != "A" | dat$condition == "b"] # Create an unmatched cell type
+  # dat_pca <- pca(logcounts(dat), n = 3)
+  #
+  # # as_tibble(as.matrix(reducedDim(dat, "interaction_embedding"))) %>%
+  # as_tibble(t(dat_pca$embedding)) %>%
+  #   bind_cols(as_tibble(colData(dat))) %>%
+  #   ggplot(aes(x = V1, y = V2)) +
+  #     geom_point(aes(color = condition, shape = cell_type)) +
+  #     # coord_fixed() +
+  #     NULL
+  #
+  # fit <- differential_embedding(dat, design = ~ condition,
+  #                               n_ambient = 3, n_embedding = 2, verbose = FALSE)
+  # sum(residuals(fit)^2)
+  # de <- test_differential_expression(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+  #                                    variance_est = "none", return = "matrix")
+  #
+  # de_var <- matrixStats::rowVars(de)
+  # sel_gene <- order(-de_var)[1]
+  # # sel_gene <- 6
+  #
+  #
+  #
+  # intercept_vec <- t(dat_pca$coordsystem) %*%
+  #   fit$ambient_coordsystem %*%
+  #   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(1,0)), fit$diffemb_basepoint)
+  #
+  # b_vec <- t(dat_pca$coordsystem) %*%
+  #   fit$ambient_coordsystem %*%
+  #   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(1,1)), fit$diffemb_basepoint)
+  #
+  # bprime_vec <- t(dat_pca$coordsystem) %*%
+  #   fit$ambient_coordsystem %*%
+  #   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(1,0.5)), fit$diffemb_basepoint)
+  #
+  #
+  #
+  # # as_tibble(t(dat_pca$embedding)) %>%
+  # # # as_tibble(as.matrix(reducedDim(dat, "linear_embedding"))) %>%
+  # #   bind_cols(diff = de[sel_gene,]) %>%
+  # #   bind_cols(as_tibble(fit$colData)) %>%
+  # #   ggplot(aes(x = V1, y = V2)) +
+  # #     geom_point(aes(color = diff, shape = cell_type)) +
+  # #     geom_function(fun = \(x) x / intercept_vec[1] * intercept_vec[2]) +
+  # #     geom_function(fun = \(x) x / b_vec[1] * b_vec[2]) +
+  # #     scale_color_gradient2() +
+  # #     NULL
+  # #
+  # # tibble(emb = c(fit$diffemb_embedding)) %>%
+  # #   bind_cols(as_tibble(colData(fit))) %>%
+  # #   ggplot(aes(x = emb)) +
+  # #   geom_histogram(aes(fill = cell_type), bins = 100)
+  #
+  # coef <- t(dat_pca$coordsystem) %*% fit$ambient_coordsystem %*% fit$linear_coefficients
+  # predicted_y <- logcounts(dat) - residuals(fit)
+  #
+  # # library(rgl)
+  # # open3d()
+  # clear3d()
+  # decorate3d(xlim = c(-2, 2), ylim = c(-2, 2), zlim = c(-2, 2))
+  #
+  # tmp1 <- t(dat_pca$coordsystem) %*% predicted_y
+  # tmp2 <- t(dat_pca$coordsystem) %*% logcounts(dat)
+  # spheres3d(t(tmp2), radius = 0.1)
+  # spheres3d(t(tmp1), radius = 0.1, col = "red")
+  #
+  # # abclines3d(x = c(t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1]), a = c(intercept_vec), color = "red")
+  # planes3d(a = c(MASS::Null(intercept_vec)),
+  #          d = c(t(MASS::Null(intercept_vec)) %*% (t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1])),
+  #          alpha = 0.1)
+  # # abclines3d(x = c(t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1] + coef[,2]), a = c(b_vec), color = "red")
+  # planes3d(a = c(MASS::Null(b_vec)),
+  #          d = c(t(MASS::Null(b_vec)) %*% (t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1] + coef[,2])),
+  #          alpha = 0.1)
+  # # abclines3d(x = c(t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1] + coef[,2]), a = c(bprime_vec), color = "orange")
+  # spheres3d(c(t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1]), radius = 0.1, col = "purple")
+  # spheres3d(c(t(dat_pca$coordsystem) %*% fit$ambient_offset + coef[,1] + coef[,2]), radius = 0.1, col = "purple")
+  #
+  # tmp <- matrix(einsum::einsum("ijk->ikj", abind::abind(tmp1, tmp2, along = 3)), nrow = 3, ncol = ncol(tmp1) * 2)
+  # segments3d(x = tmp[1,], y = tmp[2,], z = tmp[3,])
+  #
+  # contr1 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,0), diffemb_embedding = fit$diffemb_embedding)
+  # contr2 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,1), diffemb_embedding = fit$diffemb_embedding)
+  #
+  # contr <- matrix(einsum::einsum("ijk->ikj", abind::abind(contr1, contr2, along = 3)), nrow = 3, ncol = ncol(contr1) * 2)
+  # segments3d(x = contr[1,], y = contr[2,], z = contr[3,], col = "green")
+
+})
+
+
+# fit_new <- differential_embedding(dat, design = ~ condition,
+#                               n_ambient = 3, n_embedding = 2, verbose = FALSE, reshuffling_fraction = 0.2)
+# coef_new <- t(dat_pca$coordsystem) %*% fit_new$ambient_coordsystem %*% fit_new$linear_coefficients
+# intercept_vec_new <- t(dat_pca$coordsystem) %*%
+#   fit_new$ambient_coordsystem %*%
+#   grassmann_map(sum_tangent_vectors(fit_new$diffemb_coefficients, c(1,0)), fit_new$diffemb_basepoint)
+#
+# b_vec_new <- t(dat_pca$coordsystem) %*%
+#   fit_new$ambient_coordsystem %*%
+#   grassmann_map(sum_tangent_vectors(fit_new$diffemb_coefficients, c(1,1)), fit_new$diffemb_basepoint)
+#
+# expect_equal(intercept_vec, intercept_vec_new)
+# expect_equal(b_vec, b_vec_new)
+#
+#
+# rotation_point1 <- t(dat_pca$coordsystem) %*% fit_new$ambient_offset + coef_new[,1]
+# rotation_point2 <- t(dat_pca$coordsystem) %*% fit_new$ambient_offset + coef_new[,1] + coef_new[,2]
+# spheres3d(c(rotation_point1), radius = 0.1, col = "purple")
+# spheres3d(c(rotation_point2), radius = 0.1, col = "purple")
+#
+# planes3d(a = c(MASS::Null(intercept_vec_new)),
+#          d = -t(MASS::Null(intercept_vec_new)) %*% rotation_point1,
+#          alpha = 0.1, col = "red")
+# planes3d(a = c(MASS::Null(b_vec_new)),
+#          d = -t(MASS::Null(b_vec_new)) %*% rotation_point2,
+#          alpha = 0.1, col = "red")
+#
+# spheres3d(t(tmp2[,sel]), radius = 0.11, col ="red")
+#
+#
+#
+# as_tibble(t(dat_pca$embedding)) %>%
+#   bind_cols(as_tibble(colData(dat))) %>%
+#   mutate(resid = colSums(residuals(fit_new))) %>%
+#   ggplot(aes(x = V1, y = V2)) +
+#   geom_point(aes(color = resid, shape = condition)) +
+#   # coord_fixed() +
+#   scale_color_gradient2() +
+#   NULL
