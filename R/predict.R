@@ -61,7 +61,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   }
 
   if(with_ambient_pca){
-    res <- ambient_coordsystem %*% approx + ambient_offset
+    res <- as.matrix(ambient_coordsystem %*% approx + ambient_offset)
     colnames(res) <- rownames(newdesign)
     rownames(res) <- rownames(object)
     res
@@ -97,7 +97,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                            n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                            alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
                                            amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                          embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
+                                                          embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
     Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
@@ -112,7 +112,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                            n_ambient = fit$n_ambient, n_embedding = 0,
                                            alignment = fit$alignment_method, base_point = matrix(nrow = fit$n_ambient, ncol = 0),
                                            amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                          embedding = t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset),
+                                                          embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
     Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,

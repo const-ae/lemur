@@ -117,25 +117,26 @@ test_that("providing a pre-calculated PCA works", {
 })
 
 
-test_that("skipping ambient PCA step works", {
-  dat <- make_synthetic_data(n_genes = 5)
-  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 5, n_embedding = 5, verbose = TRUE)
-  fit2 <- differential_embedding(dat, design = ~ condition, n_ambient = 6, n_embedding = 5, verbose = TRUE)
+test_that("Skipping ambient PCA works", {
+  dat <- make_synthetic_data(n_genes = 30)
+  # Using n_ambient > nrow(dat)
+  fit <- differential_embedding(dat, n_ambient = 50, n_embedding = 5, verbose = FALSE)
+  expect_s4_class(fit$ambient_coordsystem, "ddiMatrix")
+  expect_s4_class(fit$ambient_coordsystem[1:2,], "dgCMatrix")
+  expect_equal(as.matrix(fit$ambient_coordsystem), diag(nrow = 30))
+  expect_true(is.matrix(predict(fit)))
 
-  expect_equal(dim(fit), dim(fit2))
-  expect_equal(fit$n_ambient, nrow(dat))
-  expect_equal(fit2$n_ambient, Inf)
-  expect_equal(fit2$ambient_coordsystem, Matrix::Diagonal(n = nrow(dat)))
+  fit_alt <- differential_embedding(dat, n_ambient = 30, n_embedding = 5, verbose = FALSE)
+  expect_equal(dim(fit), dim(fit_alt))
+  expect_equal(fit$n_ambient, Inf)
+  expect_equal(fit$n_embedding, fit_alt$n_embedding)
+  expect_equal(fit$linear_coefficients, fit_alt$linear_coefficients, ignore_attr = "dimnames")
+  expect_equal(fit$ambient_offset, fit_alt$ambient_offset)
+  expect_equal(fit$diffemb_coefficients, fit_alt$diffemb_coefficients)
 
-  expect_equal(fit$n_embedding, fit2$n_embedding)
-  expect_equal(format(fit$design), format(fit2$design))
-  expect_equal(fit$design_matrix, fit2$design_matrix)
-  # The base points are equal up to the sign
-  expect_equal(abs(fit$ambient_coordsystem %*% fit$diffemb_basepoint), abs(fit2$diffemb_basepoint))
-  sign_equalizer <- lm.fit(fit$ambient_coordsystem %*% fit$diffemb_basepoint, fit2$diffemb_basepoint)$coef
-  plot(fit$ambient_coordsystem %*% fit$linear_coefficients, fit2$linear_coefficients)
-  plot(fit$diffemb_embedding, fit2$diffemb_embedding); abline(0,1)
-  plot(fit$ambient_coordsystem %*% fit$linear_coefficients, fit2$linear_coefficients)
+  # The latent things are equal up to the sign
+  expect_equal(abs(fit_alt$ambient_coordsystem %*% fit_alt$diffemb_basepoint), abs(fit$diffemb_basepoint))
+  expect_equal(abs(fit$diffemb_embedding), abs(fit_alt$diffemb_embedding))
 })
 
 

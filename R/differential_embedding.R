@@ -83,10 +83,11 @@ differential_embedding_impl <- function(Y, design_matrix,
     if(n_ambient > nrow(Y)){
       if(verbose) message("Skip ambient PCA step")
       n_ambient <- Inf
+      offset <- MatrixGenerics::rowMeans2(Y)
       amb_pca <- list(
         coordsystem = Matrix::Diagonal(n = nrow(Y)),
-        embedding = Y,
-        offset = rep(0, nrow(Y))
+        embedding = Y - offset,
+        offset = offset
       )
     }else{
       if(verbose) message("Fit ambient PCA")
@@ -256,7 +257,7 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = TRUE, ...){
     # Cluster each condition
     exp_group <- get_groups(design_matrix, 10)
     exp_group_levels <- unique(exp_group)
-    Y_clean <- t(fit$ambient_coordsystem) %*% assay(fit, "expr") - fit$linear_coefficients %*% t(fit$design_matrix)
+    Y_clean <- as.matrix(t(fit$ambient_coordsystem) %*% assay(fit, "expr") - fit$linear_coefficients %*% t(fit$design_matrix))
 
     clusters <- lapply(exp_group_levels, \(gr) kmeans(t(Y_clean[,exp_group == gr,drop=FALSE]), nstart = 20, centers = 10))
     stop("Not implemented")
