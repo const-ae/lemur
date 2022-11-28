@@ -14,17 +14,19 @@ make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_la
                                         beta1 = randn(n_genes - n_lat, 1, sd = treatment_effect),
                                         beta2 = randn(n_genes - n_lat, 1, sd = treatment_effect))
   true_P <- true_P + rnorm(prod(dim(true_P)), sd = 1e-8)
+  true_Beta <- randn(n_genes, ncol(design_matrix), sd = 0.1)
 
   dir <- scale(randn(n_lat, 1), center = FALSE)
-  Y <- plane %*% true_Z + true_P %*% (t(design_matrix) * duplicate_rows(t(dir) %*% true_Z, 3))
+  Y <- true_Beta %*% t(design_matrix) + plane %*% true_Z + true_P %*% (t(design_matrix) * duplicate_rows(t(dir) %*% true_Z, 3))
 
+  linear_effect <- LinearEmbeddingMatrix(design_matrix, true_Beta)
   linear_embedding <- LinearEmbeddingMatrix(t(true_Z), plane)
   interaction_embedding <- LinearEmbeddingMatrix(t(t(design_matrix) * duplicate_rows(t(dir) %*% true_Z, 3)), true_P)
 
   colnames(Y) <- paste0("cell_", seq_len(n_cells))
   rownames(Y) <- paste0("gene_", seq_len(n_genes))
   sce <- SingleCellExperiment(list(logcounts = Y), colData = data.frame(condition = condition, cell_type = cell_type),
-                       reducedDims = list(linear_embedding = linear_embedding, interaction_embedding = interaction_embedding))
+                       reducedDims = list(linear_effect = linear_effect, linear_embedding = linear_embedding, interaction_embedding = interaction_embedding))
 
 }
 
