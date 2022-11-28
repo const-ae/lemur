@@ -21,7 +21,7 @@ test_that("making data works", {
 test_that("the fit is valid", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
+                                n_ambient = 30, n_embedding = 5, verbose = FALSE)
 
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_ambient, 30)
@@ -209,7 +209,8 @@ test_that("Under-determined fits run successfully", {
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 2, verbose = FALSE)
   expect_warning({
-    fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition)
+    fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition,
+                             verbose = FALSE)
   })
   expect_silent(test_differential_expression(fit, conditionb))
 })
@@ -348,3 +349,4 @@ test_that("regularization helps", {
 #   # coord_fixed() +
 #   scale_color_gradient2() +
 #   NULL
+

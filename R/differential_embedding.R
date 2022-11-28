@@ -96,13 +96,16 @@ differential_embedding_impl <- function(Y, design_matrix,
   }else{
     # Check that amb_pca is correct
     stopifnot(all(names(amb_pca) %in% c("coordsystem", "embedding", "offset")))
-    stopifnot(ncol(amb_pca$coordsystem) == n_ambient)
-    stopifnot(nrow(amb_pca$embedding) == n_ambient)
+    n_ambient_eff <- min(nrow(Y), n_ambient)
+    stopifnot(ncol(amb_pca$coordsystem) == n_ambient_eff)
+    stopifnot(nrow(amb_pca$embedding) == n_ambient_eff)
     stopifnot(length(amb_pca$offset) == nrow(Y))
-    rand_sel <- sample(seq_len(ncol(Y)), min(ncol(Y), 100))
-    pred_emb <- t(amb_pca$coordsystem) %*% (Y[,rand_sel,drop=FALSE] - amb_pca$offset)
-    if(! all(abs(pred_emb - amb_pca$embedding[,rand_sel,drop=FALSE]) < 1e-8)){
-      stop("The provided ambient PCA ('amb_pca') does not match the observed data. Does 'use_assay' match the assay that was used to calculate the PCA?")
+    if(ncol(Y) > 0){
+      rand_sel <- sample(seq_len(ncol(Y)), min(ncol(Y), 100))
+      pred_emb <- t(amb_pca$coordsystem) %*% (Y[,rand_sel,drop=FALSE] - amb_pca$offset)
+      if(! all(abs(pred_emb - amb_pca$embedding[,rand_sel,drop=FALSE]) < 1e-8)){
+        stop("The provided ambient PCA ('amb_pca') does not match the observed data. Does 'use_assay' match the assay that was used to calculate the PCA?")
+      }
     }
   }
 

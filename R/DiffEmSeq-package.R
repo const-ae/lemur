@@ -7,4 +7,5 @@
 #' @importFrom SummarizedExperiment assayNames assay `assay<-`
 #' @importFrom BiocGenerics design
 #' @importFrom utils .DollarNames capture.output head
+#' @importFrom Matrix t
 NULL

@@ -2,10 +2,12 @@
 test_that("Random Grassmann manifold functions are correct", {
   p <- random_grassmann_point(5, 2)
   expect_equal(t(p) %*% p, diag(nrow = 2))
+  v <- random_grassmann_tangent(p) * 10
+  # Make sure that v is outside the injective radius
+  expect_gt(svd(v)$d[1] / pi * 180, 90)
 
-  v <- random_grassmann_tangent(p)
+
   expect_equal(t(p) %*% v + t(v) %*% p, matrix(0, nrow = 2, ncol = 2))
-
   p2 <- grassmann_map(v, p)
   valt <- grassmann_log(p, p2)
   expect_equal(qr(cbind(grassmann_map(valt, p),  grassmann_map(v, p)))$rank, 2)
@@ -51,7 +53,9 @@ test_that("Random rotation manifold functions are correct", {
   expect_equal(t(p) %*% p, diag(nrow = 5))
   expect_equal(p %*% t(p), diag(nrow = 5))
 
-  v <- random_rotation_tangent(p)
+  v <- random_rotation_tangent(p) * 0.1
+  # Make sure that v is inside the injective radius
+  expect_lt(svd(v)$d[1] / pi * 180, 90)
   expect_equal(v, -t(v))
 
   p2 <- rotation_map(v, p)
