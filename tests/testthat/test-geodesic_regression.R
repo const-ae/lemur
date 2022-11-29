@@ -90,7 +90,6 @@ test_that("rotation_lm works", {
   vecs <- make_vectors(n_genes = 10, n_obs = 500)
   X <- vecs$x
   Y <- vecs$y
-  Z <- vecs$z
   bp <- vecs$bp
 
   fit <- rotation_lm(Y, matrix(1, nrow = ncol(X)), X, bp, tangent_regression = TRUE)
@@ -106,7 +105,6 @@ test_that("rotation_lm works for simple fit", {
   vecs <- make_vectors(n_genes = 10, n_obs = 500)
   X <- vecs$x
   Y <- vecs$y
-  Z <- vecs$z
   bp <- vecs$bp
 
   fit <- rotation_lm(Y, matrix(1, nrow = ncol(X)), X, bp, tangent_regression = TRUE)
@@ -277,6 +275,48 @@ test_that("rotation_lm works for degenerate fits ", {
 })
 
 
+
+test_that("spd_geodesic_regression works", {
+  base_point <- random_spd_point(5)
+  spds <- lapply(1:10, \(idx) random_spd_point(5))
+  x <- seq(1, 10)
+  design_matrix <- model.matrix(~ x)
+  fit <- spd_geodesic_regression(spds, design_matrix, base_point = base_point)
+  expect_equal(dim(fit), c(5, 5, 2))
+  spd <- spd_map(fit[,,1], base_point)
+  expect_true(all(eigen(spd)$values > 0))
+  spd <- rotation_map(fit[,,2], base_point)
+  expect_true(all(eigen(spd)$values > 0))
+
+  # spd_geodesic_regression produces reasonable output
+  p <- random_spd_point(5)
+  v <- random_spd_tangent(p, sd = 0.1)
+  p2 <- spd_map(v, p)
+  fit <- spd_geodesic_regression(list(p2), design = matrix(1),
+                                      base_point = p)
+  expect_equal(drop(fit), v)
+
+  fit <- spd_geodesic_regression(list(p, p2), design = cbind(1, c(0,1)),
+                                      base_point = diag(nrow = 5))
+  expect_equal(fit[,,1], expm::logm(p))
+  expect_equal(fit[,,1] + fit[,,2], expm::logm(p2))
+})
+
+
+test_that("spd_lm works", {
+  vecs <- make_vectors2(n_genes = 10, n_obs = 500)
+  X <- vecs$x
+  Y <- vecs$y
+  bp <- vecs$bp
+
+  fit <- spd_lm(Y, matrix(1, nrow = ncol(X)), X, bp, tangent_regression = TRUE)
+  spd <- spd_map(drop(fit), bp)
+  expect_equal(spd, procrustes_spd(Y, X))
+  expect_lt(sum((Y - spd %*% X)^2), 1e-18)
+  expect_equal(drop(fit), vecs$pert)
+})
+
+
 test_that("procrustes_spd works", {
   obs_embed <- randn(7, 100)
   p_spd <- random_spd_point(7)
@@ -285,7 +325,6 @@ test_that("procrustes_spd works", {
   p_est <- procrustes_spd(data, obs_embed)
   expect_equal(p_spd, p_est)
 })
-
 
 
 

@@ -1,4 +1,9 @@
 
+#######################
+# Grassmann Manifold  #
+#######################
+
+
 #' Solve d(P, exp_p(V * x))^2 for V
 #'
 #'
@@ -78,6 +83,11 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
     coef
   }
 }
+
+######################
+# Rotation Manifold  #
+######################
+
 
 #' Solve d(R, exp_p(V * x))^2 for V
 #'
@@ -250,6 +260,118 @@ procrustes_rotation <- function(data, obs_embedding){
   V %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(U)
 
 }
+
+
+################################################
+# Symmetric Positive Definite Matrix Manifold  #
+################################################
+
+#' Solve d(P, exp_p(V * x))^2 for V
+#'
+spd_geodesic_regression <- function(spd_matrices, design, base_point, tangent_regression = FALSE){
+  # Validate input
+  n_obs <- nrow(design)
+  n_coef <- ncol(design)
+  n_amb <- nrow(base_point)
+
+  spd_matrices <- if(is.list(spd_matrices)){
+    spd_matrices
+  }else if(is.array(spd_matrices)){
+    stopifnot(length(dim(spd_matrices)) == 3)
+    destack_slice(spd_matrices)
+  }else{
+    stop("Cannot handle SPD matrices of type: ", paste0(class(spd_matrices), collapse = ", "))
+  }
+  stopifnot(length(spd_matrices) == nrow(design))
+  stopifnot(all(vapply(spd_matrices, \(spd) nrow(spd) == n_amb && ncol(spd) == n_amb, FUN.VALUE = logical(1L))))
+  # stopifnot(all(vapply(spd_matrices, \(spd) is_spd_element(spd), FUN.VALUE = logical(1L))))
+
+  # TODO: If only two SPD matrices, do procrustes to solve the problem.
+
+  # Initialize with tangent regression (if possible)
+  tangent_vecs <- lapply(spd_matrices, \(spd){
+    c(spd_log(base_point, spd)[upper.tri(spd, diag = TRUE)])
+  })
+  merged_vecs <- stack_cols(tangent_vecs)
+  tangent_fit <- if(nrow(merged_vecs) == 0){
+    matrix(nrow = 0, ncol = ncol(merged_vecs))
+  }else{
+    tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+  }
+  tangent_fit[is.na(tangent_fit)] <- 0
+  coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx){
+    res <- matrix(0, nrow = n_amb, ncol = n_amb)
+    res[upper.tri(res, diag = TRUE)] <- tangent_fit[,idx]
+    diag(res) <- diag(res) / 2
+    res + t(res)
+  }))
+  dimnames(coef) <- list(NULL, NULL, colnames(tangent_fit))
+
+
+  if(tangent_regression){
+    coef
+  }else{
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    coef
+  }
+}
+
+
+#' Solve ||Y - exp_p(V * x) Z ||^2_2 for V (aka. SPD Procrustes regression)
+#'
+#' Here data = t(grassmann_map(V * X)) Y
+#'
+spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression = FALSE){
+  nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA) | apply(obs_embedding, 2, anyNA)
+  data <- data[,!nas,drop=FALSE]
+  design <- design[!nas,,drop=FALSE]
+  obs_embedding <- obs_embedding[,!nas,drop=FALSE]
+
+  n_obs <- nrow(design)
+  n_coef <- ncol(design)
+  n_amb <- nrow(base_point)
+
+  # Initialize with tangent regression
+  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  if(is.null(mm_groups)){
+    stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
+         "This error could be removed, but this feature hasn't been implemented yet.")
+  }
+
+  groups <- unique(mm_groups)
+  reduced_design <- mply_dbl(groups, \(gr) design[which(mm_groups == gr)[1],], ncol = ncol(design))
+  group_spd <- lapply(groups, \(gr){
+    sel <- mm_groups == gr
+    x <- obs_embedding[,sel,drop=FALSE]
+    y <- data[,sel,drop=FALSE]
+    procrustes_spd(y, x)
+  })
+  coef <- spd_geodesic_regression(group_spd, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
+  # line search
+  original_error <- sum(vapply(groups, \(gr){
+    sel <- mm_groups == gr
+    sum((data[,sel,drop=FALSE] - obs_embedding[,sel,drop=FALSE])^2)
+  }, FUN.VALUE = 0.0))
+  for(idx in 0:20){
+    error <- sum(vapply(groups, \(gr){
+      sel <- mm_groups == gr
+      sum((data[,sel,drop=FALSE] - spd_map(sum_tangent_vectors(0.5^idx * coef, reduced_design[groups == gr, ]), base_point) %*% obs_embedding[,sel,drop=FALSE])^2)
+    }, FUN.VALUE = 0.0))
+    if(error < original_error){
+      coef <- 0.5^idx * coef
+      break
+    }
+  }
+  if(idx == 20) coef <- 0 * coef
+  if(tangent_regression){
+    coef
+  }else{
+    # warning("Refine regression using Riemannian optimization. (Not yet implemented)")
+    coef
+  }
+}
+
+
 
 
 #' Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
