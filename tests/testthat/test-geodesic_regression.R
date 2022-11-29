@@ -275,3 +275,17 @@ test_that("rotation_lm works for degenerate fits ", {
   # sum((z - rot %*% z)^2)
 
 })
+
+
+test_that("procrustes_spd works", {
+  obs_embed <- randn(7, 100)
+  p_spd <- random_spd_point(7)
+  data <- p_spd %*% obs_embed
+
+  p_est <- procrustes_spd(data, obs_embed)
+  expect_equal(p_spd, p_est)
+})
+
+
+
+

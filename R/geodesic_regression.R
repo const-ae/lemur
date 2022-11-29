@@ -252,6 +252,48 @@ procrustes_rotation <- function(data, obs_embedding){
 }
 
 
+#' Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
+#'
+procrustes_spd <- function(data, obs_embedding){
+  # Implementation based on 'SOLUTION OF SYMMETRIC POSITIVE SEMIDEFINITE PROCRUSTES PROBLEM' by Peng et al. (2019)
+  n <- nrow(obs_embedding)
+  stopifnot(nrow(data) == n)
+  stopifnot(ncol(obs_embedding) == ncol(data))
+
+  # Step 2: Eq. (1.2)
+  z_svd <- svd(obs_embedding)
+  sel <- abs(z_svd$d) >= 1e-10
+  # The rank of Z
+  r <- sum(sel)
+  U1 <- z_svd$u[,sel,drop=FALSE]
+  U2 <- z_svd$u[,!sel,drop=FALSE]
+  V1 <- z_svd$v[,sel,drop=FALSE]
+  sigma <- z_svd$d[sel]
+
+  # Step 3: Eq. (2.21)
+  phi_pre <- matrix(sigma^2, nrow = r, ncol = r)
+  phi <- 1/(phi_pre + t(phi_pre))
+  S_pre <- t(U1) %*% data %*% V1 %*% diag(sigma, nrow = r)
+  S_hat <- phi * (S_pre + t(S_pre))
+  eigen_decomp <- eigen(S_hat)
+
+
+  # Step 4: Eq. (2.22)
+  P11 <- with(eigen_decomp, vectors %*% diag(pmax(values, 0)) %*% t(vectors))
+
+  # Step 5:
+  P12 <- diag(1/sigma, nrow = r) %*% t(V1) %*% t(data) %*% U2
+  # Step 6:
+  if(qr(cbind(P11, P12))$rank != qr(P11)$rank) stop("The procrustres problem does not have a solution")
+  # Step 7 (assuming P22 = 0)
+  P22 <- t(P12) %*% pmax(P11, 0) %*% P12
+  P <- rbind(cbind(P11, P12),
+             cbind(t(P12), P22))
+  z_svd$u %*% P %*% t(z_svd$u)
+}
+
+
+
 get_groups <- function (model_matrix, n_groups) {
   if (!glmGamPoi:::lte_n_equal_rows(model_matrix, n_groups)) {
     NULL

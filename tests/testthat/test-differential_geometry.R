@@ -174,6 +174,9 @@ test_that("Symmetric positive definite matrices work", {
   p <- random_spd_point(4)
   expect_true(all(eigen(p)$values > 0))
 
+  expect_equal(spd_map(spd_log(diag(4), p), diag(4)), p)
+  expect_equal(spd_map(-spd_log(diag(4), p), diag(4)), solve(p))
+
   psqrt <- spd_sqrt(p)
   psqrt_inv <- spd_sqrt_inv(p)
   expect_equal(psqrt %*% psqrt, p)
