@@ -202,6 +202,45 @@ test_that("align_embeddings works", {
 })
 
 
+test_that("apply_rotation works", {
+  A <- randn(5, 30)
+  base_point <- diag(nrow = 5)
+  rot_vec1 <- random_rotation_tangent(base_point, sd = 0.1)
+  rot_vec2 <- random_rotation_tangent(base_point, sd = 0.1)
+  cond <- sample(c("A", "B"), size = ncol(A), replace = TRUE)
+  Amod <- array(NA, dim(A))
+  Amod[,cond == "A"] <- rotation_map(rot_vec1, base_point) %*% A[,cond == "A"]
+  Amod[,cond == "B"] <- rotation_map(rot_vec1 + rot_vec2, base_point) %*% A[,cond == "B"]
+
+  rot_coef <- array(c(rot_vec1, rot_vec2), dim = c(5, 5, 2))
+  design <- model.matrix(~ cond)
+  Ahat <- apply_rotation(A, rot_coef, design, base_point)
+  expect_equal(Ahat, Amod)
+
+  # Applying the inverse is trivial
+  Amod2 <- array(NA, dim(A))
+  Amod2[,cond == "A"] <- solve(rotation_map(rot_vec1, base_point)) %*% A[,cond == "A"]
+  Amod2[,cond == "B"] <- solve(rotation_map(rot_vec1 + rot_vec2, base_point)) %*% A[,cond == "B"]
+  Ahat2 <- apply_rotation(A, -rot_coef, design, base_point)
+  expect_equal(Ahat2, Amod2)
+})
+
+test_that("apply_stretching works", {
+  A <- randn(5, 30)
+  base_point <- diag(nrow = 5)
+  spd_vec1 <- random_spd_tangent(base_point, sd = 0.1)
+  spd_vec2 <- random_spd_tangent(base_point, sd = 0.1)
+  cond <- sample(c("A", "B"), size = ncol(A), replace = TRUE)
+  Amod <- array(NA, dim(A))
+  Amod[,cond == "A"] <- spd_map(spd_vec1, base_point) %*% A[,cond == "A"]
+  Amod[,cond == "B"] <- spd_map(spd_vec1 + spd_vec2, base_point) %*% A[,cond == "B"]
+
+  stretch_coef <- array(c(spd_vec1, spd_vec2), dim = c(5, 5, 2))
+  design <- model.matrix(~ cond)
+  Ahat <- apply_stretching(A, stretch_coef, design, base_point)
+  expect_equal(Ahat, Amod)
+})
+
 test_that("Under-determined fits run successfully", {
   dat <- make_synthetic_data()
   dat$condition <- as.factor(dat$condition)

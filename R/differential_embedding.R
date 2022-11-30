@@ -245,6 +245,25 @@ sum_tangent_vectors <- function(tangent_block, covariates){
 
 
 
+apply_rotation <- function(A, rotation_coef, design, base_point){
+  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  groups <- unique(mm_groups)
+  for(gr in groups){
+    A[,mm_groups == gr] <- rotation_map(sum_tangent_vectors(rotation_coef, design[which(mm_groups == gr)[1],]),
+                                        base_point) %*% A[,mm_groups == gr]
+  }
+  A
+}
+
+apply_stretching <- function(A, stretch_coef, design, base_point){
+  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  groups <- unique(mm_groups)
+  for(gr in groups){
+    A[,mm_groups == gr] <- spd_map(sum_tangent_vectors(stretch_coef, design[which(mm_groups == gr)[1],]),
+                                   base_point) %*% A[,mm_groups == gr]
+  }
+  A
+}
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param alignment a factor of length `ncol(data)`. The method tries to put elements with the
