@@ -241,6 +241,7 @@ test_that("apply_stretching works", {
   expect_equal(Ahat, Amod)
 })
 
+
 test_that("Under-determined fits run successfully", {
   dat <- make_synthetic_data()
   dat$condition <- as.factor(dat$condition)

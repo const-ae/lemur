@@ -324,7 +324,26 @@ test_that("procrustes_spd works", {
 
   p_est <- procrustes_spd(data, obs_embed)
   expect_equal(p_spd, p_est)
+
+  obs_embed <- randn(7, 100)
+  data <- randn(7, 100)
+
+  p_est <- procrustes_spd(data, obs_embed)
+  eigen(project_psd(p_est))$values
+  expect_true(all(eigen(p_est)$values > 0))
+  expect_true(all(Im(expm::sqrtm(p_est)) == 0))
+
+  obs_embed <- randn(5, 100)
+  obs_embed <- rbind(obs_embed,
+                     obs_embed[1,],
+                     obs_embed[2,] + obs_embed[3,])
+  data <- randn(5, 100)
+  data <- rbind(data,
+                0.3 * data[4,],
+                data[3,] + data[1,])
+
+  p_est <- procrustes_spd(data, obs_embed)
+  expect_true(all(eigen(p_est)$values > 0))
+  expect_true(all(Im(expm::sqrtm(p_est)) == 0))
 })
-
-
 

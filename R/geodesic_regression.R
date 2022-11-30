@@ -374,10 +374,87 @@ spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression =
 
 
 
+
+#' Solve ||B - A X ||^2_2 for A in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
+#'
+procrustes_spd <- function(data, obs_embedding, maxiter = 1000, tolerance = 1e-8){
+  # Implementation based on 'A semi-analytical approach for the positive semidefinite Procrustes problem'
+  # by Gillis et al. (2018)
+  # Code from https://sites.google.com/site/nicolasgillis/code?authuser=0#h.p_ID_160
+  n <- nrow(obs_embedding)
+  stopifnot(nrow(data) == n)
+  stopifnot(ncol(obs_embedding) == ncol(data))
+
+  A <- init_procrustes(data, obs_embedding)
+
+  # Precomputing
+  XXt <- obs_embedding %*% t(obs_embedding)
+  eig <- eigen(XXt)
+  x <- diag(eig$values, nrow = n)
+  u <- eig$vectors
+  Lx <- max(eig$values)
+  mux <- min(eig$values)
+  qx <- mux / Lx
+  BXt <- data %*% t(obs_embedding)
+
+  # Parameters and initialization
+  alpha0 <- 0.1
+  alpha <- alpha0
+  beta <- numeric(0L)
+  Y <- A
+  i <- 1
+  eps_last_round <- 0
+  eps <- Inf
+
+  for(i in  seq_len(maxiter)){
+    Ap <- A
+    alpha_i <- alpha[i]
+    alpha[i+1] <- (sqrt((alpha_i^2 - qx)^2 + 4 * alpha_i^2) + (qx - alpha_i^2)) / 2
+    beta[i] <- alpha_i * (1 - alpha_i) / (alpha_i^2 + alpha[i + 1])
+    A <- project_psd(Y - (Y %*% XXt - BXt) / Lx)
+    Y <- A + beta[i] * (A - Ap)
+
+    eps_last_round <- eps
+    eps <- sum((A - Ap)^2)
+    if(abs(eps_last_round - eps) / (abs(eps) + 0.5) < tolerance){
+      break
+    }
+  }
+  A
+}
+
+init_procrustes <- function(data, obs_embedding){
+  n <- nrow(obs_embedding)
+  # Init A (two different options)
+  A1 <- project_psd(t(pracma::mldivide(t(obs_embedding), t(data))))
+  A2 <- matrix(0, nrow = n, ncol = n)
+  for(i in seq_len(n)){
+    A2[i,i] <- max(0, sum(obs_embedding[i,] * data[i,]) / (sum(obs_embedding[i,]^2) + 1e-6))
+  }
+  A3 <- tryCatch({
+    # This might fail on non-full rank input
+    procrustes_spd_analytic(data, obs_embedding)
+  }, error = function(err){
+    matrix(0, nrow = n, ncol = n)
+  })
+
+  e1 <- sum((A1 %*% obs_embedding - data)^2)
+  e2 <- sum((A2 %*% obs_embedding - data)^2)
+  e3 <- sum((A3 %*% obs_embedding - data)^2)
+  if(e1 < e2 && e1 < e3){
+    A1
+  }else if(e2 < e3){
+    A2
+  }else{
+    A3
+  }
+}
+
 #' Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
 #'
-procrustes_spd <- function(data, obs_embedding){
+procrustes_spd_analytic <- function(data, obs_embedding){
   # Implementation based on 'SOLUTION OF SYMMETRIC POSITIVE SEMIDEFINITE PROCRUSTES PROBLEM' by Peng et al. (2019)
+  # Seems to have some problems!!
   n <- nrow(obs_embedding)
   stopifnot(nrow(data) == n)
   stopifnot(ncol(obs_embedding) == ncol(data))
@@ -403,15 +480,26 @@ procrustes_spd <- function(data, obs_embedding){
   # Step 4: Eq. (2.22)
   P11 <- with(eigen_decomp, vectors %*% diag(pmax(values, 0)) %*% t(vectors))
 
-  # Step 5:
-  P12 <- diag(1/sigma, nrow = r) %*% t(V1) %*% t(data) %*% U2
-  # Step 6:
-  if(qr(cbind(P11, P12))$rank != qr(P11)$rank) stop("The procrustres problem does not have a solution")
-  # Step 7 (assuming P22 = 0)
-  P22 <- t(P12) %*% pmax(P11, 0) %*% P12
-  P <- rbind(cbind(P11, P12),
-             cbind(t(P12), P22))
+  if(r < n){
+    # Step 5:
+    P12 <- diag(1/sigma, nrow = r) %*% t(V1) %*% t(data) %*% U2
+    # Step 6:
+    if(qr(cbind(P11, P12))$rank != qr(P11)$rank) stop("The procrustres problem does not have a solution")
+    # Step 7 (assuming P22 = 0)
+    P22 <- t(P12) %*% solve(t(P11) %*% P11) %*% t(P11) %*% P12 #+ random_spd_point(n-r)
+    P <- rbind(cbind(P11, P12),
+               cbind(t(P12), P22))
+  }else{
+    P <- P11
+  }
   z_svd$u %*% P %*% t(z_svd$u)
+}
+
+
+project_psd <- function(Q){
+  Q <- (Q + t(Q)) / 2
+  eig <- eigen(Q)
+  with(eig, vectors %*% diag(pmax(values, 1e-12), nrow = length(values)) %*% t(vectors))
 }
 
 
