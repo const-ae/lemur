@@ -268,20 +268,14 @@ align_neighbors <- function(fit, neighbors = NULL, method = c("rotation", "stret
 
 
   reducedDim(fit, "diffemb_embedding") <- t(align_res$diffemb_embedding)
-  # metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + align_res$alignment_coefficients
-  # exp_group <- get_groups(fit$design_matrix, 10)
-  # exp_group_levels <- unique(exp_group)
-  # base_point <- diag(nrow = fit$n_embedding)
-  # metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
-  #   # Rotate all datapoints
-  #   for(gr in exp_group_levels){
-  #     dir <- sum_tangent_vectors(-align_res$alignment_coefficients, fit$design_matrix[which(exp_group == gr)[1],])
-  #     reducedDim(fit, "diffemb_embedding")[gr == exp_group, ] <- t(rotation_map(dir, base_point) %*% samp$diffemb_embedding[,gr == exp_group])
-  #   }
-  #   metadata(samp)[["alignment_method"]] <- alignment
-  #   metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + align_res$alignment_coefficients
-  #   samp
-  # })
+  metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + align_res$rotation_coefficients
+  metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
+    reducedDim(samp, "diffemb_embedding") <- t(apply_rotation(
+      apply_stretching(samp$diffemb_embedding, align_res$stretch_coefficients, design_matrix, align_res$stretch_base_point),
+      align_res$rotation_coefficients, design_matrix, align_res$rotation_base_point))
+    metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + align_res$rotation_coefficients
+    samp
+  })
 
   fit
 }
@@ -351,7 +345,7 @@ align_neighbors_impl <- function(mnn_list, diffemb_embedding, design_matrix, met
 
 
   list(rotation_coefficients = rotation_coef, stretch_coefficients = stretch_coef,
-       diffemb_embedding = diffemb_embedding)
+       diffemb_embedding = diffemb_embedding, rotation_base_point = base_point, stretch_base_point= base_point)
 }
 
 apply_rotation <- function(A, rotation_coef, design, base_point){
