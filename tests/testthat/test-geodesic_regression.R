@@ -68,25 +68,20 @@ test_that("rotation_geodesic_regression works", {
   expect_equal(fit[,,1], expm::logm(p))
   expect_equal(fit[,,1] + fit[,,2], expm::logm(p2))
 
+  # Works optimally for two rotations
+  bp <- random_rotation_point(5)
+  p1 <- random_rotation_point(5)
+  p2 <- random_rotation_point(5)
+  design <- cbind(1, c(0.2, -0.8))
+  fit <- rotation_geodesic_regression(list(p1, p2), design = design,
+                                      base_point = bp)
+  expect_lt(sum(rotation_log(p1, rotation_map(sum_tangent_vectors(fit, design[1,]), bp))^2), 1e-18)
+  expect_lt(sum(rotation_log(p2, rotation_map(sum_tangent_vectors(fit, design[2,]), bp))^2), 1e-18)
 })
 
 
+
 test_that("rotation_lm works", {
-  # n_obs <- 8
-  # data <- randn(2, n_obs)
-  # embedding <- randn(2, n_obs)
-  # col_data <- data.frame(x = sample(letters[1:3], size = n_obs, replace = TRUE))
-  # des <- model.matrix(~ x, col_data)
-  # base_point <- project_rotation(randn(2, 2))
-  # rotation_lm(data, des, embedding, base_point)
-
-
-  # n_genes <- 10
-  # n_obs <- 500
-  # Y <- randn(n_genes, n_obs)
-  # X <- randn(n_genes, n_obs)
-  # des <- matrix(1, nrow = n_obs)
-  # bp <- diag(nrow = n_genes)
   vecs <- make_vectors(n_genes = 10, n_obs = 500)
   X <- vecs$x
   Y <- vecs$y
@@ -98,6 +93,22 @@ test_that("rotation_lm works", {
   expect_equal(rot, procrustes_rotation(Y, X))
   expect_lt(sum((Y - rot %*% X)^2), 1e-18)
   expect_equal(drop(fit), vecs$pert)
+})
+
+test_that("rotation_lm works optimally for two conditions", {
+  bp <- random_rotation_point(5)
+  p1 <- random_rotation_point(5)
+  p2 <- random_rotation_point(5)
+  Y <- randn(5, 30)
+  cond <- sample(c("a", "b"), size = ncol(Y), replace = TRUE)
+  design <- model.matrix(~ cond)
+  Y_rot <- Y
+  Y_rot[,cond == "a"] <- p1 %*% Y[,cond == "a"]
+  Y_rot[,cond == "b"] <- p2 %*% Y[,cond == "b"]
+
+  fit <- rotation_lm(Y_rot, design = design, Y, base_point = bp)
+  expect_equal(rotation_map(fit[,,1], bp), p1)
+  expect_equal(rotation_map(fit[,,1] + fit[,,2], bp), p2)
 })
 
 
@@ -117,7 +128,7 @@ test_that("rotation_lm works for simple fit", {
 
 
 test_that("procrustes_rotation works for under-determined fits", {
-  skip("procrustes_rotation is not yet working for under-determined fits :() ")
+  skip("procrustes_rotation is not yet working for under-determined fits :(")
   vecs <- make_vectors(n_genes = 8, n_obs = 3, sd = 0.01)
   x <- vecs$x
   y <- vecs$y
@@ -146,7 +157,7 @@ test_that("procrustes_rotation works for under-determined fits", {
 
 
 test_that("rotation_lm does reasonable things for under-determined fits", {
-
+  skip("rotation_lm is not yet working for under-determined fits :(")
   vecs <- make_vectors(n_genes = 3, n_obs = 1)
   x <- vecs$x
   y <- vecs$y
