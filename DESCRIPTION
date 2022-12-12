@@ -24,7 +24,8 @@ Imports:
     DelayedMatrixStats,
     HDF5Array,
     MatrixGenerics,
-    matrixStats
+    matrixStats,
+    BiocNeighbors
 Suggests: 
     testthat (>= 3.0.0),
     MASS,
