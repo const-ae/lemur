@@ -214,7 +214,25 @@ test_that("align_neighbors works", {
   al_stretch <- align_neighbors(fit, method = "stretching", cell_per_cluster = 1)
   al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cell_per_cluster = 1)
 
-  # mnn_list <- get_mutual_neighbors(assay(fit), fit$design_matrix)
+  set.seed(1)
+  mnn_list <- get_mutual_neighbors(assay(fit), fit$design_matrix, cell_per_cluster = 5, n_mnn = 2)
+  set.seed(1)
+  mnn_groups <- get_mnn_groups(assay(fit), fit$design_matrix, cell_per_cluster = 5, n_mnn = 2)
+  expect_equal(mnn_groups$matches, lapply(seq_along(mnn_list$first), \(idx){
+    c(mnn_list$first[[idx]], mnn_list$second[[idx]])
+  }))
+
+  set.seed(1)
+  mnn_list <- get_mutual_neighbors(assay(fit), fit$design_matrix, cell_per_cluster = 1, n_mnn = 2)
+  set.seed(1)
+  mnn_groups <- get_mnn_groups(assay(fit), fit$design_matrix, cell_per_cluster = 1, n_mnn = 2)
+  expect_equal(mnn_groups$matches, lapply(seq_along(mnn_list$first), \(idx){
+    c(mnn_list$first[[idx]], mnn_list$second[[idx]])
+  }))
+
+  tmp1 <- align_neighbors_impl(mnn_list, fit$diffemb_embedding, design_matrix = fit$design_matrix)
+  tmp2 <- correct_design_matrix_groups(mnn_groups, fit$diffemb_embedding, design_matrix = fit$design_matrix)
+  expect_equal(tmp1$diffemb_embedding, tmp2$diffemb_embedding)
 
 
   # alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)

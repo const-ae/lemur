@@ -348,6 +348,69 @@ align_neighbors_impl <- function(mnn_list, diffemb_embedding, design_matrix, met
        diffemb_embedding = diffemb_embedding, rotation_base_point = base_point, stretch_base_point= base_point)
 }
 
+correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, design_matrix, method = c("rotation", "stretching", "rotation+stretching"),
+                                 n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
+  method <- match.arg(method)
+
+  n_embedding <- nrow(diffemb_embedding)
+  base_point <- diag(nrow = n_embedding)
+
+  D <- do.call(rbind, lapply(seq_along(matching_groups$matches), \(idx){
+    do.call(rbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      design_matrix[matching_groups$matches[[idx]][which(matching_groups$index_groups[[idx]] == igr)[1]],,drop=FALSE]
+    }))
+  }))
+  Y <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
+    do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      rowMeans(diffemb_embedding[, matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr],drop=FALSE])
+    }))
+  }))
+  M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
+    duplicate_cols(rowMeans(diffemb_embedding[, matching_groups$matches[[idx]],drop=FALSE]), length(unique(matching_groups$index_groups[[idx]])))
+  }))
+
+  if(method == "rotation"){
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    stretch_coef <- array(0, dim(rotation_coef))
+  }else if(method == "stretching"){
+    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    rotation_coef <- array(0, dim(stretch_coef))
+  }else if(method == "rotation+stretching"){
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    # rotation_coef <- array(0, dim(stretch_coef))
+    error <- error_last_round <- mean((Y - M)^2)
+    if(verbose) message("Initial error: ", error)
+    for(idx in seq_len(10)){
+      # Apply **inverse** of rotation to means before fitting stretching
+      Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
+      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point)
+      # Stretch the observations before fitting the rotation
+      Yprime <- apply_stretching(Y, stretch_coef, D, base_point)
+      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point)
+      # Calculate error
+      error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
+      if(verbose) message("Error: ", error)
+      if(abs(error_last_round - error) / (error + 0.5) < tolerance){
+        break
+      }
+      error_last_round <- error
+    }
+  }
+
+  if(verbose){
+    error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
+    message("Final error: ", error)
+  }
+
+  diffemb_embedding <- apply_rotation(
+    apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point),
+    rotation_coef, design_matrix, base_point)
+
+
+  list(rotation_coefficients = rotation_coef, stretch_coefficients = stretch_coef,
+       diffemb_embedding = diffemb_embedding, rotation_base_point = base_point, stretch_base_point= base_point)
+}
+
 apply_rotation <- function(A, rotation_coef, design, base_point){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   groups <- unique(mm_groups)
@@ -418,6 +481,64 @@ get_mutual_neighbors <- function(data, design_matrix, cell_per_cluster = 20, n_m
     }
   }
   mnn_list
+}
+
+
+get_mnn_groups <- function(data, design_matrix, cell_per_cluster = 20, n_mnn = 10){
+  mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
+  if(is.null(mm_groups)){
+    stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
+         "This error could be removed, but this feature hasn't been implemented yet.")
+  }
+  groups <- unique(mm_groups)
+
+  matches <- list()
+  index_group <- list()
+  if(cell_per_cluster <= 1){
+    # Iterate over combinations of design matrix row groups
+    for(idx1 in seq_along(groups)){
+      for(idx2 in seq_along(groups)){
+        if(idx1 < idx2){
+          sel1 <- mm_groups == idx1
+          sel2 <- mm_groups == idx2
+          k1 <- min(n_mnn, ceiling(sum(sel1) / 4), ceiling(sum(sel2) / 4))
+          mnn <- BiocNeighbors::findMutualNN(t(data[,sel1]), t(data[,sel2]), k1 = k1)
+          matches <- c(matches, lapply(seq_along(mnn$first), \(idx3){
+            c(which(sel1)[mnn$first[idx3]], which(sel2)[mnn$second[idx3]])
+          }))
+          index_group <- c(index_group, list(c(1,2)))
+        }
+      }
+    }
+  }else{
+    # Cluster each design matrix row group
+    clusters <- lapply(groups, \(gr){
+      sel <- mm_groups == gr
+      k <- max(1, round(sum(sel) / cell_per_cluster))
+      cl <- kmeans(t(data[,sel,drop=FALSE]), centers = k, nstart = 10, iter.max = 100)
+      list(Y = t(cl$centers), indices = which(sel), cluster = unname(cl$cluster))
+    })
+    # Iterate over combinations of design matrix row groups
+    for(idx1 in seq_along(groups)){
+      for(idx2 in seq_along(groups)){
+        if(idx1 < idx2){
+          # Find MNN for each cluster center
+          cl1 <- clusters[[idx1]]
+          cl2 <- clusters[[idx2]]
+          k1 <- min(n_mnn, ceiling(ncol(cl1$Y) / 4), ceiling(ncol(cl2$Y) / 4))
+          mnn <- BiocNeighbors::findMutualNN(t(cl1$Y), t(cl2$Y), k1 = k1)
+          matches <- c(matches, lapply(seq_along(mnn$first), \(idx3){
+            c(cl1$indices[cl1$cluster == mnn$first[idx3]], cl2$indices[cl2$cluster == mnn$second[idx3]])
+          }))
+          index_group <- c(index_group, lapply(seq_along(mnn$first), \(idx3){
+            c(rep(1, length(cl1$indices[cl1$cluster == mnn$first[idx3]])),
+              rep(2, length(cl2$indices[cl2$cluster == mnn$second[idx3]])))
+          }))
+        }
+      }
+    }
+  }
+  list(matches = matches, index_groups = index_group)
 }
 
 
