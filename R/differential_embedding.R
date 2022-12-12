@@ -245,6 +245,115 @@ sum_tangent_vectors <- function(tangent_block, covariates){
 
 
 
+align_neighbors <- function(fit, neighbors = NULL, method = c("rotation", "stretching", "rotation+stretching"), ...,
+                            design_matrix = fit$design_matrix, verbose = TRUE){
+  method <- match.arg(method)
+  mnn_list <- if(is.null(neighbors)){
+    # Over-cluster the logcounts and find mutual nearest neighbors across conditions
+    get_mutual_neighbors(assay(fit), design_matrix, ...)
+  }else if(is.matrix(neighbors)){
+    # Assume neighbors is the corrected embedding from MNN or Harmony
+    get_mutual_neighbors(neighbors, design_matrix, ...)
+  }else if(is.list(neighbors)){
+    if(length(neighbors) != 2) stop("Neighbor list must have two entries")
+    if(! is.null(names(neighbors))){
+      if(! all(names(neighbors) %in% c("first", "second"))) stop("The names of the neighbors list must be 'first' and 'second'.")
+      list(first = as.list(neighbors$first), second = as.list(neighbors$second))
+    }else{
+      list(first = as.list(neighbors[[1]]), second = as.list(neighbors[[2]]))
+    }
+  }
+
+  align_res <- align_neighbors_impl(mnn_list, fit$diffemb_embedding, design_matrix, method = method, verbose = verbose, ...)
+
+
+  reducedDim(fit, "diffemb_embedding") <- t(align_res$diffemb_embedding)
+  # metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + align_res$alignment_coefficients
+  # exp_group <- get_groups(fit$design_matrix, 10)
+  # exp_group_levels <- unique(exp_group)
+  # base_point <- diag(nrow = fit$n_embedding)
+  # metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
+  #   # Rotate all datapoints
+  #   for(gr in exp_group_levels){
+  #     dir <- sum_tangent_vectors(-align_res$alignment_coefficients, fit$design_matrix[which(exp_group == gr)[1],])
+  #     reducedDim(fit, "diffemb_embedding")[gr == exp_group, ] <- t(rotation_map(dir, base_point) %*% samp$diffemb_embedding[,gr == exp_group])
+  #   }
+  #   metadata(samp)[["alignment_method"]] <- alignment
+  #   metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + align_res$alignment_coefficients
+  #   samp
+  # })
+
+  fit
+}
+
+align_neighbors_impl <- function(mnn_list, diffemb_embedding, design_matrix, method = c("rotation", "stretching", "rotation+stretching"),
+                                n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
+  method <- match.arg(method)
+
+  n_embedding <- nrow(diffemb_embedding)
+  base_point <- diag(nrow = n_embedding)
+
+  d1_per_mnn <- do.call(rbind, lapply(seq_along(mnn_list$first), \(idx){
+    design_matrix[mnn_list$first[[idx]][1],]
+  }))
+  d2_per_mnn <- do.call(rbind, lapply(seq_along(mnn_list$second), \(idx){
+    design_matrix[mnn_list$second[[idx]][1],]
+  }))
+  p1_per_mnn <-  do.call(cbind, lapply(seq_along(mnn_list$first), \(idx){
+    rowMeans(diffemb_embedding[, mnn_list$first[[idx]],drop=FALSE])
+  }))
+  p2_per_mnn <-  do.call(cbind, lapply(seq_along(mnn_list$second), \(idx){
+    rowMeans(diffemb_embedding[, mnn_list$second[[idx]],drop=FALSE])
+  }))
+  w1 <- lengths(mnn_list$first) / (lengths(mnn_list$first) + lengths(mnn_list$second))
+  w2 <- lengths(mnn_list$first) / (lengths(mnn_list$first) + lengths(mnn_list$second))
+  centers_per_mnn <- t(t(p1_per_mnn) * w2 + t(p2_per_mnn) * w1)
+  M <- cbind(centers_per_mnn, centers_per_mnn)
+  Y <- cbind(p1_per_mnn, p2_per_mnn)
+  D <- rbind(d1_per_mnn, d2_per_mnn)
+
+  if(method == "rotation"){
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    stretch_coef <- array(0, dim(rotation_coef))
+  }else if(method == "stretching"){
+    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    rotation_coef <- array(0, dim(stretch_coef))
+  }else if(method == "rotation+stretching"){
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    # rotation_coef <- array(0, dim(stretch_coef))
+    error <- error_last_round <- mean((Y - M)^2)
+    if(verbose) message("Initial error: ", error)
+    for(idx in seq_len(10)){
+      # Apply **inverse** of rotation to means before fitting stretching
+      Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
+      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point)
+      # Stretch the observations before fitting the rotation
+      Yprime <- apply_stretching(Y, stretch_coef, D, base_point)
+      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point)
+      # Calculate error
+      error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
+      if(verbose) message("Error: ", error)
+      if(abs(error_last_round - error) / (error + 0.5) < tolerance){
+        break
+      }
+      error_last_round <- error
+    }
+  }
+
+  if(verbose){
+    error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
+    message("Final error: ", error)
+  }
+
+  diffemb_embedding <- apply_rotation(
+      apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point),
+    rotation_coef, design_matrix, base_point)
+
+
+  list(rotation_coefficients = rotation_coef, stretch_coefficients = stretch_coef,
+       diffemb_embedding = diffemb_embedding)
+}
+
 apply_rotation <- function(A, rotation_coef, design, base_point){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   groups <- unique(mm_groups)
@@ -264,6 +373,60 @@ apply_stretching <- function(A, stretch_coef, design, base_point){
   }
   A
 }
+
+
+
+
+get_mutual_neighbors <- function(data, design_matrix, cell_per_cluster = 20, n_mnn = 10){
+  mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
+  if(is.null(mm_groups)){
+    stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
+         "This error could be removed, but this feature hasn't been implemented yet.")
+  }
+  groups <- unique(mm_groups)
+
+  mnn_list <- list(first = list(), second = list())
+  if(cell_per_cluster <= 1){
+    for(idx1 in seq_along(groups)){
+      for(idx2 in seq_along(groups)){
+        if(idx1 < idx2){
+          sel1 <- mm_groups == idx1
+          sel2 <- mm_groups == idx2
+          k1 <- min(n_mnn, ceiling(sum(sel1) / 4), ceiling(sum(sel2) / 4))
+          mnn <- BiocNeighbors::findMutualNN(t(data[,sel1]), t(data[,sel2]), k1 = k1)
+          mnn_list$first <- c(mnn_list$first, as.list(which(sel1)[mnn$first]))
+          mnn_list$second <- c(mnn_list$second, as.list(which(sel2)[mnn$second]))
+        }
+      }
+    }
+  }else{
+    clusters <- lapply(groups, \(gr){
+      sel <- mm_groups == gr
+      k <- max(1, round(sum(sel) / cell_per_cluster))
+      cl <- kmeans(t(data[,sel,drop=FALSE]), centers = k, nstart = 10, iter.max = 100)
+      list(Y = t(cl$centers), indices = which(sel), cluster = unname(cl$cluster))
+    })
+    for(idx1 in seq_along(groups)){
+      for(idx2 in seq_along(groups)){
+        if(idx1 < idx2){
+          cl1 <- clusters[[idx1]]
+          cl2 <- clusters[[idx2]]
+          k1 <- min(n_mnn, ceiling(ncol(cl1$Y) / 4), ceiling(ncol(cl2$Y) / 4))
+          mnn <- BiocNeighbors::findMutualNN(t(cl1$Y), t(cl2$Y), k1 = k1)
+          mnn_list$first <- c(mnn_list$first, lapply(seq_along(mnn$first), \(idx3){
+            cl1$indices[cl1$cluster == mnn$first[idx3]]
+          }))
+          mnn_list$second <- c(mnn_list$second, lapply(seq_along(mnn$second), \(idx3){
+            cl2$indices[cl2$cluster == mnn$second[idx3]]
+          }))
+        }
+      }
+    }
+  }
+  mnn_list
+}
+
+
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param alignment a factor of length `ncol(data)`. The method tries to put elements with the
@@ -307,7 +470,8 @@ align_embeddings <- function(fit, alignment = TRUE, verbose = TRUE, ...){
   fit
 }
 
-
+# Make this function work by solving |M - Beta %*% (P * X)| where M is the mean per k-NN clique,
+# P is the current center of the clusters and X is the corresponding line from the design matrix
 align_points_impl <- function(alignment, diffemb_embedding, design_matrix,
                               n_iter = 1, tolerance = 1e-8, target_layout = c("mean", "spherical_mds"), verbose = TRUE){
 

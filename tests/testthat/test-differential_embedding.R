@@ -202,6 +202,31 @@ test_that("align_embeddings works", {
 })
 
 
+test_that("align_neighbors works", {
+  dat <- make_synthetic_data(n_genes = 30)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
+  expect_equal(fit$alignment_method, FALSE)
+  expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
+
+  al_rot <- align_neighbors(fit, method = "rotation", cell_per_cluster = 1)
+  al_stretch <- align_neighbors(fit, method = "stretching", cell_per_cluster = 1)
+  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cell_per_cluster = 1)
+
+  # mnn_list <- get_mutual_neighbors(assay(fit), fit$design_matrix)
+
+
+  # alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
+  # fit2 <- align_embeddings(fit, alignment = alignment, verbose = FALSE)
+  # expect_equal(fit2$alignment_method, alignment)
+  # expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
+  # expect_equal(fit2$bootstrap_samples[[1]]$alignment_coefficients, fit2$alignment_coefficients)
+  # expect_equal(predict(fit), predict(fit2))
+  # expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
+  #              fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
+})
+
 test_that("apply_rotation works", {
   A <- randn(5, 30)
   base_point <- diag(nrow = 5)
