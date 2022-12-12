@@ -167,10 +167,10 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     sel <- mm_groups == gr
     x <- obs_embedding[,sel,drop=FALSE]
     y <- data[,sel,drop=FALSE]
-    data_rank <- qr(cbind(x, y))$rank
+    data_rank <- qr(x %*% t(y))$rank
     if(data_rank == 0){
       matrix(NA_real_, nrow = 0, ncol = 0)
-    # }else if(data_rank < n_amb){
+    }else if(data_rank < n_amb){
     #   # The system is underdetermined.
     #
     #   # The rotation will be somewhere in the space spanned by x and y
@@ -197,6 +197,8 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     #   V <- cbind(space %*% svd$v, anti_space)
     #   diag_elem <- c(rep(1, times = ncol(U) - 1), Matrix::det(U %*% t(V)))
     #   U %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(V)
+      warning("The procrustes problem is underdetermined")
+      procrustes_rotation(y, x)
     }else{
       # coef <- t(lm.fit(t(x), t(y))$coefficient)
       # project_rotation(coef)
