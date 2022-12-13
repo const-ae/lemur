@@ -8,7 +8,7 @@ test_differential_expression(
   fit,
   contrast,
   reduced_design = NULL,
-  diffemb_embedding = fit$diffemb_embedding,
+  diffemb_embedding = NULL,
   consider = c("embedding+linear", "embedding", "linear"),
   variance_est = c("bootstrap", "none"),
   return = c("table", "matrix")
