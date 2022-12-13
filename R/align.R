@@ -133,7 +133,7 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
 
 
 correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, design_matrix, method = c("rotation", "stretching", "rotation+stretching"),
-                                         max_iter = 100, n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
+                                         max_iter = 10, n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
   method <- match.arg(method)
 
   n_embedding <- nrow(diffemb_embedding)

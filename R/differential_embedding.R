@@ -169,12 +169,13 @@ differential_embedding_impl <- function(Y, design_matrix,
   if(alignment_fixed_but_embedding_fitted){
     # Rotate the diffemb_embedding if it wasn't provided
     stop("Fixing 'alignment_coefficients' without fixing 'diffemb_embedding' is not implemented")
-  }else if(! alignment_coef_fixed){
-    if(verbose && ! isFALSE(alignment)) message("Align points")
-    align_res <- align_points_impl(alignment, diffemb_embedding, design_matrix, verbose = verbose)
-    diffemb_embedding <- align_res$diffemb_embedding
-    alignment_coefficients <- align_res$alignment_coefficients
+  }else if(! alignment_coef_fixed && ! isFALSE(alignment)){
+    if(verbose) message("Align points")
+    stop("Cannot handle 'alignment='", alignment)
+  }else{
+    alignment_coefficients <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
   }
+
 
 
   list(n_ambient = n_ambient, n_embedding = n_embedding,
