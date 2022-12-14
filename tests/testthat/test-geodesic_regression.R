@@ -89,7 +89,6 @@ test_that("rotation_lm works", {
 
   fit <- rotation_lm(Y, matrix(1, nrow = ncol(X)), X, bp, tangent_regression = TRUE)
   rot <- rotation_map(drop(fit), bp)
-  # plot(procrustesRegression:::procrustes(Y, X),  rot); abline(0,1)
   expect_equal(rot, procrustes_rotation(Y, X))
   expect_lt(sum((Y - rot %*% X)^2), 1e-18)
   expect_equal(drop(fit), vecs$pert)
@@ -120,7 +119,6 @@ test_that("rotation_lm works for simple fit", {
 
   fit <- rotation_lm(Y, matrix(1, nrow = ncol(X)), X, bp, tangent_regression = TRUE)
   rot <- rotation_map(drop(fit), bp)
-  # plot(procrustesRegression:::procrustes(Y, X), rot); abline(0,1)
   expect_equal(rot, procrustes_rotation(Y, X))
   expect_lt(sum((Y - rot %*% X)^2), 1e-18)
   expect_equal(drop(fit), vecs$pert)
@@ -128,36 +126,37 @@ test_that("rotation_lm works for simple fit", {
 
 
 test_that("procrustes_rotation works for under-determined fits", {
-  skip("procrustes_rotation is not yet working for under-determined fits :(")
-  vecs <- make_vectors(n_genes = 8, n_obs = 3, sd = 0.01)
+  vecs <- make_vectors(n_genes = 8, n_obs = 3, sd = 0.1)
   x <- vecs$x
   y <- vecs$y
   z <- vecs$z
   bp <- vecs$bp
 
   rot <- procrustes_rotation(y, x)
-  round(crossprod(rot),3)
-  round(tcrossprod(rot),3)
-  Matrix::det(rot)
+  expect_equal(t(rot) %*% rot, diag(nrow = 8))
+  expect_equal(Matrix::det(rot), 1)
 
   # x are rotated to y
   expect_lt(sum((rot %*% x - y)^2), 1e-18)
   # points in the null space of [x,y] are not affected by the rotation
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
-  pracma::subspace(space, z_in_null) / pi * 180
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
+
   # The rotation is also in some sense minimal
-  sum(rotation_log(bp, rot)^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
-
-
+  # (or at least smaller than a naive rotation)
+  svd <- svd(x %*% t(y))
+  U <- svd$u
+  V <- svd$v
+  fact <- Matrix::det(V %*% t(U))
+  U[,ncol(U)] <- U[,ncol(U)] * fact
+  rot_naive <- V %*% t(U)
+  expect_lt(sum((rot_naive %*% x - y)^2), 1e-18)
+  expect_lt(sum(rotation_log(bp, rot)^2), sum(rotation_log(bp, rot_naive)^2))
 })
 
 
 test_that("rotation_lm does reasonable things for under-determined fits", {
-  skip("rotation_lm is not yet working for under-determined fits :(")
   vecs <- make_vectors(n_genes = 3, n_obs = 1)
   x <- vecs$x
   y <- vecs$y
@@ -172,10 +171,6 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
-  # The rotation is also in some sense minimal
-  # sum(res^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
 
 
   vecs <- make_vectors(n_genes = 15, n_obs = 6)
@@ -192,11 +187,6 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
-  # The rotation is also in some sense minimal
-  # sum(res^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
-
 
   vecs <- make_vectors(n_genes = 15, n_obs = 12)
   x <- vecs$x
@@ -207,16 +197,11 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
                           base_point = bp, tangent_regression = TRUE))
   rot <- rotation_map(res, bp)
   # x are rotated to y
-  expect_lt(sum((rot %*% x - y)^2), 1e-12)
+  expect_lt(sum((rot %*% x - y)^2), 1e-18)
   # points in the null space of [x,y] are not affected by the rotation
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
-  # The rotation is also in some sense minimal
-  # sum(res^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
-
 
 
   vecs <- make_vectors(n_genes = 15, n_obs = 14)
@@ -233,11 +218,6 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-12)
-  # The rotation is also in some sense minimal
-  # sum(res^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
-  # And for n_obs = n_genes - 1, I recover the original rotation
   expect_equal(res, vecs$pert)
 
 
@@ -256,12 +236,10 @@ test_that("rotation_lm does reasonable things for under-determined fits", {
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
 
-
 })
 
 
 test_that("rotation_lm works for degenerate fits ", {
-
   vecs <- make_vectors(n_genes = 6, n_obs = 3)
   x <- vecs$x
   x[,3] <- x[,2]
@@ -278,11 +256,6 @@ test_that("rotation_lm works for degenerate fits ", {
   space <- qr.Q(qr(cbind(x, y)))
   z_in_null <- (diag(nrow = nrow(space)) - space %*% t(space)) %*% z
   expect_lt(sum((rot %*% z_in_null - z_in_null)^2), 1e-18)
-  # The rotation is also in some sense minimal
-  # sum(res^2)
-  # And regular points are not moved too far
-  # sum((z - rot %*% z)^2)
-
 })
 
 

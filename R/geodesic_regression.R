@@ -157,53 +157,11 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
          "This error could be removed, but this feature hasn't been implemented yet.")
   }
-  # if(any(table(mm_groups) < n_emb)){
-  #   stop("Too few datapoints in some design matrix group.\n",
-  #        "This error could be removed, but this feature hasn't been implemented yet.")
-  # }
   groups <- unique(mm_groups)
   reduced_design <- mply_dbl(groups, \(gr) design[which(mm_groups == gr)[1],], ncol = ncol(design))
   group_rot <- lapply(groups, \(gr){
     sel <- mm_groups == gr
-    x <- obs_embedding[,sel,drop=FALSE]
-    y <- data[,sel,drop=FALSE]
-    data_rank <- qr(x %*% t(y))$rank
-    if(data_rank == 0){
-      matrix(NA_real_, nrow = 0, ncol = 0)
-    }else if(data_rank < n_amb){
-    #   # The system is underdetermined.
-    #
-    #   # The rotation will be somewhere in the space spanned by x and y
-    #   qr_space <- qr.Q(qr(cbind(x, y)), complete = TRUE)
-    #   n_red <- min(data_rank * 2, n_amb)
-    #   space <- qr_space[,seq_len(n_red),drop=FALSE]
-    #   anti_space <- qr_space[,-seq_len(n_red),drop=FALSE]
-    #
-    #   # Approximate the rotation using linear regression
-    #   coef_lower_dim <- t(lm.fit(round(t(x) %*% space, 10), round(t(y) %*% space, 10))$coefficient)
-    #   coef_is_na <- apply(coef_lower_dim, 2, anyNA)
-    #
-    #   # Tricky bit! [x,y] has 2n dim, but we only have n observations.
-    #   # To fill the remaining n, we want to find a minimal rotation (i.e. close to identify matrix).
-    #   # We project the subset of the identity to the null-space of the coefficients
-    #   coef_null_space_proj <- diag(nrow = n_red) - coef_lower_dim[,!coef_is_na,drop=FALSE] %*% t(coef_lower_dim[,!coef_is_na,drop=FALSE])
-    #   coef_lower_dim[,coef_is_na] <- coef_null_space_proj  %*% diag(nrow = n_red)[,setdiff(seq_len(n_red), seq(sum(!coef_is_na))),drop=FALSE]
-    #
-    #   # The following is a modified version of `project_rotation`, where I
-    #   # resolve the indeterminancy of the SVD and force it to use the anti-space
-    #   # This ensures that points in the null space of [x, y] are not moved by the rotation
-    #   svd <- svd(coef_lower_dim)
-    #   U <- cbind(space %*% svd$u, anti_space)
-    #   V <- cbind(space %*% svd$v, anti_space)
-    #   diag_elem <- c(rep(1, times = ncol(U) - 1), Matrix::det(U %*% t(V)))
-    #   U %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(V)
-      warning("The procrustes problem is underdetermined")
-      procrustes_rotation(y, x)
-    }else{
-      # coef <- t(lm.fit(t(x), t(y))$coefficient)
-      # project_rotation(coef)
-      procrustes_rotation(y, x)
-    }
+    procrustes_rotation(data[,sel,drop=FALSE], obs_embedding[,sel,drop=FALSE])
   })
   coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
   # line search
@@ -233,33 +191,45 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
 
 #' Solve ||Y - R Z ||^2_2 for R in SO(n) (aka. Procrustes analysis)
 #'
-procrustes_rotation <- function(data, obs_embedding){
-  n <- nrow(obs_embedding)
-  stopifnot(nrow(data) == n)
-  stopifnot(ncol(obs_embedding) == ncol(data))
-  # zy_dim <- qr(cbind(data, obs_embedding))$rank
-  # if(zy_dim < n){
-  #   stop("This branch isn't working yet.")
-  #   # There is extra space between outside [z,y] which
-  #   # is not at all affected by the rotation
-  #   qr_space <- qr.Q(qr(cbind(obs_embedding, data)), complete = TRUE)
-  #   space <- qr_space[,seq_len(zy_dim),drop=FALSE]
-  #   anti_space <- qr_space[,-seq_len(zy_dim),drop=FALSE]
-  #   red_svd <- svd(t(space) %*% obs_embedding %*% t(data) %*% space)
-  # # browser()
-  #   # sv0 <- red_svd$d < 1e-18
-  #   # red_svd$u[sv0,sv0] <- diag(nrow=sum(sv0))
-  #
-  #   U <- cbind(space %*% red_svd$u, anti_space)
-  #   V <- cbind(space %*% red_svd$v, anti_space)
-  # }else{
-    svd <- svd(obs_embedding %*% t(data))
-    U <- svd$u
-    V <- svd$v
-  # }
-  diag_elem <- c(rep(1, times = ncol(U) - 1), Matrix::det(V %*% t(U)))
-  V %*% diag(diag_elem, nrow = length(diag_elem)) %*% t(U)
+procrustes_rotation <- function(Y, Z){
+  # This code is based on an answer by Mike Hawk on cross validated
+  # https://stats.stackexchange.com/a/599015/130486
+  stopifnot(nrow(Y) == nrow(Z))
+  stopifnot(ncol(Y) == ncol(Z))
 
+  if(nrow(Y) == 0){
+    matrix(nrow = 0, ncol = 0)
+  }else if(nrow(Y) == 1){
+    matrix(1)
+  }else if(nrow(Y) == 2){
+    a <- sum(Z * Y)
+    b <- sum(Y[1,] * Z[2,] - Y[2,] * Z[1,])
+    theta <- atan2(a, b) - pi/2
+    matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  }else{
+    M <- Z %*% t(Y)
+    svd <- svd(M)
+    sel <- abs(svd$d) > 1e-12
+    if(any(! sel)){
+      # Cross product is not full rank, recurse on subproblem
+      U1 <- svd$u[,sel,drop=FALSE]
+      V1 <- svd$v[,sel,drop=FALSE]
+      U2 <- svd$u[,!sel,drop=FALSE]
+      V2 <- svd$v[,!sel,drop=FALSE]
+      fact <- Matrix::det(svd$v %*% t(svd$u))
+      U2[,ncol(U2)] <- U2[,ncol(U2)] * fact
+      sub_rot <- procrustes_rotation(t(V2), t(U2))
+      Ucompl <- cbind(U1, U2 %*% t(sub_rot))
+      Vcompl <- cbind(V1, V2)
+      Vcompl %*% t(Ucompl)
+    }else{
+      U <- svd$u
+      V <- svd$v
+      fact <- Matrix::det(V %*% t(U))
+      U[,ncol(U)] <- U[,ncol(U)] * fact
+      V %*% t(U)
+    }
+  }
 }
 
 
