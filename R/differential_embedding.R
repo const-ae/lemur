@@ -125,7 +125,10 @@ differential_embedding_impl <- function(Y, design_matrix,
   if(linear_coef_fixed){
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
   }else{
-    Y_clean <- amb_pca$embedding
+    if(verbose) message("Regress out global effects")
+    linear_fit <- lm.fit(design_matrix, t(amb_pca$embedding))
+    linear_coefficients <- t(linear_fit$coefficients)
+    Y_clean <- t(linear_fit$residuals)
   }
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
