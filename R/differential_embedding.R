@@ -93,6 +93,7 @@ differential_embedding_impl <- function(Y, design_matrix,
       if(verbose) message("Fit ambient PCA")
       amb_pca <- pca(Y, n_ambient)
     }
+    n_ambient_eff <- min(nrow(Y), n_ambient)
   }else{
     # Check that amb_pca is correct
     stopifnot(all(names(amb_pca) %in% c("coordsystem", "embedding", "offset")))
