@@ -52,7 +52,8 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
              diffemb_coefficients = res$diffemb_coefficients,
              diffemb_embedding = res$diffemb_embedding,
              alignment_method = res$alignment_method,
-             alignment_coefficients = res$alignment_coefficients)
+             alignment_rotation = res$alignment_rotation,
+             alignment_stretching = res$alignment_stretching)
 }
 
 
@@ -64,11 +65,13 @@ differential_embedding_impl <- function(Y, design_matrix,
                                         linear_coefficients = NULL,
                                         diffemb_coefficients = NULL,
                                         diffemb_embedding = NULL,
-                                        alignment_coefficients = NULL,
+                                        alignment_rotation = NULL,
+                                        alignment_stretching = NULL,
                                         n_iter = 10, tol = 1e-8,
                                         reshuffling_fraction = 0,
                                         verbose = TRUE){
-  alignment_fixed_but_embedding_fitted <- ! is.null(alignment_coefficients) && is.null(diffemb_embedding)
+  alignment_rot_fixed_but_embedding_fitted <- ! is.null(alignment_rotation) && is.null(diffemb_embedding)
+  alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(diffemb_embedding)
 
   # Set reduced dimensions
   stopifnot(n_ambient >= 0 && n_embedding >= 0)
@@ -76,7 +79,8 @@ differential_embedding_impl <- function(Y, design_matrix,
   linear_coef_fixed <-  ! is.null(linear_coefficients)
   diffemb_coef_fixed <- ! is.null(diffemb_coefficients)
   diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
-  alignment_coef_fixed <- ! is.null(alignment_coefficients)
+  alignment_rot_fixed <- ! is.null(alignment_rotation)
+  alignment_stretch_fixed <- ! is.null(alignment_stretching)
 
   # Reduce to ambient space
   if(is.null(amb_pca)){
@@ -170,14 +174,15 @@ differential_embedding_impl <- function(Y, design_matrix,
     }
   }
 
-  if(alignment_fixed_but_embedding_fitted){
+  if(alignment_rot_fixed_but_embedding_fitted || alignment_stretch_fixed_but_embedding_fitted){
     # Rotate the diffemb_embedding if it wasn't provided
-    stop("Fixing 'alignment_coefficients' without fixing 'diffemb_embedding' is not implemented")
-  }else if(! alignment_coef_fixed && ! isFALSE(alignment)){
+    stop("Fixing 'alignment_rotation' or 'alignment_stretching' without fixing 'diffemb_embedding' is not implemented")
+  }else if((! alignment_rot_fixed || ! alignment_stretch_fixed) && ! isFALSE(alignment)){
     if(verbose) message("Align points")
     stop("Cannot handle 'alignment='", alignment)
   }else{
-    alignment_coefficients <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
+    alignment_rotation <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
+    alignment_stretching <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
   }
 
 
@@ -190,7 +195,8 @@ differential_embedding_impl <- function(Y, design_matrix,
        diffemb_coefficients = diffemb_coefficients,
        diffemb_embedding = diffemb_embedding,
        alignment_method = alignment,
-       alignment_coefficients = alignment_coefficients)
+       alignment_rotation = alignment_rotation,
+       alignment_stretching = alignment_stretching)
 }
 
 

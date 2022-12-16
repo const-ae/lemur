@@ -106,6 +106,41 @@ test_that("logarithm for rotation manifolds works",{
 
 })
 
+test_that("Inverses for the rotation manifold", {
+  # Identity base-point
+  bp <- diag(nrow = 5)
+  v <- random_rotation_tangent(bp, sd = 0.1)
+  expect_equal(rotation_map(-v, bp), solve(rotation_map(v, bp)))
+
+  # Non-Identity base-point
+  bp <- random_rotation_point(n = 5)
+  v <- random_rotation_tangent(bp, sd = 0.1)
+  expect_equal(expm::expm(-v) %*% solve(bp), solve(rotation_map(v, bp)))
+  expect_equal(t(rotation_map(v, bp)), solve(rotation_map(v, bp)))
+})
+
+test_that("Inverses for the symmetric positive definite manifold", {
+  # Identity base-point
+  bp <- diag(nrow = 5)
+  v <- random_spd_tangent(bp, sd = 0.3)
+  expect_equal(spd_map(-v, bp), solve(spd_map(v, bp)))
+
+  # Non-Identity base-point
+  bp <- random_spd_point(n = 5)
+  ps <- spd_sqrt(bp)
+  psi <- spd_sqrt_inv(bp)
+  v <- random_spd_tangent(bp, sd = 0.3)
+  expect_equal(solve(bp) %*% spd_map(-v, bp) %*% solve(bp), solve(spd_map(v, bp)))
+  expect_equal(psi %*% expm::expm(psi %*% (-v) %*% psi) %*% psi, solve(spd_map(v, bp)))
+
+  # Apply stretching and inverse stretching to a matrix
+  Z <- randn(5, 100)
+  bp <- diag(nrow = 5)
+  v <- random_spd_tangent(bp, sd = 0.3)
+  Zprime <- spd_map(v, bp) %*% Z
+  expect_equal(spd_map(-v, bp) %*% Zprime, Z)
+})
+
 
 test_that("spheres are correctly implemented", {
   # Project on tangent space works

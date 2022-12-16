@@ -70,9 +70,11 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
       alignment_method <- alignment_method[resampling]
     }
     if(refit_alignment){
-      alignment_coefficients <- NULL
+      alignment_rotation <- NULL
+      alignment_stretching <- NULL
     }else{
-      alignment_coefficients <- fit$alignment_coefficients
+      alignment_rotation <- fit$alignment_rotation
+      alignment_stretching <- fit$alignment_stretching
     }
     res <- differential_embedding_impl(data_mat, design_matrix = design_matrix,
                                 n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
@@ -81,7 +83,9 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 linear_coefficients = linear_coefficients,
                                 diffemb_coefficients = diffemb_coefficients,
                                 diffemb_embedding = diffemb_embedding,
-                                alignment_coefficients = alignment_coefficients, verbose = FALSE)
+                                alignment_rotation = alignment_rotation,
+                                alignment_stretching = alignment_stretching,
+                                verbose = FALSE)
 
     # Use the results of the resampled fit, to make 'diffemb_embedding' correspond to the original data
     refitted_Y_clean <- if(refit_ambient_pca){
@@ -104,7 +108,8 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                diffemb_coefficients = res$diffemb_coefficients,
                diffemb_embedding = refitted_diffemb_embedding,
                alignment_method = alignment_method,
-               alignment_coefficients = res$alignment_coefficients)
+               alignment_rotation = res$alignment_rotation,
+               alignment_stretching = res$alignment_stretching)
     rownames(samp) <- rownames(fit)
     colnames(samp) <- colnames(fit)
     samp

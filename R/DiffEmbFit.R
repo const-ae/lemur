@@ -7,7 +7,7 @@ DiffEmbFit <- function(data_mat, col_data, row_data,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
                        diffemb_basepoint, diffemb_coefficients, diffemb_embedding,
-                       alignment_method, alignment_coefficients,
+                       alignment_method, alignment_rotation, alignment_stretching,
                        bootstrap_samples = NULL){
 
 
@@ -27,7 +27,7 @@ DiffEmbFit <- function(data_mat, col_data, row_data,
                                               ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
                                               design = design,
                                               diffemb_basepoint = diffemb_basepoint, diffemb_coefficients = diffemb_coefficients,
-                                              alignment_method = alignment_method, alignment_coefficients = alignment_coefficients,
+                                              alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
                                               bootstrap_samples))
   .DiffEmbFit(sce)
 }
@@ -68,8 +68,10 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   diffemb_coefficients <- obj$diffemb_coefficients
   if(is.null(diffemb_coefficients)) msg <- c(msg, "'diffemb_coefficients' must not be NULL")
   alignment_method <- obj$alignment_method
-  alignment_coefficients <- obj$alignment_coefficients
-  if(is.null(alignment_coefficients)) msg <- c(msg, "'alignment_coefficients' must not be NULL")
+  alignment_rotation <- obj$alignment_rotation
+  if(is.null(alignment_rotation)) msg <- c(msg, "'alignment_rotation' must not be NULL")
+  alignment_stretching <- obj$alignment_stretching
+  if(is.null(alignment_stretching)) msg <- c(msg, "'alignment_stretching' must not be NULL")
   diffemb_embedding <- obj$diffemb_embedding
   if(is.null(diffemb_embedding)) msg <- c(msg, "'diffemb_embedding' must not be NULL")
   design <- obj$design
@@ -95,10 +97,14 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   if(! is.null(diffemb_embedding) && nrow(diffemb_embedding) != n_embedding) msg <- c(msg, "`nrow(diffemb_embedding)` does not match `n_embedding`")
   if(! is.null(diffemb_embedding) && ncol(diffemb_embedding) != n_obs) msg <- c(msg, "`ncol(diffemb_embedding)` does not match number of observations")
   if(! is.null(alignment_method) && length(alignment_method) != 1 && length(alignment_method) != n_obs) msg <- c(msg, "`length(alignment_method)` must either be a single value or a vector with the same length as the number of observation")
-  if(! is.null(alignment_coefficients) && ! is.array(alignment_coefficients) || length(dim(alignment_coefficients)) != 3) msg <- c(msg, "`alignment_coefficients` must be a three dimensional array")
-  if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[1] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[1]` does not match `n_embedding`")
-  if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[2] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[2]` does not match `n_embedding`")
-  if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(alignment_coefficients)[3]` does not match `ncol(design_matrix)`")
+  if(! is.null(alignment_rotation) && ! is.array(alignment_rotation) || length(dim(alignment_rotation)) != 3) msg <- c(msg, "`alignment_rotation` must be a three dimensional array")
+  if(! is.null(alignment_rotation) && dim(alignment_rotation)[1] != n_embedding) msg <- c(msg, "`dim(alignment_rotation)[1]` does not match `n_embedding`")
+  if(! is.null(alignment_rotation) && dim(alignment_rotation)[2] != n_embedding) msg <- c(msg, "`dim(alignment_rotation)[2]` does not match `n_embedding`")
+  if(! is.null(alignment_rotation) && dim(alignment_rotation)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(alignment_rotation)[3]` does not match `ncol(design_matrix)`")
+  if(! is.null(alignment_stretching) && ! is.array(alignment_stretching) || length(dim(alignment_stretching)) != 3) msg <- c(msg, "`alignment_stretching` must be a three dimensional array")
+  if(! is.null(alignment_stretching) && dim(alignment_stretching)[1] != n_embedding) msg <- c(msg, "`dim(alignment_stretching)[1]` does not match `n_embedding`")
+  if(! is.null(alignment_stretching) && dim(alignment_stretching)[2] != n_embedding) msg <- c(msg, "`dim(alignment_stretching)[2]` does not match `n_embedding`")
+  if(! is.null(alignment_stretching) && dim(alignment_stretching)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(alignment_stretching)[3]` does not match `ncol(design_matrix)`")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
   if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "DiffEmbFit"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'DiffEmbFit' objects.")
 
@@ -155,7 +161,7 @@ setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
                          "ambient_coordsystem", "ambient_offset",
                          "design", "diffemb_basepoint",
                          "diffemb_coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
-                         "alignment_method", "alignment_coefficients", "bootstrap_samples",
+                         "alignment_method", "alignment_rotation", "alignment_stretching", "bootstrap_samples",
                          "colData", "rowData")
 
 #' Get different features and elements of the 'DiffEmbFit' object
@@ -248,12 +254,20 @@ setMethod("alignment_method", signature = "DiffEmbFit", function(object){
 
 
 
-setGeneric("alignment_coefficients", function(object, ...) standardGeneric("alignment_coefficients"))
+setGeneric("alignment_rotation", function(object, ...) standardGeneric("alignment_rotation"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_coefficients", signature = "DiffEmbFit", function(object){
-  metadata(object)[["alignment_coefficients"]]
+setMethod("alignment_rotation", signature = "DiffEmbFit", function(object){
+  metadata(object)[["alignment_rotation"]]
+})
+
+setGeneric("alignment_stretching", function(object, ...) standardGeneric("alignment_stretching"))
+
+#' @rdname accessor_methods
+#' @export
+setMethod("alignment_stretching", signature = "DiffEmbFit", function(object){
+  metadata(object)[["alignment_stretching"]]
 })
 
 

@@ -11,7 +11,8 @@
 \alias{diffemb_coefficients,DiffEmbFit-method}
 \alias{diffemb_embedding,DiffEmbFit-method}
 \alias{alignment_method,DiffEmbFit-method}
-\alias{alignment_coefficients,DiffEmbFit-method}
+\alias{alignment_rotation,DiffEmbFit-method}
+\alias{alignment_stretching,DiffEmbFit-method}
 \alias{design_matrix,DiffEmbFit-method}
 \alias{linear_coefficients,DiffEmbFit-method}
 \alias{bootstrap_samples,DiffEmbFit-method}
@@ -35,7 +36,9 @@
 
 \S4method{alignment_method}{DiffEmbFit}(object)
 
-\S4method{alignment_coefficients}{DiffEmbFit}(object)
+\S4method{alignment_rotation}{DiffEmbFit}(object)
+
+\S4method{alignment_stretching}{DiffEmbFit}(object)
 
 \S4method{design_matrix}{DiffEmbFit}(object)
 
