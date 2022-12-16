@@ -125,12 +125,21 @@ destack_slice <- function(x){
 
 
 duplicate_rows <- function(m, times, each){
+  ncols <- if(is.matrix(m)) ncol(m) else length(m)
   if(missing(times) && missing(each)){
     do.call(rbind, list(m))
   }else if(! missing(times)){
-    do.call(rbind, lapply(seq_len(times), \(i) m))
+    if(times == 0){
+      matrix(nrow = 0, ncol = ncols)
+    }else{
+      do.call(rbind, lapply(seq_len(times), \(i) m))
+    }
   }else if(! missing(each)){
-    matrix(rep(m, each = each), nrow = each  * nrow(m), ncol = ncol(m))
+    if(each == 0){
+      matrix(nrow = 0, ncol = ncols)
+    }else{
+      matrix(rep(m, each = each), nrow = each  * nrow(m), ncol = ncol(m))
+    }
   }else{
     stop("Specify either 'times' or 'each'")
   }

@@ -9,6 +9,15 @@ test_that("mply_dbl works", {
 
 })
 
+test_that("duplicate_cols and duplicate_rows works", {
+  mat <- matrix(1:10, nrow = 5, ncol = 2)
+  expect_equal(duplicate_cols(mat, 2), cbind(mat, mat))
+  expect_equal(duplicate_rows(mat, 2), rbind(mat, mat))
+
+  expect_equal(duplicate_cols(mat, 0), matrix(nrow = 5, ncol = 0))
+  expect_equal(duplicate_rows(mat, 0), matrix(nrow = 0, ncol = 2))
+})
+
 
 test_that("dist_sphere works", {
 
