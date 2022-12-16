@@ -163,7 +163,6 @@ correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, des
     rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
     # rotation_coef <- array(0, dim(stretch_coef))
     error <- error_last_round <- mean((Y - M)^2)
-    if(verbose) message("Initial error: ", error)
     for(idx in seq_len(max_iter)){
       # Apply **inverse** of rotation to means before fitting stretching
       Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
@@ -173,16 +172,12 @@ correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, des
       rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point)
       # Calculate error
       error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
-      if(abs(error_last_round - error) / (error + 0.5) < tolerance){
+      if((is.na(error) | is.na(error_last_round)) | abs(error_last_round - error) / (error + 0.5) < tolerance){
+        # Error can be NaN if nrow(diffemb_embedding) == 0
         break
       }
       error_last_round <- error
     }
-  }
-
-  if(verbose){
-    error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
-    message("Final error: ", error)
   }
 
   diffemb_embedding <- apply_rotation(
@@ -237,7 +232,7 @@ get_mutual_neighbors <- function(data, design_matrix, cells_per_cluster = 20, mn
           matches <- c(matches, lapply(seq_along(mnn_list$first), \(idx3){
             c(which(sel1)[mnn_list$first[idx3]], which(sel2)[mnn_list$second[idx3]])
           }))
-          index_group <- c(index_group, list(c(1,2)))
+          index_group <- c(index_group, rep(list(c(1,2)), length(mnn_list$first)))
         }
       }
     }

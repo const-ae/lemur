@@ -49,7 +49,7 @@ test_that("subsetting works", {
 
   # Align cells
   align <- fit2$colData$cell_type
-  fit2 <- align_embeddings(fit2, alignment = align, verbose = FALSE)
+  fit2 <- align_by_grouping(fit2, grouping = align, verbose = FALSE)
   expect_true(validObject(fit2))
   fit3 <- fit2[rep(c(TRUE, FALSE), length = 10), ][1:2,]
   expect_true(validObject(fit3))
@@ -62,7 +62,7 @@ test_that("subsetting works", {
   expect_equal(dim(fit3$diffemb_embedding), c(5, 20))
   expect_equal(dim(fit3$design_matrix), c(20, 3))
   expect_equal(dim(fit3$linear_coefficients), c(30, 3))
-  expect_equal(length(fit3$alignment_method), 20)
+  # expect_equal(length(fit3$alignment_method), 20)
   expect_equal(rownames(fit3), c("gene_1", "gene_3"))
   expect_equal(colnames(fit3), paste0("cell_", 101:120))
 
@@ -85,10 +85,10 @@ test_that("predicting works", {
 
 
 
-  # Bootstrap works
+  # Alignment does not disturb prediction
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  fit2 <- align_embeddings(fit, alignment = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
+  fit2 <- align_by_grouping(fit, grouping = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
   expect_equal(predict(fit), predict(fit2))
   red_fit <- fit[1:3, 1:5]
   expect_equal(dim(predict(red_fit)), c(3, 5))
@@ -152,7 +152,7 @@ test_that("n_embedding = 0 works", {
   expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
 
   fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
-  fit <- align_embeddings(fit, alignment = sample(LETTERS[1:2], 500, replace = TRUE), verbose = FALSE)
+  fit <- align_by_grouping(fit, grouping = sample(LETTERS[1:2], 500, replace = TRUE), verbose = FALSE, method = "rotation+stretching")
   expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   res1 <- test_differential_expression(fit, contrast = c(1,0,0))
   res2 <- test_differential_expression(fit, contrast = c(1,0,0), consider = "linear")
@@ -174,16 +174,16 @@ test_that("bootstrapping works", {
 })
 
 
-test_that("linear fit and embedding don't work against each other", {
-  Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
-  group <- c(sample(letters[1:2], 100, replace = TRUE),
-           sample(letters[1:2], 60, replace = TRUE, prob = c(5,1)))
-  fit <- differential_embedding(Y, design = ~ group, verbose = FALSE)
-  expect_equal(fit$linear_coefficients, matrix(0, ncol = 2), ignore_attr = "dimnames")
-})
+# test_that("linear fit and embedding don't work against each other", {
+#   Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
+#   group <- c(sample(letters[1:2], 100, replace = TRUE),
+#            sample(letters[1:2], 60, replace = TRUE, prob = c(5,1)))
+#   fit <- differential_embedding(Y, design = ~ group, verbose = FALSE)
+#   expect_equal(fit$linear_coefficients, matrix(0, ncol = 2), ignore_attr = "dimnames")
+# })
 
 
-test_that("align_embeddings works", {
+test_that("align_by_grouping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
@@ -192,9 +192,9 @@ test_that("align_embeddings works", {
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
-  fit2 <- align_embeddings(fit, alignment = alignment, verbose = FALSE)
-  expect_equal(fit2$alignment_method, alignment)
-  expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
+  fit2 <- align_by_grouping(fit, grouping = alignment, verbose = FALSE)
+  # expect_equal(fit2$alignment_method, alignment)
+  # expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_coefficients, fit2$alignment_coefficients)
   expect_equal(predict(fit), predict(fit2))
   expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
@@ -210,9 +210,13 @@ test_that("align_neighbors works", {
   expect_equal(fit$alignment_method, FALSE)
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
-  al_rot <- align_neighbors(fit, method = "rotation", cell_per_cluster = 1)
-  al_stretch <- align_neighbors(fit, method = "stretching", cell_per_cluster = 1)
-  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cell_per_cluster = 1)
+  al_rot <- align_neighbors(fit, method = "rotation", cells_per_cluster = 1)
+  al_stretch <- align_neighbors(fit, method = "stretching", cells_per_cluster = 1)
+  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cells_per_cluster = 1)
+
+  expect_equal(predict(fit), predict(al_rot))
+  expect_equal(predict(fit), predict(al_stretch))
+  expect_equal(predict(fit), predict(al_rot_stretch))
 
   # set.seed(1)
   # mnn_list <- get_mutual_neighbors(assay(fit), fit$design_matrix, cell_per_cluster = 5, n_mnn = 2)

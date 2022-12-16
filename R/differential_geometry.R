@@ -232,15 +232,25 @@ spd_log <- function(p, q){
 }
 
 spd_sqrt <- function(x){
-  e <- eigen(sym(x))
-  sqrt_s <- pmax(sqrt(e$values), .Machine$double.xmin)
-  sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+  stopifnot(nrow(x) == ncol(x))
+  if(nrow(x) == 0){
+    x
+  }else{
+    e <- eigen(sym(x))
+    sqrt_s <- pmax(sqrt(e$values), .Machine$double.xmin)
+    sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+  }
 }
 
 spd_sqrt_inv <- function(x){
-  e <- eigen(sym(x))
-  sqrt_s <- 1/pmax(sqrt(e$values), .Machine$double.xmin)
-  sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+  stopifnot(nrow(x) == ncol(x))
+  if(nrow(x) == 0){
+    x
+  }else{
+    e <- eigen(sym(x))
+    sqrt_s <- 1/pmax(sqrt(e$values), .Machine$double.xmin)
+    sym(e$vectors %*% (sqrt_s * t(e$vectors)))
+  }
 }
 
 random_spd_point <- function(n, ...){

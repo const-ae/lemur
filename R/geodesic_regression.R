@@ -301,6 +301,9 @@ spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression =
   n_obs <- nrow(design)
   n_coef <- ncol(design)
   n_amb <- nrow(base_point)
+  if(n_amb == 0){
+    return(array(dim = c(0, 0, n_coef)))
+  }
 
   # Initialize with tangent regression
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
