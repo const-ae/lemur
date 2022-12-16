@@ -2,6 +2,7 @@
 % Please edit documentation in R/align.R
 \name{align_neighbors}
 \alias{align_neighbors}
+\alias{align_harmony}
 \alias{align_scvi}
 \alias{align_by_template}
 \alias{align_by_grouping}
@@ -14,6 +15,15 @@ align_neighbors(
   cells_per_cluster = 20,
   mnn = 10,
   design_matrix = fit$design_matrix,
+  verbose = TRUE
+)
+
+align_harmony(
+  fit,
+  method = c("rotation", "stretching", "rotation+stretching"),
+  ...,
+  design_matrix = fit$design_matrix,
+  max_iter = 10,
   verbose = TRUE
 )
 

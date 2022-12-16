@@ -17,6 +17,8 @@ align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+
   correct_fit(fit, correction)
 }
 
+#' @rdname align_neighbors
+#' @export
 align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
                           design_matrix = fit$design_matrix, max_iter = 10, verbose = TRUE){
   method <- match.arg(method)

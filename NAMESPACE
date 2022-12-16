@@ -3,6 +3,7 @@
 S3method(.DollarNames,DiffEmbFit)
 export(align_by_grouping)
 export(align_by_template)
+export(align_harmony)
 export(align_neighbors)
 export(align_scvi)
 export(differential_embedding)
