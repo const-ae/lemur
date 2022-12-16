@@ -12,7 +12,9 @@ align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
                             design_matrix = fit$design_matrix, verbose = TRUE){
   method <- match.arg(method)
+  if(verbose) message("Find mutual nearest neighbors")
   mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
+  if(verbose) message("Adjust latent positions using a '", method, "' transformation")
   correction <- correct_design_matrix_groups(mnn_groups, fit$diffemb_embedding, fit$design_matrix, method = method)
   correct_fit(fit, correction)
 }
@@ -22,6 +24,7 @@ align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+
 align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
                           design_matrix = fit$design_matrix, max_iter = 10, verbose = TRUE){
   method <- match.arg(method)
+  if(verbose) message("Select cells that are considered close with 'harmony'")
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
   if(! requireNamespace("harmony", quietly = TRUE)){
     stop("'harmony' is not installed. Please install it from CRAN.")
@@ -32,6 +35,7 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     harm_obj <- harmony_max_div_clustering(harm_obj)
     matches <- apply(harm_obj$R, 1, \(row) which(row > 0.1))
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
+    if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(list(matches = matches, index_groups = index_groups),
                                                harm_obj$Z_orig, fit$design_matrix, method = method)
     harm_obj$Z_corr <- correction$diffemb_embedding
@@ -58,6 +62,7 @@ align_scvi <- function(fit, method = c("rotation", "stretching", "rotation+stret
   gene_likelihood <- match.arg(gene_likelihood)
   latent_distribution <- match.arg(latent_distribution)
 
+  if(verbose) message("Select cells that are considered close with 'SCVI'")
   if(requireNamespace("reticulate", quietly = TRUE)){
     sc <- reticulate::import("scanpy", convert = FALSE)
     scvi <- reticulate::import("scvi", convert = FALSE)
@@ -74,9 +79,8 @@ align_scvi <- function(fit, method = c("rotation", "stretching", "rotation+stret
     vae$train()
     scvi_lat <- t(as.matrix(vae$get_latent_representation()))
   }else{
-    stop("Cannot call 'SCVI' because reticulate is not available")
+    stop("Cannot call 'SCVI' because the R package 'reticulate' is not available to call python functions.")
   }
-
   align_by_template(fit, method = method, alignment_template = scvi_lat,
                     cells_per_cluster = cells_per_cluster, mnn = mnn, design_matrix = design_matrix, verbose = verbose)
 }
@@ -89,7 +93,7 @@ align_by_template <- function(fit, method = c("rotation", "stretching", "rotatio
   method <- match.arg(method)
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
-
+  if(verbose) message("Received template that puts similar cells close to each other")
   align_neighbors(fit, method = method, data_mat = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
                   design_matrix = design_matrix, verbose = verbose)
@@ -101,6 +105,7 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
                               grouping,
                               design_matrix = fit$design_matrix, verbose = TRUE){
   method <- match.arg(method)
+  if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
     # Check that it conforms to the expectation of the mnn_grouping
     if("matches" %in% names(grouping)){
