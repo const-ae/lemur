@@ -248,18 +248,7 @@ sum_tangent_vectors <- function(tangent_block, covariates){
   res
 }
 
-correct_fit <- function(fit, correction){
-  reducedDim(fit, "diffemb_embedding") <- t(correction$diffemb_embedding)
-  metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + correction$rotation_coefficients
-  metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
-    reducedDim(samp, "diffemb_embedding") <- t(apply_rotation(
-      apply_stretching(samp$diffemb_embedding, correction$stretch_coefficients, design_matrix, correction$stretch_base_point),
-      correction$rotation_coefficients, design_matrix, correction$rotation_base_point))
-    metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + correction$rotation_coefficients
-    samp
-  })
-  fit
-}
+
 
 
 

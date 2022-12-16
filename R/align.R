@@ -273,3 +273,18 @@ get_mutual_neighbors <- function(data, design_matrix, cells_per_cluster = 20, mn
 }
 
 
+
+correct_fit <- function(fit, correction){
+  reducedDim(fit, "diffemb_embedding") <- t(correction$diffemb_embedding)
+  metadata(fit)[["alignment_coefficients"]] <-  metadata(fit)[["alignment_coefficients"]] + correction$rotation_coefficients
+  metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
+    reducedDim(samp, "diffemb_embedding") <- t(apply_rotation(
+      apply_stretching(samp$diffemb_embedding, correction$stretch_coefficients, samp$design_matrix, correction$stretch_base_point),
+      correction$rotation_coefficients, samp$design_matrix, correction$rotation_base_point))
+    metadata(samp)[["alignment_coefficients"]] <- metadata(samp)[["alignment_coefficients"]] + correction$rotation_coefficients
+    samp
+  })
+  fit
+}
+
+
