@@ -101,14 +101,14 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
   method <- match.arg(method)
   if(is.list(grouping)){
     # Check that it conforms to the expectation of the mnn_grouping
-    if(length(grouping) == 1 && names(grouping) == "matches"){
+    if("matches" %in% names(grouping)){
       # Do nothing
     }else{
       grouping <- list(matches = grouping)
     }
     valid <- vapply(grouping$matches, \(entry){
       is.numeric(entry) && all(is.na(entry) | (entry > 0 & entry <= ncol(fit)))
-    })
+    }, FUN.VALUE = logical(1L))
     stopifnot(all(valid))
   }else if(is.vector(grouping)){
     stopifnot(length(grouping) == ncol(fit))
