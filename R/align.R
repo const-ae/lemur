@@ -117,7 +117,7 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
       is.numeric(entry) && all(is.na(entry) | (entry > 0 & entry <= ncol(fit)))
     }, FUN.VALUE = logical(1L))
     stopifnot(all(valid))
-  }else if(is.vector(grouping)){
+  }else if(is.vector(grouping) || is.factor(grouping)){
     stopifnot(length(grouping) == ncol(fit))
     # Convert grouping into the right shape
     unique_values <- unique(grouping)
