@@ -24,9 +24,9 @@ The goal of DiffEmbSeq is to enable easy analysis of multi-condition single-cell
 
 You can install the released version of DiffEmbSeq from https://git.embl.de/ahlmanne/DiffEmbSeq
 
-To get read access you have set the following _access token_ which is valid until the 05.11.2022.
+To get read access you have set the following _access token_ which is valid until the 25.02.2023.
 ``` r
-Sys.setenv(GITLAB_PAT = "glpat-KvTnh36v4jitb_yQaEch")
+Sys.setenv(GITLAB_PAT = "glpat-vE2cB9xNSjsU53d4z16f")
 remotes::install_gitlab(repo = "ahlmanne/DiffEmbSeq", host = "https://git.embl.de/")
 ```
 
@@ -76,5 +76,12 @@ plot(t(fit$diffemb_embedding), col = pal(res[res$feature == "feature_10",]$diff)
 ```
 
 
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
 
 

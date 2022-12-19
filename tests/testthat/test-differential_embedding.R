@@ -224,6 +224,15 @@ test_that("align_neighbors works", {
   expect_equal(predict(fit), predict(al_rot_stretch), tolerance = 1e-4)
 })
 
+test_that("align_harmony works", {
+  dat <- make_synthetic_data(n_genes = 15)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = Inf, n_embedding = 3, verbose = FALSE)
+  al_harm <- align_harmony(fit, method = "rotation+stretching")
+  al_nei <- align_neighbors(fit, method = "rotation")
+})
+
+
 test_that("apply_rotation works", {
   A <- randn(5, 30)
   base_point <- diag(nrow = 5)
