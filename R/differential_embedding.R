@@ -53,7 +53,8 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
              diffemb_embedding = res$diffemb_embedding,
              alignment_method = res$alignment_method,
              alignment_rotation = res$alignment_rotation,
-             alignment_stretching = res$alignment_stretching)
+             alignment_stretching = res$alignment_stretching,
+             alignment_design_matrix = res$alignment_design_matrix)
 }
 
 
@@ -67,6 +68,7 @@ differential_embedding_impl <- function(Y, design_matrix,
                                         diffemb_embedding = NULL,
                                         alignment_rotation = NULL,
                                         alignment_stretching = NULL,
+                                        alignment_design_matrix = NULL,
                                         n_iter = 10, tol = 1e-8,
                                         reshuffling_fraction = 0,
                                         verbose = TRUE){
@@ -81,6 +83,9 @@ differential_embedding_impl <- function(Y, design_matrix,
   diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
   alignment_rot_fixed <- ! is.null(alignment_rotation)
   alignment_stretch_fixed <- ! is.null(alignment_stretching)
+  if(is.null(alignment_design_matrix)){
+    alignment_design_matrix <- design_matrix
+  }
 
   # Reduce to ambient space
   if(is.null(amb_pca)){
@@ -123,6 +128,7 @@ differential_embedding_impl <- function(Y, design_matrix,
     sel <- sample.int(nrow(design_matrix), size = round(nrow(design_matrix) * reshuffling_fraction), replace = FALSE)
     shuf_sel <- sample(sel)
     design_matrix[sel,] <- design_matrix[shuf_sel,]
+    alignment_design_matrix[sel,] <- alignment_design_matrix[shuf_sel,]
   }
 
   # Initialize values
@@ -181,8 +187,8 @@ differential_embedding_impl <- function(Y, design_matrix,
     if(verbose) message("Align points")
     stop("Cannot handle 'alignment='", alignment)
   }else{
-    alignment_rotation <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
-    alignment_stretching <- array(0, c(n_embedding, n_embedding, ncol(design_matrix)))
+    alignment_rotation <- array(0, c(n_embedding, n_embedding, ncol(alignment_design_matrix)))
+    alignment_stretching <- array(0, c(n_embedding, n_embedding, ncol(alignment_design_matrix)))
   }
 
 
@@ -196,7 +202,8 @@ differential_embedding_impl <- function(Y, design_matrix,
        diffemb_embedding = diffemb_embedding,
        alignment_method = alignment,
        alignment_rotation = alignment_rotation,
-       alignment_stretching = alignment_stretching)
+       alignment_stretching = alignment_stretching,
+       alignment_design_matrix = alignment_design_matrix)
 }
 
 

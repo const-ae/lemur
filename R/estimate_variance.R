@@ -37,6 +37,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     resampling <- resample(ncol(fit), cluster = replicates)
 
     design_matrix <- fit$design_matrix[resampling,,drop=FALSE]
+    alignment_design_matrix <- fit$alignment_design_matrix[resampling,,drop=FALSE]
     base_point <- fit$diffemb_basepoint
 
     if(refit_ambient_pca){
@@ -85,6 +86,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 diffemb_embedding = diffemb_embedding,
                                 alignment_rotation = alignment_rotation,
                                 alignment_stretching = alignment_stretching,
+                                alignment_design_matrix = alignment_design_matrix,
                                 verbose = FALSE)
 
     # Use the results of the resampled fit, to make 'diffemb_embedding' correspond to the original data
@@ -109,7 +111,8 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                diffemb_embedding = refitted_diffemb_embedding,
                alignment_method = alignment_method,
                alignment_rotation = res$alignment_rotation,
-               alignment_stretching = res$alignment_stretching)
+               alignment_stretching = res$alignment_stretching,
+               alignment_design_matrix = fit$alignment_design_matrix)
     rownames(samp) <- rownames(fit)
     colnames(samp) <- colnames(fit)
     samp

@@ -30,6 +30,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          diffemb_basepoint = object$diffemb_basepoint,
                          alignment_rotation = object$alignment_rotation,
                          alignment_stretching = object$alignment_stretching,
+                         alignment_design_matrix = object$alignment_design_matrix,
                          ...){
   if(is.null(newdesign) && is.null(newdata)){
     newdesign <- design_matrix
@@ -38,6 +39,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     newdesign <- model.matrix(design, newdata)
   }else if(! is.matrix(newdesign)){
     newdesign <- matrix(newdesign, nrow = ncol(diffemb_embedding), ncol = length(newdesign), byrow = TRUE)
+  }
+  if(all(dim(design_matrix) == dim(alignment_design_matrix)) && all(design_matrix == alignment_design_matrix)){
+    # The design matrices were identical, presume that the newdesign should also be identical
+    alignment_design_matrix <- newdesign
   }
   if(nrow(newdesign) != ncol(diffemb_embedding)){
     stop("The number of rows in 'newdesign' must match the number of columns in 'diffemb_embedding'")
@@ -50,16 +55,22 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 
   if(with_differential_embedding){
     mm_groups <- get_groups(newdesign, n_groups = 100)
-    for(gr in unique(mm_groups)){
-      covar <- newdesign[which(mm_groups == gr)[1],]
-      diffemb <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covar), diffemb_basepoint)
+    mm_al_groups <- get_groups(alignment_design_matrix, n_groups = 100)
+    mmg <- unique(cbind(mm_groups, mm_al_groups))
+    for(idx in seq_len(nrow(mmg))){
+      gr1 <- mmg[idx,1]
+      gr2 <- mmg[idx,2]
+      covar1 <- newdesign[which(mm_groups == gr1)[1],]
+      diffemb <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covar1), diffemb_basepoint)
       alignment <- if(with_alignment){
-        spd_map(sum_tangent_vectors(alignment_stretching, covar), diag(nrow = n_embedding)) %*%
-          rotation_map(sum_tangent_vectors(alignment_rotation, covar), diag(nrow = n_embedding))
+        covar2 <- alignment_design_matrix[which(mm_al_groups == gr2)[1],]
+        spd_map(sum_tangent_vectors(alignment_stretching, covar2), diag(nrow = n_embedding)) %*%
+          rotation_map(sum_tangent_vectors(alignment_rotation, covar2), diag(nrow = n_embedding))
       }else{
         diag(nrow = n_embedding)
       }
-      approx[,gr == mm_groups] <- approx[,gr == mm_groups] + diffemb %*% alignment %*% diffemb_embedding[,gr == mm_groups]
+      sel <- gr1 == mm_groups & gr2 == mm_al_groups
+      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% diffemb_embedding[,sel]
     }
   }
 
