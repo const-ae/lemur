@@ -15,7 +15,7 @@ align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+
   if(verbose) message("Find mutual nearest neighbors")
   mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
   if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(mnn_groups, fit$diffemb_embedding, fit$design_matrix, method = method)
+  correction <- correct_design_matrix_groups(mnn_groups, fit$diffemb_embedding, design_matrix, method = method)
   correct_fit(fit, correction)
 }
 
@@ -30,14 +30,14 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     stop("'harmony' is not installed. Please install it from CRAN.")
   }
   # Ignore best practice and call private methods from harmony
-  harm_obj <- harmony_init(fit$diffemb_embedding, fit$design_matrix, verbose = verbose)
+  harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
     matches <- apply(harm_obj$R, 1, \(row) which(row > 0.1))
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(list(matches = matches, index_groups = index_groups),
-                                               harm_obj$Z_orig, fit$design_matrix, method = method)
+                                               harm_obj$Z_orig, design_matrix, method = method)
     harm_obj$Z_corr <- correction$diffemb_embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
@@ -277,6 +277,12 @@ get_mutual_neighbors <- function(data, design_matrix, cells_per_cluster = 20, mn
 
 
 correct_fit <- function(fit, correction){
+  old <- S4Vectors:::disableValidity()
+  if (!isTRUE(old)) {
+    S4Vectors:::disableValidity(TRUE)
+    on.exit(S4Vectors:::disableValidity(old))
+  }
+
   reducedDim(fit, "diffemb_embedding") <- t(correction$diffemb_embedding)
   if(! all(dim(correction$design_matrix) == dim(fit$alignment_design_matrix)) ||
      ! all(correction$design_matrix == fit$alignment_design_matrix)){

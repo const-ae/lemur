@@ -12,7 +12,7 @@ setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, 
                                                         ...){
   predict_impl(object, newdata = newdata, newdesign = newdesign, diffemb_embedding = diffemb_embedding,
                with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
-               with_differential_embedding = with_differential_embedding, with_alignment = with_alignment)
+               with_differential_embedding = with_differential_embedding, with_alignment = with_alignment, ...)
 
 })
 
@@ -44,8 +44,12 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     # The design matrices were identical, presume that the newdesign should also be identical
     alignment_design_matrix <- newdesign
   }
+
   if(nrow(newdesign) != ncol(diffemb_embedding)){
     stop("The number of rows in 'newdesign' must match the number of columns in 'diffemb_embedding'")
+  }
+  if(nrow(newdesign) != nrow(alignment_design_matrix)){
+    stop("The number of rows in 'newdesign' (", nrow(newdesign) ,") and 'alignment_design_matrix'(", nrow(alignment_design_matrix) ,")  must be the same")
   }
   approx <- if(with_linear_model){
     linear_coefficients %*% t(newdesign)
@@ -56,6 +60,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   if(with_differential_embedding){
     mm_groups <- get_groups(newdesign, n_groups = 100)
     mm_al_groups <- get_groups(alignment_design_matrix, n_groups = 100)
+    stopifnot(length(mm_groups) == length(mm_al_groups))
     mmg <- unique(cbind(mm_groups, mm_al_groups))
     for(idx in seq_len(nrow(mmg))){
       gr1 <- mmg[idx,1]

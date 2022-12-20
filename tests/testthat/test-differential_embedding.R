@@ -251,6 +251,11 @@ test_that("aligning works with alternative design matrices", {
   expect_equal(dim(fit2$alignment_design_matrix), c(500, 3))
   de <- test_differential_expression(fit2, contrast = 1)
   expect_equal(nrow(de), 500 * 30)
+  expect_error(predict(fit2, alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5)))
+  pred <- predict(fit2, newdesign = duplicate_rows(1, 5),
+                  alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5),
+                  diffemb_embedding  = randn(5, 5))
+  expect_equal(dim(pred), c(30, 5))
 })
 
 
