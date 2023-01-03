@@ -40,7 +40,7 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
     if(! is.numeric(res)){
       if(is.character(res)){
         # If contrast was a string, eval will just spit it out the same way
-        res <- rlang::eval_tidy(parse(text = res), data = data_mask)
+        res <- rlang::eval_tidy(rlang::parse_expr(res), data = data_mask)
       }
     }
   }, error = function(e){
