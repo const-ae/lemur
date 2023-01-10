@@ -7,7 +7,9 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   if(! is.null(start_cell)){
     stop("'start_cell' is not implemented")
   }
-  stopifnot(ncol(fit) == ncol(DE_mat))
+  n_genes <- nrow(DE_mat)
+  n_cells <- ncol(DE_mat)
+  stopifnot(ncol(fit) == n_cells)
   stopifnot(ncol(fit) == igraph::vcount(graph))
 
   adj_mat <- igraph::as_adjacency_matrix(graph, sparse = TRUE)
@@ -19,17 +21,20 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   knn_mat_t <- matrix(t(adj_mat)@i + 1L, nrow = k, ncol = ncol(fit))
 
 
-  n_genes <- nrow(DE_mat)
   result <- data.frame(indices = I(lapply(seq_len(n_genes), \(.) integer(0L))),
                        n_cells = rep(NA, n_genes),
                        mean = rep(NA, n_genes),
                        sd = rep(NA, n_genes),
                        z_statistic = rep(NA, n_genes))
+  # Columns access is faster than row access
+  DE_mat <- t(DE_mat)
   # Run the greedy algorithm on the knn graph for each gene
-  for(idx in seq_len(nrow(DE_mat))){
-    de_vals <- unname(DE_mat[idx,])
+  for(idx in seq_len(n_genes)){
+    de_vals <- unname(DE_mat[,idx])
+    free_indices <- rep(TRUE, n_cells)
     de_vals <- de_vals - mean(de_vals)
     start <- which.max(abs(de_vals))
+    free_indices[start] <- FALSE
     sign <- sign(de_vals[start])
     which.extreme <- if(sign < 0) which.min else which.max
 
@@ -39,8 +44,7 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     current_z_stat <- 0
     potential_neighbors <- as.vector(knn_mat_t[,start])
     while(length(potential_neighbors) > 0){
-      t_correction <- qt(0.95, df = iter+1) / qt(0.95, df = iter)
-
+      t_correction <- qt_ratio_approx(iter)
       extreme_idx <- which.extreme(de_vals[potential_neighbors])
       sel_nei <- potential_neighbors[extreme_idx]
       new_de_val <- de_vals[sel_nei]
@@ -54,8 +58,11 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
       new_z_stat <- sign * new_mean / new_sd
       if(new_z_stat >= current_z_stat * t_correction || iter < min_region_size){
         new_pot_nei <- knn_mat_t[,sel_nei]
-        potential_neighbors <- union(potential_neighbors[-extreme_idx], setdiff(new_pot_nei, start))
+        # potential_neighbors <- union(potential_neighbors[-extreme_idx], setdiff(new_pot_nei, start))
+        potential_neighbors <- union(potential_neighbors[-extreme_idx], new_pot_nei[free_indices[new_pot_nei]])
+
         start <- c(start, sel_nei)
+        free_indices[sel_nei] <- FALSE
         current_mean <- new_mean
         current_sd <- max(new_sd, min_sd)
         current_z_stat <- sign * current_mean / current_sd
@@ -72,6 +79,24 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     result$z_statistic[idx] <- current_mean / current_sd
   }
   result
+}
+
+.qt_lookup_vector <- c(0.4624803, 0.8059504, 0.9058723, 0.9452126, 0.9643343,
+                       0.9749886, 0.9815101, 0.9857841, 0.9887340, 0.9908543,
+                       0.9924287, 0.9936294, 0.9945660, 0.9953104, 0.9959119,
+                       0.9964047, 0.9968136, 0.9971565, 0.9974469, 0.9976951,
+                       0.9979087, 0.9980940, 0.9982557, 0.9983977, 0.9985230)
+
+qt_ratio_approx <- function(i){
+  if(i > 25){
+    1
+  }else{
+    .qt_lookup_vector[i]
+  }
+}
+
+qt_ratio <- function(i){
+  qt(0.95, df = i+1) / qt(0.95, df = i)
 }
 
 
