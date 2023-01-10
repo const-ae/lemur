@@ -33,24 +33,35 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     sign <- sign(de_vals[start])
     which.extreme <- if(sign < 0) which.min else which.max
 
-    cum_mean <- de_vals[start]
-    cum_sd <- 0
+    current_mean <- de_vals[start]
+    current_sd <- 0
     iter <- 1
-    cum_t_stat <- 0
+    current_z_stat <- 0
     potential_neighbors <- as.vector(knn_mat_t[,start])
     while(length(potential_neighbors) > 0){
+      t_correction <- qt(0.95, df = iter+1) / qt(0.95, df = iter)
+
       extreme_idx <- which.extreme(de_vals[potential_neighbors])
       sel_nei <- potential_neighbors[extreme_idx]
-      t_correction <- qt(0.95, df = length(start)+1) / qt(0.95, df = length(start))
-      new_t_stat <- sign * online_z_stat(cum_mean, cum_sd, de_vals[sel_nei], length(start) + 1)
-      if(new_t_stat >= cum_t_stat * t_correction || length(start) < min_region_size){
+      new_de_val <- de_vals[sel_nei]
+
+      # Online algorithm for mean, sd, and z-statistic
+      delta <- new_de_val - current_mean
+      new_mean <- current_mean + delta / (iter + 1)
+      delta2 <- new_de_val - new_mean
+      msq <- current_sd^2 * (iter - 1) + delta * delta2
+      new_sd <- sqrt(msq / iter)
+      new_z_stat <- sign * new_mean / new_sd
+      if(new_z_stat >= current_z_stat * t_correction || iter < min_region_size){
         start <- c(start, sel_nei)
         new_pot_nei <- knn_mat_t[,sel_nei]
         potential_neighbors <- setdiff(union(potential_neighbors, new_pot_nei), start)
-
-        cum_mean <- mean(de_vals[start])
-        cum_sd <- max(sd(de_vals[start]), min_sd)
-        cum_t_stat <- sign * cum_mean / cum_sd
+        # current_mean <- mean(de_vals[start])
+        # current_sd <- max(sd(de_vals[start]), min_sd)
+        current_mean <- new_mean
+        current_sd <- max(new_sd, min_sd)
+        current_z_stat <- sign * current_mean / current_sd
+        iter <- iter + 1
       }else{
         # Already tried the largest
         break
@@ -58,19 +69,12 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     }
     result$indices[[idx]] <- as.integer(start)
     result$n_cells[idx] <- length(start)
-    result$mean[idx] <- cum_mean
-    result$sd[idx] <- cum_sd
-    result$z_statistic[idx] <- cum_mean / cum_sd
+    result$mean[idx] <- current_mean
+    result$sd[idx] <- current_sd
+    result$z_statistic[idx] <- current_mean / current_sd
   }
   result
 }
 
 
-online_z_stat <- function(mean, sd, x, iter){
-  delta <- x - mean
-  mean <- mean + delta / iter
-  delta2 <- x - mean
-  msq <- sd^2 * (iter - 2) + delta * delta2
-  mean / sqrt(msq / (iter - 1))
-}
 
