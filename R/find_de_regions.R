@@ -10,6 +10,15 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   stopifnot(ncol(fit) == ncol(DE_mat))
   stopifnot(ncol(fit) == igraph::vcount(graph))
 
+  adj_mat <- igraph::as_adjacency_matrix(graph, sparse = TRUE)
+  k <- igraph::ecount(graph) / igraph::vcount(graph)
+  stopifnot(k %% 1 == 0)
+  stopifnot(nrow(adj_mat) == ncol(adj_mat))
+  # This is transposed (compared to the regular knn_matrix)
+  # because column access is faster than row access
+  knn_mat_t <- matrix(t(adj_mat)@i + 1L, nrow = k, ncol = ncol(fit))
+
+
   n_genes <- nrow(DE_mat)
   result <- data.frame(indices = I(lapply(seq_len(n_genes), \(.) integer(0L))),
                        n_cells = rep(NA, n_genes),
@@ -20,33 +29,27 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   for(idx in seq_len(nrow(DE_mat))){
     de_vals <- unname(DE_mat[idx,])
     de_vals <- de_vals - mean(de_vals)
-    graph <- igraph::set_vertex_attr(graph, "label", value = de_vals)
-    all_avail_vertices <- igraph::V(graph)
-    start <- all_avail_vertices[which.max(abs(de_vals))]
+    start <- which.max(abs(de_vals))
     sign <- sign(de_vals[start])
     which.extreme <- if(sign < 0) which.min else which.max
 
-    cum_mean <- start$label
+    cum_mean <- de_vals[start]
     cum_sd <- 0
     iter <- 1
     cum_t_stat <- 0
-    potential_neighbors <- all_avail_vertices[.nei(start, mode="out")]
+    potential_neighbors <- as.vector(knn_mat_t[,start])
     while(length(potential_neighbors) > 0){
-      extreme_idx <- which.extreme(potential_neighbors$label)
+      extreme_idx <- which.extreme(de_vals[potential_neighbors])
       sel_nei <- potential_neighbors[extreme_idx]
       t_correction <- qt(0.95, df = length(start)+1) / qt(0.95, df = length(start))
-      new_t_stat <- sign * online_z_stat(cum_mean, cum_sd, sel_nei$label, length(start) + 1)
+      new_t_stat <- sign * online_z_stat(cum_mean, cum_sd, de_vals[sel_nei], length(start) + 1)
       if(new_t_stat >= cum_t_stat * t_correction || length(start) < min_region_size){
         start <- c(start, sel_nei)
-        if(runif(1) < 0.5){
-          new_pot_nei <- all_avail_vertices[.nei(sel_nei, mode="out")]
-        }else{
-          new_pot_nei <- igraph::neighbors(graph, sel_nei, mode = "out")
-        }
-        potential_neighbors <- igraph::difference(igraph::union(potential_neighbors, new_pot_nei), start)
+        new_pot_nei <- knn_mat_t[,sel_nei]
+        potential_neighbors <- setdiff(union(potential_neighbors, new_pot_nei), start)
 
-        cum_mean <- mean(start$label)
-        cum_sd <- max(sd(start$label), min_sd)
+        cum_mean <- mean(de_vals[start])
+        cum_sd <- max(sd(de_vals[start]), min_sd)
         cum_t_stat <- sign * cum_mean / cum_sd
       }else{
         # Already tried the largest
