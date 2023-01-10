@@ -108,7 +108,7 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   if(! is.null(alignment_stretching) && dim(alignment_stretching)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(alignment_stretching)[3]` does not match `ncol(design_matrix)`")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
   if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "DiffEmbFit"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'DiffEmbFit' objects.")
-  if(! is.null(knn_graph) && ! is(knn_graph, "igraph")) msg <- c(msg, "knn_graph must be an object of class 'igraph'.")
+  if(! is.null(knn_graph) && ! inherits(knn_graph, "igraph")) msg <- c(msg, "knn_graph must be an object of class 'igraph'.")
   if(! is.null(knn_graph) && igraph::vcount(knn_graph) != n_obs) msg <- c(msg, "knn_graph must have one vertex for each observation.")
 
 
