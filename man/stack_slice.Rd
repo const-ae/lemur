@@ -14,6 +14,6 @@ Make a cube from a list of matrices
 }
 \section{Functions}{
 \itemize{
-\item \code{destack_slice}: Make a list of matrices from a cube
-}}
+\item \code{destack_slice()}: Make a list of matrices from a cube
 
+}}

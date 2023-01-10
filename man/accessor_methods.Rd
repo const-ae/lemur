@@ -16,6 +16,7 @@
 \alias{design_matrix,DiffEmbFit-method}
 \alias{linear_coefficients,DiffEmbFit-method}
 \alias{bootstrap_samples,DiffEmbFit-method}
+\alias{knn_graph,DiffEmbFit-method}
 \title{Get different features and elements of the 'DiffEmbFit' object}
 \usage{
 \S4method{n_ambient}{DiffEmbFit}(object)
@@ -45,6 +46,8 @@
 \S4method{linear_coefficients}{DiffEmbFit}(object)
 
 \S4method{bootstrap_samples}{DiffEmbFit}(object)
+
+\S4method{knn_graph}{DiffEmbFit}(object)
 }
 \arguments{
 \item{object}{the 'DiffEmbFit' object}

@@ -21,12 +21,12 @@ The length of \code{x} determines the number of rows. The length of
 }
 \section{Functions}{
 \itemize{
-\item \code{msply_dbl}: flexible version that automatically infers the number
+\item \code{msply_dbl()}: flexible version that automatically infers the number
 of columns
 
-\item \code{stack_rows}: Each list element becomes a row in a matrix
+\item \code{stack_rows()}: Each list element becomes a row in a matrix
 
-\item \code{stack_cols}: Each list element becomes a row in a matrix
+\item \code{stack_cols()}: Each list element becomes a row in a matrix
+
 }}
-
 \keyword{internal}
