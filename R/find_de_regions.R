@@ -53,11 +53,9 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
       new_sd <- sqrt(msq / iter)
       new_z_stat <- sign * new_mean / new_sd
       if(new_z_stat >= current_z_stat * t_correction || iter < min_region_size){
-        start <- c(start, sel_nei)
         new_pot_nei <- knn_mat_t[,sel_nei]
-        potential_neighbors <- setdiff(union(potential_neighbors, new_pot_nei), start)
-        # current_mean <- mean(de_vals[start])
-        # current_sd <- max(sd(de_vals[start]), min_sd)
+        potential_neighbors <- union(potential_neighbors[-extreme_idx], setdiff(new_pot_nei, start))
+        start <- c(start, sel_nei)
         current_mean <- new_mean
         current_sd <- max(new_sd, min_sd)
         current_z_stat <- sign * current_mean / current_sd
