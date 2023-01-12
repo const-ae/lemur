@@ -20,8 +20,13 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   # because column access is faster than row access
   knn_mat_t <- matrix(t(adj_mat)@i + 1L, nrow = k, ncol = ncol(fit))
 
-
-  result <- data.frame(indices = I(lapply(seq_len(n_genes), \(.) integer(0L))),
+  feature_names <- if(is.null(rownames(DE_mat))){
+    paste0("feature_", seq_len(nrow(DE_mat)))
+  }else{
+    rep(rownames(DE_mat), times = n_genes)
+  }
+  result <- data.frame(feature = feature_names,
+                       indices = I(lapply(seq_len(n_genes), \(.) integer(0L))),
                        n_cells = rep(NA, n_genes),
                        mean = rep(NA, n_genes),
                        sd = rep(NA, n_genes),
