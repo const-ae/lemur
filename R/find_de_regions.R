@@ -37,7 +37,6 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   for(idx in seq_len(n_genes)){
     de_vals <- unname(DE_mat[,idx])
     free_indices <- rep(TRUE, n_cells)
-    de_vals <- de_vals - mean(de_vals)
     start <- which.max(abs(de_vals))
     free_indices[start] <- FALSE
     sign <- sign(de_vals[start])
