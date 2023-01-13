@@ -1,6 +1,6 @@
 sce <- readRDS("~/Documents/PhD_Projects/NB_WaVE/NB_WaVE-Experiments/data/haber.Rds")
 hvg <- order(-MatrixGenerics::rowVars(logcounts(sce)))
-sce <- sce[hvg[1:500], sample.int(ncol(sce), 5000)]
+sce <- sce[hvg[1:500], sample.int(ncol(sce), 1000)]
 
 fit <- differential_embedding(sce, ~ condition, n_embedding = 15, n_ambient = Inf)
 DE <- test_differential_expression(fit, contrast = fact(condition = "Control") == fact(condition = "Salmonella"),
@@ -21,22 +21,13 @@ test_that("making knn graph works", {
 
 
 test_that("de_regions", {
-  gene_idx <- 1
-
-  knn_mat <- t(matrix(t(igraph::as_adjacency_matrix(fit$knn_graph, sparse = TRUE))@i + 1L, nrow = 5, ncol = ncol(fit)))
-  knn_matrix <-   BiocNeighbors::findKNN(t(fit$diffemb_embedding), k = 5, BNPARAM = BiocNeighbors::AnnoyParam())$index
-
-  profvis::profvis({
-    res <- find_de_regions(fit[,], DE[1:300,])
-  })
-
-  system.time(
-    res <- find_de_regions(fit[,], DE[1:300,])
-  )
-
+  de_regions <- find_de_regions(fit, DE)
+  expect_equal(colnames(de_regions), c("name", "indices", "n_cells", "mean", "sd", "z_statistic"))
+  expect_equal(de_regions$z_statistic, de_regions$mean / de_regions$sd)
+    expect_equal(de_regions$name, rownames(DE))
+  expect_equal(sapply(seq_along(de_regions$indices), \(idx) mean(DE[idx,de_regions$indices[[idx]]])),
+               de_regions$mean)
 })
 
 
-k <- igraph::ecount(graph) / igraph::vcount(graph)
-stopifnot(k %% 1 == 0)
-knn_mat <- t(matrix(t(igraph::as_adjacency_matrix(graph, sparse = TRUE))@i + 1L, nrow = k, ncol = ncol(fit)))
+

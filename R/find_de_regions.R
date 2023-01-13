@@ -23,9 +23,9 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
   feature_names <- if(is.null(rownames(DE_mat))){
     paste0("feature_", seq_len(nrow(DE_mat)))
   }else{
-    rep(rownames(DE_mat), times = n_genes)
+    rownames(DE_mat)
   }
-  result <- data.frame(feature = feature_names,
+  result <- data.frame(name = feature_names,
                        indices = I(lapply(seq_len(n_genes), \(.) integer(0L))),
                        n_cells = rep(NA, n_genes),
                        mean = rep(NA, n_genes),
@@ -78,10 +78,10 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     }
     result$indices[[idx]] <- as.integer(start)
     result$n_cells[idx] <- length(start)
-    result$mean[idx] <- current_mean
-    result$sd[idx] <- current_sd
-    result$z_statistic[idx] <- current_mean / current_sd
+    result$mean[idx] <- mean(de_vals[start])
+    result$sd[idx] <- sd(de_vals[start])
   }
+  result$z_statistic <- result$mean / result$sd
   result
 }
 
