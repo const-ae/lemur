@@ -78,8 +78,8 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     }
     result$indices[[idx]] <- as.integer(start)
     result$n_cells[idx] <- length(start)
-    result$mean[idx] <- mean(de_vals[start])
-    result$sd[idx] <- sd(de_vals[start])
+    result$mean[idx] <- current_mean
+    result$sd[idx] <- current_sd
   }
   result$z_statistic <- result$mean / result$sd
   result
