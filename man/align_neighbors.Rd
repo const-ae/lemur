@@ -3,7 +3,6 @@
 \name{align_neighbors}
 \alias{align_neighbors}
 \alias{align_harmony}
-\alias{align_scvi}
 \alias{align_by_template}
 \alias{align_by_grouping}
 \title{Enforce additional alignment of cell clusters beyond the direct differential embedding}
@@ -24,22 +23,6 @@ align_harmony(
   ...,
   design_matrix = fit$design_matrix,
   max_iter = 10,
-  verbose = TRUE
-)
-
-align_scvi(
-  fit,
-  method = c("rotation", "stretching", "rotation+stretching"),
-  counts = assay(fit, "counts"),
-  n_hidden = 128,
-  n_layers = 10,
-  dropout_rate = 1,
-  dispersion = c("gene", "gene-batch", "gene-label", "gene-cell"),
-  gene_likelihood = c("nb", "zinb", "poisson"),
-  latent_distribution = c("normal", "ln"),
-  cells_per_cluster = 20,
-  mnn = 10,
-  design_matrix = fit$design_matrix,
   verbose = TRUE
 )
 

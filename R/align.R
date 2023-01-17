@@ -49,41 +49,6 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
   correct_fit(fit, correction)
 }
 
-#' @rdname align_neighbors
-#' @export
-align_scvi <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), counts = assay(fit, "counts"),
-                       n_hidden = 128, n_layers = 10,  dropout_rate = 1,
-                       dispersion = c("gene", "gene-batch", "gene-label", "gene-cell"),
-                       gene_likelihood = c("nb", "zinb", "poisson"), latent_distribution = c("normal", "ln"),
-                       cells_per_cluster = 20, mnn = 10,
-                       design_matrix = fit$design_matrix, verbose = TRUE){
-  method <- match.arg(method)
-  dispersion <- match.arg(dispersion)
-  gene_likelihood <- match.arg(gene_likelihood)
-  latent_distribution <- match.arg(latent_distribution)
-
-  if(verbose) message("Select cells that are considered close with 'SCVI'")
-  if(requireNamespace("reticulate", quietly = TRUE)){
-    sc <- reticulate::import("scanpy", convert = FALSE)
-    scvi <- reticulate::import("scvi", convert = FALSE)
-
-    obs <- data.frame(condition = apply(fit$design_matrix, 1, \(row) paste0(row, collapse = "-")))
-
-    adata <- sc$AnnData(X = t(as.matrix(assay(fit))),
-                        obs = obs,
-                        layers = list(counts = t(as.matrix(counts))))
-    scvi$model$SCVI$setup_anndata(adata, layer = "counts", batch_key = "condition")
-
-    vae <- scvi$model$SCVI(adata, n_hidden = as.integer(n_hidden), n_layers = as.integer(n_layers), dropout_rate = as.integer(dropout_rate),
-                           dispersion = dispersion, gene_likelihood = gene_likelihood, latent_distribution = latent_distribution)
-    vae$train()
-    scvi_lat <- t(as.matrix(vae$get_latent_representation()))
-  }else{
-    stop("Cannot call 'SCVI' because the R package 'reticulate' is not available to call python functions.")
-  }
-  align_by_template(fit, method = method, alignment_template = scvi_lat,
-                    cells_per_cluster = cells_per_cluster, mnn = mnn, design_matrix = design_matrix, verbose = verbose)
-}
 
 #' @rdname align_neighbors
 #' @export
