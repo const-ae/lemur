@@ -3,18 +3,18 @@
 #' Predict values from `DiffEmbFit` object
 #'
 #' @export
-setMethod("predict", signature = "DiffEmbFit", function(object, newdata = NULL, newdesign = NULL,
-                                                        diffemb_embedding = object$diffemb_embedding,
-                                                        with_ambient_pca = TRUE,
-                                                        with_linear_model = TRUE,
-                                                        with_differential_embedding = TRUE,
-                                                        with_alignment = TRUE,
-                                                        ...){
+predict.DiffEmbFit <- function(object, newdata = NULL, newdesign = NULL,
+                               diffemb_embedding = object$diffemb_embedding,
+                               with_ambient_pca = TRUE,
+                               with_linear_model = TRUE,
+                               with_differential_embedding = TRUE,
+                               with_alignment = TRUE,
+                               ...){
   predict_impl(object, newdata = newdata, newdesign = newdesign, diffemb_embedding = diffemb_embedding,
                with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
                with_differential_embedding = with_differential_embedding, with_alignment = with_alignment, ...)
 
-})
+}
 
 predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          diffemb_embedding = object$diffemb_embedding,
