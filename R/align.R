@@ -179,7 +179,7 @@ correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, des
       rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point)
       # Calculate error
       error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
-      if((is.na(error) | is.na(error_last_round)) | abs(error_last_round - error) / (error + 0.5) < tolerance){
+      if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
         # Error can be NaN if nrow(diffemb_embedding) == 0
         break
       }
