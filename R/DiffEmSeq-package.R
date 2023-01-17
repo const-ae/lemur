@@ -9,3 +9,13 @@
 #' @importFrom utils .DollarNames capture.output head
 #' @importFrom Matrix t
 NULL
+
+## usethis namespace: start
+#' @importFrom Rcpp sourceCpp
+## usethis namespace: end
+NULL
+
+## usethis namespace: start
+#' @useDynLib DiffEmbSeq, .registration = TRUE
+## usethis namespace: end
+NULL

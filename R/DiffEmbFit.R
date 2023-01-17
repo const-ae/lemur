@@ -8,8 +8,7 @@ DiffEmbFit <- function(data_mat, col_data, row_data,
                        design, design_matrix, linear_coefficients,
                        diffemb_basepoint, diffemb_coefficients, diffemb_embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
-                       alignment_design_matrix,
-                       bootstrap_samples = NULL){
+                       alignment_design_matrix, bootstrap_samples = NULL, knn_graph = NULL){
 
 
   if(is.null(data_mat)){
@@ -28,9 +27,9 @@ DiffEmbFit <- function(data_mat, col_data, row_data,
                                               ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
                                               design = design,
                                               diffemb_basepoint = diffemb_basepoint, diffemb_coefficients = diffemb_coefficients,
-                                              alignment_method = alignment_method, alignment_rotation = alignment_rotation,
-                                              alignment_stretching = alignment_stretching, alignment_design_matrix = alignment_design_matrix,
-                                              bootstrap_samples))
+                                              alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
+                                              alignment_design_matrix = alignment_design_matrix,
+                                              bootstrap_samples = bootstrap_samples, knn_graph = knn_graph))
   .DiffEmbFit(sce)
 }
 
@@ -84,6 +83,7 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   linear_coefficients <- featureLoadings(reducedDim(obj, "linearFit"))
   if(is.null(linear_coefficients)) msg <- c(msg, "'linear_coefficients' must not be NULL")
   bootstrap_samples <- obj$bootstrap_samples
+  knn_graph <- obj$knn_graph
 
 
   if(! is.null(ambient_coordsystem) && nrow(ambient_coordsystem) != n_features) msg <- c(msg, "`nrow(ambient_coordsystem)` does not match the number of features")
@@ -112,6 +112,8 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   if(! is.null(alignment_design_matrix) && nrow(alignment_design_matrix) != n_obs) msg <- c(msg, "`nrow(alignment_design_matrix)` does not match number of observations")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
   if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "DiffEmbFit"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'DiffEmbFit' objects.")
+  if(! is.null(knn_graph) && ! inherits(knn_graph, "igraph")) msg <- c(msg, "knn_graph must be an object of class 'igraph'.")
+  if(! is.null(knn_graph) && igraph::vcount(knn_graph) != n_obs) msg <- c(msg, "knn_graph must have one vertex for each observation.")
 
 
   if(is.null(msg)){
@@ -156,6 +158,7 @@ setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
     if(! isTRUE(am) && ! isFALSE(am)){
       metadata(x)[["alignment_method"]] <- metadata(x)[["alignment_method"]][jj]
     }
+    if(! is.null(metadata(x)[["knn_graph"]])) metadata(x)[["knn_graph"]] <- igraph::induced_subgraph(metadata(x)[["knn_graph"]], jj)
   }
 
   callNextMethod()
@@ -167,9 +170,8 @@ setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
                          "ambient_coordsystem", "ambient_offset",
                          "design", "diffemb_basepoint",
                          "diffemb_coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
-                         "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design_matrix",
-                         "bootstrap_samples",
-                         "colData", "rowData")
+                         "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design_matrix", 
+                         "bootstrap_samples", "knn_graph", "colData", "rowData")
 
 #' Get different features and elements of the 'DiffEmbFit' object
 #'
@@ -308,6 +310,14 @@ setGeneric("bootstrap_samples", function(object, ...) standardGeneric("bootstrap
 #' @export
 setMethod("bootstrap_samples", signature = "DiffEmbFit", function(object){
   metadata(object)[["bootstrap_samples"]]
+})
+
+setGeneric("knn_graph", function(object, ...) standardGeneric("knn_graph"))
+
+#' @rdname accessor_methods
+#' @export
+setMethod("knn_graph", signature = "DiffEmbFit", function(object){
+  metadata(object)[["knn_graph"]]
 })
 
 

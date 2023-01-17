@@ -177,6 +177,17 @@ test_that("bootstrapping works", {
   expect_gt(cor(c(fit2$diffemb_embedding), c(fit2$bootstrap_samples[[1]]$diffemb_embedding)), 0.9)
 })
 
+test_that("adding a KNN-graph to the fit object works",  {
+  dat <- make_synthetic_data(n_genes = 30)
+  fit <- differential_embedding(dat, design = ~ condition,
+                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- add_knn_graph(fit, k = 4)
+  expect_true(validObject(fit))
+
+  # Subsetting is no problem
+  expect_silent(fit[,1:10])
+  expect_silent(fit[,rep(c(TRUE,FALSE), length = ncol(fit))])
+})
 
 # test_that("linear fit and embedding don't work against each other", {
 #   Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
