@@ -27,7 +27,7 @@ Imports:
     matrixStats,
     BiocNeighbors,
     igraph,
-    Rcpp
+    collections
 Suggests: 
     testthat (>= 3.0.0),
     MASS,

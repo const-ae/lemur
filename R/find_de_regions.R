@@ -37,8 +37,6 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
 
   # Run the greedy algorithm on the knn graph for each gene
   for(idx in seq_len(n_genes)){
-    # potential_neighbors <- rep(NA_integer_, n_cells)
-    potential_neighbors <- priorityqueue::cpq_create()
     de_vals <- unname(DE_mat[,idx])
     free_indices <- rep(TRUE, n_cells)
     potential_neighbor_indices <- rep(FALSE, n_cells)
@@ -52,16 +50,12 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     current_sd <- 0
     iter <- 1
     current_z_stat <- 0
-    # potential_neighbors[seq_len(n_pot_neighbors)] <- as.vector(knn_mat_t[,start])
-    for(k in knn_mat_t[,start]){
-      if(! is.na(k)){
-        priorityqueue::cpq_insert(potential_neighbors, k, sign * de_vals[k])
-        potential_neighbor_indices[k] <- TRUE
-      }
-    }
-    while(priorityqueue::cpq_length(potential_neighbors) > 0){
+    init_nei <- knn_mat_t[,start]
+    init_nei <- init_nei[! is.na(init_nei)]
+    potential_neighbors <- collections::priority_queue(items = as.list(init_nei), priorities = sign * de_vals[init_nei])
+    while(potential_neighbors$size() > 0){
       t_correction <- qt_ratio_approx(iter)
-      sel_nei <- priorityqueue::cpq_pop(potential_neighbors)
+      sel_nei <- potential_neighbors$pop()
       new_de_val <- de_vals[sel_nei]
 
       # Online algorithm for mean, sd, and z-statistic
@@ -76,7 +70,7 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
         added_nei <- new_pot_nei[free_indices[new_pot_nei] & ! potential_neighbor_indices[new_pot_nei]]
         for(k in added_nei){
           if(! is.na(k)){
-            priorityqueue::cpq_insert(potential_neighbors, k, sign * de_vals[k])
+            potential_neighbors$push(k, sign * de_vals[k])
           }
         }
         potential_neighbor_indices[added_nei] <- TRUE
