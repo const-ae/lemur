@@ -26,3 +26,19 @@ test_that("de_regions", {
 })
 
 
+test_that("find_de_regions works with subset", {
+  fit_red <- fit[,1:50]
+  expect_error(find_de_regions(fit_red, DE[,1:10]))
+  de_red <- find_de_regions(fit_red, DE[,1:50], k = 5)
+  expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 50), FUN.VALUE = logical(1))))
+})
+
+test_that("knn_matrix construction works",{
+  fit_red <- fit[,1:50]
+  mat1 <- graph2knn_matrix(fit$knn_graph)
+  mat2 <- graph2knn_matrix(fit_red$knn_graph, k = 5)
+  mat1_red <- mat1[1:50,]
+  expect_equal(mat1_red[! is.na(mat2)], mat2[! is.na(mat2)])
+  expect_true(all(mat1_red[is.na(mat2)] > 50))
+})
+

@@ -1,24 +1,25 @@
 
+#'
+#'
+#'
+#'
 find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NULL,
+                            k = igraph::ecount(graph) / igraph::vcount(graph),
                             min_region_size = 5, min_sd = 0.5){
   if(is.null(graph)){
-    graph <- make_knn_graph(fit, k = 25)
+    graph <- make_knn_graph(fit, k = k)
   }
   if(! is.null(start_cell)){
     stop("'start_cell' is not implemented")
   }
   n_genes <- nrow(DE_mat)
   n_cells <- ncol(DE_mat)
-  stopifnot(ncol(fit) == n_cells)
+  stopifnot(ncol(fit) == ncol(DE_mat))
   stopifnot(ncol(fit) == igraph::vcount(graph))
+  stopifnot(igraph::ecount(graph) > 0)
 
-  adj_mat <- igraph::as_adjacency_matrix(graph, sparse = TRUE)
-  k <- igraph::ecount(graph) / igraph::vcount(graph)
   stopifnot(k %% 1 == 0)
-  stopifnot(nrow(adj_mat) == ncol(adj_mat))
-  # This is transposed (compared to the regular knn_matrix)
-  # because column access is faster than row access
-  knn_mat_t <- matrix(t(adj_mat)@i + 1L, nrow = k, ncol = ncol(fit))
+  knn_mat_t <- graph2knn_matrix(graph, k = k, transpose = TRUE)
 
   feature_names <- if(is.null(rownames(DE_mat))){
     paste0("feature_", seq_len(nrow(DE_mat)))
@@ -33,9 +34,11 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
                        z_statistic = rep(NA, n_genes))
   # Columns access is faster than row access
   DE_mat <- t(DE_mat)
+
   # Run the greedy algorithm on the knn graph for each gene
   for(idx in seq_len(n_genes)){
-    potential_neighbors <- rep(NA_integer_, n_cells)
+    # potential_neighbors <- rep(NA_integer_, n_cells)
+    potential_neighbors <- priorityqueue::cpq_create()
     de_vals <- unname(DE_mat[,idx])
     free_indices <- rep(TRUE, n_cells)
     potential_neighbor_indices <- rep(FALSE, n_cells)
@@ -49,13 +52,16 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
     current_sd <- 0
     iter <- 1
     current_z_stat <- 0
-    n_pot_neighbors <- length(start) * nrow(knn_mat_t)
-    potential_neighbors[seq_len(n_pot_neighbors)] <- as.vector(knn_mat_t[,start])
-    potential_neighbor_indices[potential_neighbors[seq_len(n_pot_neighbors)]] <- TRUE
-    while(n_pot_neighbors > 0){
+    # potential_neighbors[seq_len(n_pot_neighbors)] <- as.vector(knn_mat_t[,start])
+    for(k in knn_mat_t[,start]){
+      if(! is.na(k)){
+        priorityqueue::cpq_insert(potential_neighbors, k, sign * de_vals[k])
+        potential_neighbor_indices[k] <- TRUE
+      }
+    }
+    while(priorityqueue::cpq_length(potential_neighbors) > 0){
       t_correction <- qt_ratio_approx(iter)
-      extreme_idx <- which.extreme(de_vals, potential_neighbors)
-      sel_nei <- potential_neighbors[extreme_idx]
+      sel_nei <- priorityqueue::cpq_pop(potential_neighbors)
       new_de_val <- de_vals[sel_nei]
 
       # Online algorithm for mean, sd, and z-statistic
@@ -68,17 +74,10 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, start_cell = NUL
       if(new_z_stat >= current_z_stat * t_correction || iter < min_region_size){
         new_pot_nei <- knn_mat_t[,sel_nei]
         added_nei <- new_pot_nei[free_indices[new_pot_nei] & ! potential_neighbor_indices[new_pot_nei]]
-        if(length(added_nei) == 0){
-          potential_neighbors[extreme_idx] <- potential_neighbors[n_pot_neighbors]
-          potential_neighbors[n_pot_neighbors] <- NA_integer_
-          n_pot_neighbors <- n_pot_neighbors - 1
-        }else if(length(added_nei) == 1){
-          potential_neighbors[extreme_idx] <- added_nei
-          n_pot_neighbors <- n_pot_neighbors
-        }else{
-          potential_neighbors[extreme_idx] <- added_nei[1]
-          potential_neighbors[seq_len(length(added_nei)-1) + n_pot_neighbors] <- added_nei[-1]
-          n_pot_neighbors <- n_pot_neighbors + length(added_nei) - 1
+        for(k in added_nei){
+          if(! is.na(k)){
+            priorityqueue::cpq_insert(potential_neighbors, k, sign * de_vals[k])
+          }
         }
         potential_neighbor_indices[added_nei] <- TRUE
 

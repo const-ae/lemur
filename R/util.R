@@ -231,3 +231,37 @@ matrix_equals <- function(m1, m2){
 }
 
 
+graph2knn_matrix <- function(graph, k = igraph::ecount(graph) / igraph::vcount(graph), transpose = FALSE){
+  stopifnot(igraph::is.igraph(graph))
+  if(k %% 1 != 0){
+    stop("Automatic inferrence of 'k' failed. Please specify the maximum number of neighbors for each node.")
+  }
+  n_cells <- igraph::vcount(graph)
+
+  adj_mat <- t(igraph::as_adjacency_matrix(graph, sparse = TRUE))
+  p <- adj_mat@p
+  i <- adj_mat@i + 1L
+  if(all(diff(p) == k)){
+    knn_mat_t <- matrix(i, nrow = k, ncol = n_cells)
+  }else{
+    knn_mat_t <- matrix(NA_integer_, nrow = k, ncol = n_cells)
+    for(idx in seq_len(max(0, length(p) - 1))){
+      start_idx <- p[idx]
+      end_idx <- p[idx + 1]
+      knn_mat_t[seq_len(end_idx - start_idx), idx] <- i[seq_excl(start_idx, end_idx)]
+    }
+  }
+  if(transpose){
+    knn_mat_t
+  }else{
+    t(knn_mat_t)
+  }
+}
+
+seq_excl <- function(start, end){
+  if(start >= end){
+    integer(0L)
+  }else{
+    seq(start + 1L, end)
+  }
+}
