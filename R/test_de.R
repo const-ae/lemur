@@ -205,7 +205,7 @@ test_differential_embedding <- function(fit,
 
     lfc_linear_model <- fit$linear_coefficients %*% cntrst
   }else{
-    reduced_design_mat <- handle_design_parameter(reduced_design, fit, fit$colData)$model_matrix
+    reduced_design_mat <- handle_design_parameter(reduced_design, fit, fit$colData)$design_matrix
     if(ncol(reduced_design_mat) >= ncol(full_design)){
       stop("The reduced model is as complex (or even more complex) than ",
            "the 'fit' model. The 'reduced_design' should contain fewer terms ",

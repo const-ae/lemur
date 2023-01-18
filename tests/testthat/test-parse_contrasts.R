@@ -25,7 +25,7 @@ test_that("factor based contrast specification works", {
   Y <- matrix(0, nrow = 10, ncol = n_obs)
   des <- handle_design_parameter(data = Y, design = ~ group + cont, col_data = col_data)
   form <- des$design_formula
-  mm <- des$model_matrix
+  mm <- des$design_matrix
   expect_equal(parse_contrast(groupB, colnames(mm)), c(0,1,0,0), ignore_attr = "names")
   expect_equal(parse_contrast(groupB - groupC, colnames(mm)), c(0,1,-1,0), ignore_attr = "names")
   expect_equal(parse_contrast(groupB - groupC + 3 * cont, colnames(mm)), c(0,1,-1,3), ignore_attr = "names")
@@ -40,7 +40,7 @@ test_that("factor based contrast specification works", {
 
   des <- handle_design_parameter(data = Y, design = ~ group + cont + city:group, col_data = col_data)
   form <- des$design_formula
-  mm <- des$model_matrix
+  mm <- des$design_matrix
   colnames(mm)
   expect_equal(parse_contrast(fact(group = "B", city = "New York"), colnames(mm), form),
                c(1, 1, 0, 0, 0, 1, 0, 0, 0, 0), ignore_attr = "names")
@@ -72,7 +72,7 @@ test_that("fact() works with custom contrasts", {
   Y <- matrix(0, nrow = 10, ncol = n_obs)
   des <- handle_design_parameter(data = Y, design = ~ group + cont, col_data = col_data)
   form <- des$design_formula
-  mm <- des$model_matrix
+  mm <- des$design_matrix
   expect_equal(parse_contrast(fact(group = "A"), colnames(mm), form), c(1, 1, 0, 0), ignore_attr = "names")
   expect_equal(parse_contrast(fact(group = "B"), colnames(mm), form), c(1, 0, 1, 0), ignore_attr = "names")
   expect_equal(parse_contrast(fact(group = "C"), colnames(mm), form), c(1, -1, -1, 0), ignore_attr = "names")

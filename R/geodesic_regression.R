@@ -478,11 +478,11 @@ project_psd <- function(Q){
 
 
 
-get_groups <- function (model_matrix, n_groups) {
-  if (!glmGamPoi:::lte_n_equal_rows(model_matrix, n_groups)) {
+get_groups <- function (design_matrix, n_groups) {
+  if (!glmGamPoi:::lte_n_equal_rows(design_matrix, n_groups)) {
     NULL
   } else {
-    glmGamPoi:::get_row_groups(model_matrix, n_groups = n_groups)
+    glmGamPoi:::get_row_groups(design_matrix, n_groups = n_groups)
   }
 }
 

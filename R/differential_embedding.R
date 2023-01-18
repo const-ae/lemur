@@ -38,7 +38,7 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
   des <- handle_design_parameter(design, data, col_data)
 
 
-  res <- differential_embedding_impl(data_mat, des$model_matrix,
+  res <- differential_embedding_impl(data_mat, des$design_matrix,
                                      n_ambient = n_ambient, n_embedding = n_embedding,
                                      alignment = alignment, base_point = base_point,
                                      verbose = verbose, ...)
