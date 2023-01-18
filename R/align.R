@@ -10,21 +10,22 @@
 #' @export
 align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
-                            design_matrix = fit$design_matrix, verbose = TRUE){
+                            design = fit$alignment_design_matrix, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Find mutual nearest neighbors")
-  mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
+  mnn_groups <- get_mutual_neighbors(data_matrix, design, cells_per_cluster = cells_per_cluster, mnn = mnn)
   if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(mnn_groups, fit$diffemb_embedding, design_matrix, method = method)
+  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, method = method)
   correct_fit(fit, correction)
 }
 
 #' @rdname align_neighbors
 #' @export
 align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
-                          design_matrix = fit$design_matrix, max_iter = 10, verbose = TRUE){
+                          design = fit$alignment_design_matrix, max_iter = 10, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Select cells that are considered close with 'harmony'")
+  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
   if(! requireNamespace("harmony", quietly = TRUE)){
     stop("'harmony' is not installed. Please install it from CRAN.")
@@ -36,8 +37,8 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     matches <- apply(harm_obj$R, 1, \(row) which(row > 0.1))
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-    correction <- correct_design_matrix_groups(list(matches = matches, index_groups = index_groups),
-                                               harm_obj$Z_orig, design_matrix, method = method)
+    correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups),
+                                               harm_obj$Z_orig, design, method = method)
     harm_obj$Z_corr <- correction$diffemb_embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
@@ -54,21 +55,21 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
 #' @export
 align_by_template <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                               alignment_template, cells_per_cluster = 20, mnn = 10,
-                              design_matrix = fit$design_matrix, verbose = TRUE){
+                              design = fit$alignment_design_matrix, verbose = TRUE){
   method <- match.arg(method)
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
   align_neighbors(fit, method = method, data_mat = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
-                  design_matrix = design_matrix, verbose = verbose)
+                  design = design, verbose = verbose)
 }
 
 #' @rdname align_neighbors
 #' @export
 align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                               grouping,
-                              design_matrix = fit$design_matrix, verbose = TRUE){
+                              design = fit$alignment_design_matrix, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
@@ -94,22 +95,31 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
   }
 
   if(!"index_groups" %in% names(grouping)){
+    design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
     mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
     grouping$index_groups <- lapply(matches, \(idx) mm_groups[idx])
   }
 
-  correction <- correct_design_matrix_groups(grouping, fit$diffemb_embedding, design_matrix, method = method)
+  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, method = method)
   correct_fit(fit, correction)
 }
 
 
 
-correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, design_matrix, method = c("rotation", "stretching", "rotation+stretching"),
+correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, method = c("rotation", "stretching", "rotation+stretching"),
                                          max_iter = 10, n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
   method <- match.arg(method)
 
   n_embedding <- nrow(diffemb_embedding)
   base_point <- diag(nrow = n_embedding)
+
+  des <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))
+  design_matrix <- des$design_matrix
+  if(is.null(des$design_formula) && matrix_equals(fit$design_matrix, design_matrix)){
+    design_formula <- fit$design
+  }else{
+    design_formula <- des$design_formula
+  }
 
   D <- do.call(rbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(rbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
@@ -158,7 +168,7 @@ correct_design_matrix_groups <- function(matching_groups, diffemb_embedding, des
 
 
   list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
-       diffemb_embedding = diffemb_embedding, design_matrix = design_matrix)
+       diffemb_embedding = diffemb_embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
 
 apply_rotation <- function(A, rotation_coef, design, base_point){
@@ -249,11 +259,13 @@ correct_fit <- function(fit, correction){
   }
 
   reducedDim(fit, "diffemb_embedding") <- t(correction$diffemb_embedding)
-  if(! all(dim(correction$design_matrix) == dim(fit$alignment_design_matrix)) ||
-     ! all(correction$design_matrix == fit$alignment_design_matrix)){
+  if(! matrix_equals(correction$design_matrix, fit$alignment_design_matrix) ||
+     is.null(correction$design_formula) != is.null(fit$alignment_design) ||
+     correction$design_formula != fit$alignment_design){
     metadata(fit)[["alignment_rotation"]] <- correction$rotation_coefficients
     metadata(fit)[["alignment_stretching"]] <- correction$stretch_coefficients
     metadata(fit)[["alignment_design_matrix"]] <- correction$design_matrix
+    metadata(fit)[["alignment_design"]] <- correction$design_formula
   }else{
     metadata(fit)[["alignment_rotation"]] <-  metadata(fit)[["alignment_rotation"]] + correction$rotation_coefficients
     metadata(fit)[["alignment_stretching"]] <-  metadata(fit)[["alignment_stretching"]] + correction$stretch_coefficients
@@ -262,11 +274,13 @@ correct_fit <- function(fit, correction){
     reducedDim(samp, "diffemb_embedding") <- t(apply_rotation(
       apply_stretching(samp$diffemb_embedding, -correction$stretch_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)),
       -correction$rotation_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)))
-    if(! all(dim(correction$design_matrix) == dim(samp$alignment_design_matrix)) ||
-       ! all(correction$design_matrix == samp$alignment_design_matrix)){
+    if(! matrix_equals(correction$design_matrix, samp$alignment_design_matrix) ||
+       is.null(correction$design_formula) != is.null(fit$alignment_design) ||
+       correction$design_formula != fit$alignment_design){
       metadata(samp)[["alignment_rotation"]] <- correction$rotation_coefficients
       metadata(samp)[["alignment_stretching"]] <- correction$stretch_coefficients
       metadata(samp)[["alignment_design_matrix"]] <-   correction$design_matrix
+      metadata(samp)[["alignment_design"]] <- correction$design_formula
     }else{
       metadata(samp)[["alignment_rotation"]] <- metadata(samp)[["alignment_rotation"]] + correction$rotation_coefficients
       metadata(samp)[["alignment_stretching"]] <- metadata(samp)[["alignment_stretching"]] + correction$stretch_coefficients

@@ -16,6 +16,7 @@ test_that("making data works", {
   expect_equal(dim(fit$linear_coefficients), c(40, 3))
   expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
   expect_equal(fit$alignment_stretching, array(0, dim = c(5, 5, 3)))
+  expect_equal(format(fit$alignment_design), "~condition")
   expect_equal(fit$alignment_design_matrix, fit$design_matrix)
 })
 
@@ -36,6 +37,8 @@ test_that("the fit is valid", {
   expect_equal(dim(fit$linear_coefficients), c(30, 3))
   expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
   expect_equal(fit$alignment_stretching, array(0, dim = c(5, 5, 3)))
+  expect_equal(format(fit$alignment_design), "~condition")
+  expect_equal(fit$alignment_design_matrix, fit$design_matrix)
 })
 
 
@@ -226,9 +229,9 @@ test_that("align_neighbors works", {
   expect_equal(fit$alignment_method, FALSE)
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
-  al_rot <- align_neighbors(fit, method = "rotation", cells_per_cluster = 1)
-  al_stretch <- align_neighbors(fit, method = "stretching", cells_per_cluster = 1)
-  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cells_per_cluster = 1)
+  al_rot <- align_neighbors(fit, method = "rotation", cells_per_cluster = 1, verbose = FALSE)
+  al_stretch <- align_neighbors(fit, method = "stretching", cells_per_cluster = 1, verbose = FALSE)
+  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cells_per_cluster = 1, verbose = FALSE)
 
   expect_equal(predict(fit), predict(al_rot))
   expect_equal(predict(fit), predict(al_stretch), tolerance = 1e-4)
@@ -253,14 +256,14 @@ test_that("aligning works with alternative design matrices", {
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   alignment_design <- model.matrix(~ condition, fit$colData)
-  fit2 <- align_by_grouping(fit, grouping = alignment, design_matrix = alignment_design, verbose = FALSE)
+  fit2 <- align_by_grouping(fit, grouping = alignment, design = alignment_design, verbose = FALSE)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_rotation, fit2$alignment_rotation)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_stretching, fit2$alignment_stretching)
   expect_equal(predict(fit), predict(fit2))
   expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
                fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
   expect_equal(dim(fit2$alignment_design_matrix), c(500, 3))
-  de <- test_differential_expression(fit2, contrast = 1)
+  de <- test_differential_expression(fit2, contrast = 1, alignment_contrast = c(1, 0, 0))
   expect_equal(nrow(de), 500 * 30)
   expect_error(predict(fit2, alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5)))
   pred <- predict(fit2, newdesign = duplicate_rows(1, 5),

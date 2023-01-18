@@ -40,6 +40,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   }else if(! is.matrix(newdesign)){
     newdesign <- matrix(newdesign, nrow = ncol(diffemb_embedding), ncol = length(newdesign), byrow = TRUE)
   }
+  if(! is.matrix(alignment_design_matrix)){
+    alignment_design_matrix <- matrix(alignment_design_matrix, nrow = ncol(diffemb_embedding), ncol = length(alignment_design_matrix), byrow = TRUE)
+  }
+
   if(all(dim(design_matrix) == dim(alignment_design_matrix)) && all(design_matrix == alignment_design_matrix)){
     # The design matrices were identical, presume that the newdesign should also be identical
     alignment_design_matrix <- newdesign
@@ -54,7 +58,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   approx <- if(with_linear_model){
     linear_coefficients %*% t(newdesign)
   }else{
-    matrix(0, nrow =min(n_ambient, nrow(object)), ncol = nrow(newdesign))
+    matrix(0, nrow = min(n_ambient, nrow(object)), ncol = nrow(newdesign))
   }
 
   if(with_differential_embedding){
@@ -125,8 +129,8 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_rotation = fit_alt$alignment_rotation,
-                 alignment_stretching = fit_alt$alignment_stretching)
+                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_design_matrix = fit_alt$alignment_design_matrix,
+                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
   }else{
     fit_alt <- differential_embedding_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
                                            n_ambient = fit$n_ambient, n_embedding = 0,
@@ -141,8 +145,8 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_rotation = fit_alt$alignment_rotation,
-                 alignment_stretching = fit_alt$alignment_stretching)
+                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_design_matrix = fit$alignment_design_matrix,
+                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
   }
 }
 

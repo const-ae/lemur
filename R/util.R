@@ -226,3 +226,8 @@ resample <- function(size, cluster = NULL){
   }
 }
 
+matrix_equals <- function(m1, m2){
+  all(dim(m1) == dim(m2)) && all(m1 == m2)
+}
+
+

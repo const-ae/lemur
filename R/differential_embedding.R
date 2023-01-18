@@ -42,6 +42,11 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
                                      n_ambient = n_ambient, n_embedding = n_embedding,
                                      alignment = alignment, base_point = base_point,
                                      verbose = verbose, ...)
+  alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
+    des$design_formula
+  }else{
+    NULL
+  }
 
   DiffEmbFit(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
              n_ambient = res$n_ambient, n_embedding = res$n_embedding,
@@ -54,6 +59,7 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
              alignment_method = res$alignment_method,
              alignment_rotation = res$alignment_rotation,
              alignment_stretching = res$alignment_stretching,
+             alignment_design = alignment_design,
              alignment_design_matrix = res$alignment_design_matrix)
 }
 
@@ -86,6 +92,7 @@ differential_embedding_impl <- function(Y, design_matrix,
   if(is.null(alignment_design_matrix)){
     alignment_design_matrix <- design_matrix
   }
+
 
   # Reduce to ambient space
   if(is.null(amb_pca)){

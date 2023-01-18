@@ -7,7 +7,11 @@
 test_differential_expression(
   fit,
   contrast,
-  reduced_design = NULL,
+  alignment_contrast = {
+     {
+         contrast
+     }
+ },
   diffemb_embedding = NULL,
   consider = c("embedding+linear", "embedding", "linear"),
   variance_est = c("bootstrap", "none"),
@@ -29,7 +33,8 @@ coefficients, they are compared directly (e.g. \code{fact(treatment = "A", sex =
 \code{fact(treatment = "A", sex = "male") == treatmentC}). This is the recommended approach, because \code{map(V1 - V2) != map(V1) - map(V2)}.
 }}
 
-\item{reduced_design}{an alternative specification of the null hypothesis. \strong{Not implemented yet}}
+\item{alignment_contrast}{same as \code{contrast} but applied to the \code{alignment_design_matrix}. This is for advanced use cases where
+separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the \code{contrast} argument.}
 
 \item{diffemb_embedding}{matrix of size \code{n_embedding} \eqn{\times} \code{n} that specifies where in the latent space
 the differential expression is tested. It defaults to the position of all cells from the original fit.}

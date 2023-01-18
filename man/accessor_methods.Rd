@@ -13,6 +13,7 @@
 \alias{alignment_method,DiffEmbFit-method}
 \alias{alignment_rotation,DiffEmbFit-method}
 \alias{alignment_stretching,DiffEmbFit-method}
+\alias{alignment_design,DiffEmbFit-method}
 \alias{alignment_design_matrix,DiffEmbFit-method}
 \alias{design_matrix,DiffEmbFit-method}
 \alias{linear_coefficients,DiffEmbFit-method}
@@ -41,6 +42,8 @@
 \S4method{alignment_rotation}{DiffEmbFit}(object)
 
 \S4method{alignment_stretching}{DiffEmbFit}(object)
+
+\S4method{alignment_design}{DiffEmbFit}(object)
 
 \S4method{alignment_design_matrix}{DiffEmbFit}(object)
 

@@ -11,7 +11,8 @@
 #'    * an extension of the previous two options where instead of subtracting the
 #'       coefficients, they are compared directly (e.g. `fact(treatment = "A", sex = "male") < fact(treatment = "C", sex = "male")` or
 #'       `fact(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
-#' @param reduced_design an alternative specification of the null hypothesis. **Not implemented yet**
+#' @param alignment_contrast same as `contrast` but applied to the `alignment_design_matrix`. This is for advanced use cases where
+#'   separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the `contrast` argument.
 #' @param diffemb_embedding matrix of size `n_embedding` \eqn{\times} `n` that specifies where in the latent space
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
@@ -21,7 +22,7 @@
 #' @export
 test_differential_expression <- function(fit,
                                         contrast,
-                                        reduced_design = NULL,
+                                        alignment_contrast = {{contrast}},
                                         diffemb_embedding = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),
                                         variance_est = c("bootstrap", "none"),
@@ -30,9 +31,6 @@ test_differential_expression <- function(fit,
   return <- match.arg(return)
   if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
     stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_differential_expression()'.")
-  }
-  if(! is.null(reduced_design)){
-    stop("'reduced_design' is not implemented for 'test_differential_expression'.")
   }
   if(is.null(diffemb_embedding)){
     diffemb_embedding <- fit$diffemb_embedding
@@ -59,11 +57,14 @@ test_differential_expression <- function(fit,
 
 
   cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$design_matrix), formula = fit$design)
-  diff <- if(inherits(cntrst, "contrast_relation")){
-    predict(fit, newdesign = cntrst$lhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb) -
-      predict(fit, newdesign = cntrst$rhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
+  al_cntrst <- parse_contrast({{alignment_contrast}}, coefficient_names = colnames(fit$alignment_design_matrix), formula = fit$alignment_design)
+  diff <- if(inherits(cntrst, "contrast_relation") && inherits(al_cntrst, "contrast_relation")){
+    predict(fit, newdesign = cntrst$lhs, alignment_design_matrix = al_cntrst$lhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb) -
+      predict(fit, newdesign = cntrst$rhs, alignment_design_matrix = al_cntrst$rhs, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
+  }else if(inherits(cntrst, "contrast_relation") != inherits(al_cntrst, "contrast_relation")){
+    stop("Both 'contrast' and 'alignment_contrast' must contain an equality relation ('==') or neither.")
   }else{
-    predict(fit, newdesign = cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    predict(fit, newdesign = cntrst, alignment_design_matrix = al_cntrst, diffemb_embedding = diffemb_embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }
   if(variance_est == "bootstrap"){
     # Welfords's online algorithm to calculate mean and sd of bootstrap estimates
@@ -76,12 +77,12 @@ test_differential_expression <- function(fit,
       }
       diff <- if(inherits(cntrst, "contrast_relation")){
         linearCoefficients <- elem$linear_coefficients
-        predict(elem, newdesign = cntrst$lhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst$lhs, alignment_design_matrix = al_cntrst$lhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb) -
-          predict(elem, newdesign = cntrst$rhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
+          predict(elem, newdesign = cntrst$rhs, alignment_design_matrix = al_cntrst$rhs, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                   with_differential_embedding = with_emb)
       }else{
-        predict(elem, newdesign = cntrst, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
+        predict(elem, newdesign = cntrst, alignment_design_matrix = al_cntrst, diffemb_embedding = bs_diffemb_embedding, with_linear_model = with_lm,
                 with_differential_embedding = with_emb)
       }
       delta <- diff - accum$mean

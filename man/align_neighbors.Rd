@@ -13,7 +13,7 @@ align_neighbors(
   data_matrix = assay(fit),
   cells_per_cluster = 20,
   mnn = 10,
-  design_matrix = fit$design_matrix,
+  design = fit$alignment_design_matrix,
   verbose = TRUE
 )
 
@@ -21,7 +21,7 @@ align_harmony(
   fit,
   method = c("rotation", "stretching", "rotation+stretching"),
   ...,
-  design_matrix = fit$design_matrix,
+  design = fit$alignment_design_matrix,
   max_iter = 10,
   verbose = TRUE
 )
@@ -32,7 +32,7 @@ align_by_template(
   alignment_template,
   cells_per_cluster = 20,
   mnn = 10,
-  design_matrix = fit$design_matrix,
+  design = fit$alignment_design_matrix,
   verbose = TRUE
 )
 
@@ -40,7 +40,7 @@ align_by_grouping(
   fit,
   method = c("rotation", "stretching", "rotation+stretching"),
   grouping,
-  design_matrix = fit$design_matrix,
+  design = fit$alignment_design_matrix,
   verbose = TRUE
 )
 }
@@ -49,11 +49,11 @@ align_by_grouping(
 
 \item{method}{how flexible should the alignment be}
 
-\item{design_matrix}{the design matrix for the alignment}
-
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
 \item{...}{additional parameters that are passed on to relevant functions}
+
+\item{design_matrix}{the design matrix for the alignment}
 }
 \description{
 Enforce additional alignment of cell clusters beyond the direct differential embedding

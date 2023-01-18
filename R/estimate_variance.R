@@ -112,6 +112,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                alignment_method = alignment_method,
                alignment_rotation = res$alignment_rotation,
                alignment_stretching = res$alignment_stretching,
+               alignment_design = fit$alignment_design,
                alignment_design_matrix = fit$alignment_design_matrix)
     rownames(samp) <- rownames(fit)
     colnames(samp) <- colnames(fit)

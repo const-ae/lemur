@@ -336,7 +336,10 @@ spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression =
       break
     }
   }
-  if(idx == 20) coef <- 0 * coef
+  if(idx == 20){
+    warning("SPD Procrustes regression did not converge. Set all coefficients to zero.")
+    coef <- 0 * coef
+  }
   if(tangent_regression){
     coef
   }else{
