@@ -38,6 +38,7 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, regions_per_gene
     for(region_idx in seq_len(regions_per_gene)-1L){
       potential_neighbor_indices <- rep(FALSE, n_cells)
       start <- which_extreme(de_vals, ignore = !free_indices)
+      region <- collections::queue(start)
       free_indices[start] <- FALSE
       sign <- sign(de_vals[start])
 
@@ -76,7 +77,7 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, regions_per_gene
           }
           potential_neighbor_indices[added_nei] <- TRUE
 
-          start <- c(start, sel_nei)
+          region$push(sel_nei)
           free_indices[sel_nei] <- FALSE
           potential_neighbor_indices[sel_nei] <- FALSE
           current_mean <- new_mean
@@ -89,8 +90,9 @@ find_de_regions <- function(fit, DE_mat, graph = fit$knn_graph, regions_per_gene
         }
       }
       eff_idx <- idx * regions_per_gene + region_idx + 1L
-      result$indices[[eff_idx]] <- as.integer(start)
-      result$n_cells[eff_idx] <- length(start)
+      region_vec <- unlist(region$as_list())
+      result$indices[[eff_idx]] <- as.integer(region_vec)
+      result$n_cells[eff_idx] <- length(region_vec)
       result$mean[eff_idx] <- current_mean
       result$sd[eff_idx] <- current_sd
     }
