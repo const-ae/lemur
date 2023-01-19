@@ -265,3 +265,27 @@ seq_excl <- function(start, end){
     seq(start + 1L, end)
   }
 }
+
+which_extreme <- function(x, ignore = NULL){
+  if(is.null(ignore)){
+    which.max(abs(x))
+  }else{
+    stopifnot(length(ignore) == length(x))
+    extreme_idx <- NA_integer_
+    max <- -Inf
+    for(idx in seq_along(x)){
+      if(! ignore[idx] && abs(x[idx]) > max){
+        extreme_idx <- idx
+      }
+    }
+    extreme_idx
+  }
+}
+
+max_number_of_edges_per_vertex <- function(graph){
+  # adjacency matrix is a sparse n x n matrix with 1 for connected nodes
+  # The diff of the column pointers shows the number of non-zero elements
+  adj_mat <- t(igraph::as_adjacency_matrix(graph, sparse = TRUE))
+  max(diff(adj_mat@p))
+}
+
