@@ -9,6 +9,7 @@ rotation_lm(
   design,
   obs_embedding,
   base_point,
+  ridge_penalty = 0,
   tangent_regression = FALSE
 )
 }

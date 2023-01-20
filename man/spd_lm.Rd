@@ -4,7 +4,14 @@
 \alias{spd_lm}
 \title{Solve ||Y - exp_p(V * x) Z ||^2_2 for V (aka. SPD Procrustes regression)}
 \usage{
-spd_lm(data, design, obs_embedding, base_point, tangent_regression = FALSE)
+spd_lm(
+  data,
+  design,
+  obs_embedding,
+  base_point,
+  ridge_penalty = 0,
+  tangent_regression = FALSE
+)
 }
 \description{
 Here data = t(grassmann_map(V * X)) Y

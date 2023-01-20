@@ -8,6 +8,8 @@ spd_geodesic_regression(
   spd_matrices,
   design,
   base_point,
+  weights = 1,
+  ridge_penalty = 0,
   tangent_regression = FALSE
 )
 }

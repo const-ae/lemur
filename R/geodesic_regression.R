@@ -92,7 +92,7 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
 #' Solve d(R, exp_p(V * x))^2 for V
 #'
 #'
-rotation_geodesic_regression <- function(rotations, design, base_point, tangent_regression = FALSE){
+rotation_geodesic_regression <- function(rotations, design, base_point, weights = 1, ridge_penalty = ridge_penalty, tangent_regression = FALSE){
   # Validate input
   n_obs <- nrow(design)
   n_coef <- ncol(design)
@@ -109,16 +109,21 @@ rotation_geodesic_regression <- function(rotations, design, base_point, tangent_
   stopifnot(length(rotations) == nrow(design))
   stopifnot(all(vapply(rotations, \(rot) nrow(rot) == n_amb && ncol(rot) == n_amb, FUN.VALUE = logical(1L))))
   # stopifnot(all(vapply(rotations, \(rot) is_rotation_element(rot), FUN.VALUE = logical(1L))))
+  weights <- rep_len(weights, nrow(design))
 
   # Initialize with tangent regression
   tangent_vecs <-  lapply(rotations, \(rot){
     c(rotation_log(base_point, rot)[upper.tri(rot)])
   })
   merged_vecs <- stack_cols(tangent_vecs)
-  tangent_fit <- if(nrow(merged_vecs) == 0){
-    matrix(nrow = 0, ncol = ncol(merged_vecs))
+  if(nrow(merged_vecs) == 0){
+    tangent_fit <- matrix(nrow = 0, ncol = ncol(merged_vecs))
   }else{
-    tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+    if(all(ridge_penalty == 0)){
+      tangent_fit <- t(lm.wfit(design, t(merged_vecs), w = weights)$coefficients)
+    }else{
+      tangent_fit <- ridge_regression(merged_vecs, X = design, ridge_penalty = ridge_penalty, weights = weights)
+    }
   }
   tangent_fit[is.na(tangent_fit)] <- 0
   coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx){
@@ -141,7 +146,7 @@ rotation_geodesic_regression <- function(rotations, design, base_point, tangent_
 #'
 #' Here data = t(grassmann_map(V * X)) Y
 #'
-rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regression = FALSE){
+rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, tangent_regression = FALSE){
   nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA) | apply(obs_embedding, 2, anyNA)
   data <- data[,!nas,drop=FALSE]
   design <- design[!nas,,drop=FALSE]
@@ -163,7 +168,8 @@ rotation_lm <- function(data, design, obs_embedding, base_point, tangent_regress
     sel <- mm_groups == gr
     procrustes_rotation(data[,sel,drop=FALSE], obs_embedding[,sel,drop=FALSE])
   })
-  coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
+  group_sizes <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+  coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, weights = group_sizes, ridge_penalty = ridge_penalty, tangent_regression = TRUE)
   # line search
   # original_error <- sum(vapply(groups, \(gr){
   #   sel <- mm_groups == gr
@@ -239,7 +245,7 @@ procrustes_rotation <- function(Y, Z){
 
 #' Solve d(P, exp_p(V * x))^2 for V
 #'
-spd_geodesic_regression <- function(spd_matrices, design, base_point, tangent_regression = FALSE){
+spd_geodesic_regression <- function(spd_matrices, design, base_point, weights = 1, ridge_penalty = 0, tangent_regression = FALSE){
   # Validate input
   n_obs <- nrow(design)
   n_coef <- ncol(design)
@@ -256,18 +262,21 @@ spd_geodesic_regression <- function(spd_matrices, design, base_point, tangent_re
   stopifnot(length(spd_matrices) == nrow(design))
   stopifnot(all(vapply(spd_matrices, \(spd) nrow(spd) == n_amb && ncol(spd) == n_amb, FUN.VALUE = logical(1L))))
   # stopifnot(all(vapply(spd_matrices, \(spd) is_spd_element(spd), FUN.VALUE = logical(1L))))
-
-  # TODO: If only two SPD matrices, do procrustes to solve the problem.
+  weights <- rep_len(weights, nrow(design))
 
   # Initialize with tangent regression (if possible)
   tangent_vecs <- lapply(spd_matrices, \(spd){
     c(spd_log(base_point, spd)[upper.tri(spd, diag = TRUE)])
   })
   merged_vecs <- stack_cols(tangent_vecs)
-  tangent_fit <- if(nrow(merged_vecs) == 0){
-    matrix(nrow = 0, ncol = ncol(merged_vecs))
+  if(nrow(merged_vecs) == 0){
+    tangent_fit <- matrix(nrow = 0, ncol = ncol(merged_vecs))
   }else{
-    tangent_fit <- t(lm.fit(design, t(merged_vecs))$coefficients)
+    if(all(ridge_penalty == 0)){
+      tangent_fit <- t(lm.wfit(design, t(merged_vecs), w = weights)$coefficients)
+    }else{
+      tangent_fit <- ridge_regression(merged_vecs, X = design, ridge_penalty = ridge_penalty, weights = weights)
+    }
   }
   tangent_fit[is.na(tangent_fit)] <- 0
   coef <- stack_slice(lapply(seq_len(ncol(tangent_fit)), \(idx){
@@ -292,7 +301,7 @@ spd_geodesic_regression <- function(spd_matrices, design, base_point, tangent_re
 #'
 #' Here data = t(grassmann_map(V * X)) Y
 #'
-spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression = FALSE){
+spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, tangent_regression = FALSE){
   nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA) | apply(obs_embedding, 2, anyNA)
   data <- data[,!nas,drop=FALSE]
   design <- design[!nas,,drop=FALSE]
@@ -320,7 +329,9 @@ spd_lm <- function(data, design, obs_embedding, base_point, tangent_regression =
     y <- data[,sel,drop=FALSE]
     procrustes_spd(y, x)
   })
-  coef <- spd_geodesic_regression(group_spd, design = reduced_design, base_point = base_point, tangent_regression = TRUE)
+  group_sizes <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+
+  coef <- spd_geodesic_regression(group_spd, design = reduced_design, base_point = base_point, weights = group_sizes, ridge_penalty = ridge_penalty, tangent_regression = TRUE)
   # line search
   original_error <- sum(vapply(groups, \(gr){
     sel <- mm_groups == gr
