@@ -93,7 +93,7 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
 #' Solve d(R, exp_p(V * x))^2 for V
 #'
 #'
-rotation_geodesic_regression <- function(rotations, design, base_point, weights = 1, ridge_penalty = ridge_penalty, tangent_regression = FALSE){
+rotation_geodesic_regression <- function(rotations, design, base_point, weights = 1, ridge_penalty = 0, tangent_regression = FALSE){
   # Validate input
   n_obs <- nrow(design)
   n_coef <- ncol(design)
