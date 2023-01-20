@@ -43,7 +43,7 @@ test_that("alignment with Harmony work", {
 
 
 test_that("alignment with mututal nearest neighbors work", {
-  fit_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", verbose = TRUE)
+  fit_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", verbose = FALSE)
 
   n_coef <- ncol(fit$design_matrix)
   n_lat <- fit$n_embedding

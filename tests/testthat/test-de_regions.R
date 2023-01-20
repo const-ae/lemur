@@ -43,7 +43,7 @@ test_that("de_regions can identify multiple non-overlapping regions", {
 test_that("find_de_regions works with subset", {
   fit_red <- fit[,1:50]
   expect_error(find_de_regions(fit_red, DE[,1:10]))
-  de_red <- find_de_regions(fit_red, DE[,1:50], k = 5)
+  de_red <- find_de_regions(fit_red, DE[,1:50])
   expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 50), FUN.VALUE = logical(1))))
 })
 
