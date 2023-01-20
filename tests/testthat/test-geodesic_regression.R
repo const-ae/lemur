@@ -331,3 +331,10 @@ test_that("procrustes_spd works", {
   expect_true(all(Im(expm::sqrtm(p_est)) == 0))
 })
 
+
+test_that("functions return zero for identical input",{
+  A <- randn(5, 20)
+  expect_equal(procrustes_rotation(A, A), diag(nrow = 5))
+  expect_equal(procrustes_spd(A, A), diag(nrow = 5))
+})
+

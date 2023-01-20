@@ -172,22 +172,24 @@ rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty =
   group_sizes <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
   coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, weights = group_sizes, ridge_penalty = ridge_penalty, tangent_regression = TRUE)
   # line search
-  # original_error <- sum(vapply(groups, \(gr){
-  #   sel <- mm_groups == gr
-  #   sum((data[,sel,drop=FALSE] - obs_embedding[,sel,drop=FALSE])^2)
-  # }, FUN.VALUE = 0.0))
-  # for(idx in 0:20){
-  #   if(idx != 0) stop("Halving step size")
-  #   error <- sum(vapply(groups, \(gr){
-  #     sel <- mm_groups == gr
-  #     sum((data[,sel,drop=FALSE] - rotation_map(sum_tangent_vectors(0.5^idx * coef, reduced_design[groups == gr, ]), base_point) %*% obs_embedding[,sel,drop=FALSE])^2)
-  #   }, FUN.VALUE = 0.0))
-  #   if(error < original_error){
-  #     coef <- 0.5^idx * coef
-  #     break
-  #   }
-  # }
-  # if(idx == 20) coef <- 0 * coef
+  original_error <- sum(vapply(groups, \(gr){
+    sel <- mm_groups == gr
+    sum((data[,sel,drop=FALSE] - obs_embedding[,sel,drop=FALSE])^2)
+  }, FUN.VALUE = 0.0))
+  for(idx in 0:20){
+    error <- sum(vapply(groups, \(gr){
+      sel <- mm_groups == gr
+      sum((data[,sel,drop=FALSE] - rotation_map(sum_tangent_vectors(0.5^idx * coef, reduced_design[groups == gr, ]), base_point) %*% obs_embedding[,sel,drop=FALSE])^2)
+    }, FUN.VALUE = 0.0))
+    if(error <= original_error + 1e-12){
+      coef <- 0.5^idx * coef
+      break
+    }
+  }
+  if(idx == 20){
+    warning("Rotation Procrustes regression did not converge. Set all coefficients to zero.")
+    coef <- 0 * coef
+  }
   if(tangent_regression){
     coef
   }else{
@@ -343,7 +345,7 @@ spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, t
       sel <- mm_groups == gr
       sum((data[,sel,drop=FALSE] - spd_map(sum_tangent_vectors(0.5^idx * coef, reduced_design[groups == gr, ]), base_point) %*% obs_embedding[,sel,drop=FALSE])^2)
     }, FUN.VALUE = 0.0))
-    if(error < original_error){
+    if(error <= original_error + 1e-12){
       coef <- 0.5^idx * coef
       break
     }
@@ -430,12 +432,15 @@ init_procrustes_spd <- function(data, obs_embedding){
   e1 <- sum((A1 %*% obs_embedding - data)^2)
   e2 <- sum((A2 %*% obs_embedding - data)^2)
   e3 <- sum((A3 %*% obs_embedding - data)^2)
-  if(e1 < e2 && e1 < e3){
+  e4 <- sum((obs_embedding - data)^2)
+  if(e1 < e2 && e1 < e3 && e1 < e4){
     A1
-  }else if(e2 < e3){
+  }else if(e2 < e3 && e2 < e4){
     A2
-  }else{
+  }else if(e3 < e4){
     A3
+  }else{
+    diag(nrow = n)
   }
 }
 
