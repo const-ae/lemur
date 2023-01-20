@@ -10,19 +10,20 @@
 #' @export
 align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
-                            design = fit$alignment_design_matrix, verbose = TRUE){
+                            design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Find mutual nearest neighbors")
   mnn_groups <- get_mutual_neighbors(data_matrix, design, cells_per_cluster = cells_per_cluster, mnn = mnn)
   if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, method = method)
+  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, method = method, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
 #' @rdname align_neighbors
 #' @export
 align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
-                          design = fit$alignment_design_matrix, max_iter = 10, verbose = TRUE){
+                          design = fit$alignment_design_matrix,
+                          ridge_penalty = 0, max_iter = 10, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Select cells that are considered close with 'harmony'")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
@@ -38,7 +39,7 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups),
-                                               harm_obj$Z_orig, design, method = method)
+                                               harm_obj$Z_orig, design, method = method, ridge_penalty = ridge_penalty)
     harm_obj$Z_corr <- correction$diffemb_embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
@@ -55,21 +56,21 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
 #' @export
 align_by_template <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                               alignment_template, cells_per_cluster = 20, mnn = 10,
-                              design = fit$alignment_design_matrix, verbose = TRUE){
+                              design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
   method <- match.arg(method)
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
   align_neighbors(fit, method = method, data_mat = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
-                  design = design, verbose = verbose)
+                  design = design, ridge_penalty = ridge_penalty, verbose = verbose)
 }
 
 #' @rdname align_neighbors
 #' @export
 align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
                               grouping,
-                              design = fit$alignment_design_matrix, verbose = TRUE){
+                              design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
@@ -100,18 +101,19 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
     grouping$index_groups <- lapply(matches, \(idx) mm_groups[idx])
   }
 
-  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, method = method)
+  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, method = method, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
 
 
 correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, method = c("rotation", "stretching", "rotation+stretching"),
-                                         max_iter = 10, n_iter = 1, tolerance = 1e-8,  verbose = TRUE, ...){
+                                         ridge_penalty = 0, max_iter = 10, tolerance = 1e-8,  verbose = TRUE){
   method <- match.arg(method)
 
   n_embedding <- nrow(diffemb_embedding)
   base_point <- diag(nrow = n_embedding)
+  ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
 
   des <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))
   design_matrix <- des$design_matrix
@@ -136,22 +138,22 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   }))
 
   if(method == "rotation"){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
     stretch_coef <- array(0, dim(rotation_coef))
   }else if(method == "stretching"){
-    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching)
     rotation_coef <- array(0, dim(stretch_coef))
   }else if(method == "rotation+stretching"){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point)
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
     # rotation_coef <- array(0, dim(stretch_coef))
     error <- error_last_round <- mean((Y - M)^2)
     for(idx in seq_len(max_iter)){
       # Apply **inverse** of rotation to means before fitting stretching
       Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
-      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point)
+      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching)
       # Stretch the observations before fitting the rotation
       Yprime <- apply_stretching(Y, stretch_coef, D, base_point)
-      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point)
+      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
       # Calculate error
       error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
       if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
@@ -290,4 +292,28 @@ correct_fit <- function(fit, correction){
   fit
 }
 
-
+handle_ridge_penalty_parameter <- function(ridge_penalty){
+  ridge_penalty <- lapply(ridge_penalty, \(x) x * 1.0)
+  if(length(ridge_penalty) == 2){
+    if(is.null(names(ridge_penalty))){
+      names(ridge_penalty) <- c("rotation", "stretching")
+    }else if(! all(names(ridge_penalty) %in% c("rotation", "stretching"))){
+      stop("Names of ridge penalty must be 'rotation' and 'stretching'. They are: ", paste0(names(ridge_penalty), collapse = ", "))
+    }
+  }else if(length(ridge_penalty) == 1){
+    if(is.null(names(ridge_penalty))){
+      ridge_penalty <- list(rotation = ridge_penalty[[1]], stretching = ridge_penalty[[1]])
+    }else{
+      if(names(ridge_penalty) == "rotation"){
+        ridge_penalty <- c(ridge_penalty, list(stretching = 0))
+      }else if(names(ridge_penalty) == "stretching"){
+        ridge_penalty <- c(ridge_penalty, list(rotation = 0))
+      }else{
+        stop("Cannot handle name of ridge penalty: ", names(ridge_penalty))
+      }
+    }
+  }else{
+    stop("Cannot handle ridge penalty of length: ", length(ridge_penalty))
+  }
+  ridge_penalty
+}

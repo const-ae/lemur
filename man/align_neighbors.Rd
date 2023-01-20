@@ -14,6 +14,7 @@ align_neighbors(
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
+  ridge_penalty = 0,
   verbose = TRUE
 )
 
@@ -22,6 +23,7 @@ align_harmony(
   method = c("rotation", "stretching", "rotation+stretching"),
   ...,
   design = fit$alignment_design_matrix,
+  ridge_penalty = 0,
   max_iter = 10,
   verbose = TRUE
 )
@@ -33,6 +35,7 @@ align_by_template(
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
+  ridge_penalty = 0,
   verbose = TRUE
 )
 
@@ -41,6 +44,7 @@ align_by_grouping(
   method = c("rotation", "stretching", "rotation+stretching"),
   grouping,
   design = fit$alignment_design_matrix,
+  ridge_penalty = 0,
   verbose = TRUE
 )
 }

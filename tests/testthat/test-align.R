@@ -89,5 +89,11 @@ test_that("alignment with custom alignment_design works", {
   })
 })
 
-
+test_that("handle_ridge_penalty_parameter works", {
+  expect_equal(handle_ridge_penalty_parameter(c(rotation = 2)), list(rotation = 2, stretching = 0))
+  expect_equal(handle_ridge_penalty_parameter(3), list(rotation = 3, stretching = 3))
+  expect_equal(handle_ridge_penalty_parameter(c(stretching = 1)), list(stretching = 1, rotation = 0))
+  expect_equal(handle_ridge_penalty_parameter(c(stretching = 5, rotation = 2)), list(stretching = 5, rotation = 2))
+  expect_equal(handle_ridge_penalty_parameter(list(rotation = diag(nrow = 5))), list(rotation = diag(nrow = 5), stretching = 0))
+})
 

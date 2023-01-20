@@ -9,7 +9,7 @@ rotation_geodesic_regression(
   design,
   base_point,
   weights = 1,
-  ridge_penalty = ridge_penalty,
+  ridge_penalty = 0,
   tangent_regression = FALSE
 )
 }
