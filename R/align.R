@@ -35,7 +35,7 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
   harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
-    matches <- apply(harm_obj$R, 1, \(row) which(row > 0.1))
+    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > 0.1))
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups),

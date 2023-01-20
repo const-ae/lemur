@@ -1,3 +1,4 @@
+set.seed(1)
 dat <- make_synthetic_data(n_centers = 4, n_genes = 50)
 dat$patient <- sample(paste0("p", 1:3), 500, replace = TRUE)
 fit <- differential_embedding(dat, ~ condition + patient, n_embedding = 5, n_ambient = Inf, verbose = FALSE)
@@ -15,7 +16,7 @@ test_that("alignment with Harmony work", {
 
   expect_true(all(fit_rot$alignment_rotation[,,1][lower.tri(fit_rot$alignment_rotation[,,1])] != 0))
   expect_equal(sum(fit_rot$alignment_rotation), 0) # Tangent space is skew symmetric
-  # expect_true(all(fit_stretch$alignment_stretching != 0)) # Some convergence issue
+  expect_true(all(fit_stretch$alignment_stretching != 0))
   expect_true(all(fit_rot_stretch$alignment_rotation[,,1][lower.tri(fit_rot_stretch$alignment_rotation[,,1])] != 0))
   expect_true(all(fit_rot_stretch$alignment_stretching != 0))
 
