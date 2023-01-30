@@ -234,3 +234,10 @@ test_that("Symmetric positive definite matrices work", {
   expect_equal(spd_log(p3, spd_map(v34, p3)), v34)
 })
 
+
+test_that("Stretching works for scalars", {
+  x <- matrix(3)
+  y <- matrix(1.5)
+  expect_equal(procrustes_spd(x, y), matrix(2))
+})
+
