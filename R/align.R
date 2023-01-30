@@ -107,9 +107,20 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
 }
 
 
-
+#' Find the rotation and stretching coefficients to make latent position of matching groups similar
+#'
+#' @param matching_groups a list with two (plus one optional) elements.
+#'   \describe{
+#'     \item{matches}{a list of vectors with the indices of the cells that are part of the match}
+#'     \item{index_groups}{a list of vectors whose lengths correspond to `match`. The entries correspond to
+#'     the separate conditions in the design matrix. *This is weird because it is redundant with the `design` argument.*}
+#'     \item{weights}{an optional list of vectors whose lengths correspond to `match`. The entries correspond to
+#'     the weight of that cell in the match.}
+#'   }
+#'
+#' @keywords internal
 correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, method = c("rotation", "stretching", "rotation+stretching"),
-                                         ridge_penalty = 0, max_iter = 10, tolerance = 1e-8,  verbose = TRUE){
+                                         ridge_penalty = 0, max_iter = 100, tolerance = 1e-8,  verbose = TRUE){
   method <- match.arg(method)
 
   n_embedding <- nrow(diffemb_embedding)
