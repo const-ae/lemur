@@ -122,7 +122,6 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   }else{
     design_formula <- des$design_formula
   }
-
   D <- do.call(rbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(rbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
       design_matrix[matching_groups$matches[[idx]][which(matching_groups$index_groups[[idx]] == igr)[1]],,drop=FALSE]
@@ -130,30 +129,48 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   }))
   Y <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      rowMeans(diffemb_embedding[, matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr],drop=FALSE])
+      if(is.null(matching_groups$weights)){
+        matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
+      }else{
+        matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
+      }
     }))
   }))
   M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
-    duplicate_cols(rowMeans(diffemb_embedding[, matching_groups$matches[[idx]],drop=FALSE]), length(unique(matching_groups$index_groups[[idx]])))
+    vec <- if(is.null(matching_groups$weights)){
+      matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]])
+    }else{
+      matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]])
+    }
+    duplicate_cols(vec, length(unique(matching_groups$index_groups[[idx]])))
   }))
+  weights <- if(is.null(matching_groups$weights)){
+    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      sum(matching_groups$index_groups[[idx]] == igr)
+    }, FUN.VALUE = 0.0)))
+  }else{
+    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      sum(matching_groups$weights[[idx]][matching_groups$index_groups[[idx]] == igr])
+    }, FUN.VALUE = 0.0)))
+  }
 
   if(method == "rotation"){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
     stretch_coef <- array(0, dim(rotation_coef))
   }else if(method == "stretching"){
-    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching)
+    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
     rotation_coef <- array(0, dim(stretch_coef))
   }else if(method == "rotation+stretching"){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
+    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
     # rotation_coef <- array(0, dim(stretch_coef))
     error <- error_last_round <- mean((Y - M)^2)
     for(idx in seq_len(max_iter)){
       # Apply **inverse** of rotation to means before fitting stretching
       Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
-      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching)
+      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
       # Stretch the observations before fitting the rotation
       Yprime <- apply_stretching(Y, stretch_coef, D, base_point)
-      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation)
+      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
       # Calculate error
       error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
       if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
