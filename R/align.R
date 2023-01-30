@@ -136,34 +136,29 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   }
   D <- do.call(rbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(rbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      design_matrix[matching_groups$matches[[idx]][which(matching_groups$index_groups[[idx]] == igr)[1]],,drop=FALSE]
+      design_matrix[matching_groups$matches[[idx]][which(matching_groups$index_groups[[idx]] == igr)],,drop=FALSE]
     }))
   }))
   Y <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      if(is.null(matching_groups$weights)){
-        matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
-      }else{
-        matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
-      }
+      diffemb_embedding[, matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr],drop=FALSE]
     }))
   }))
+browser()
   M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
     vec <- if(is.null(matching_groups$weights)){
       matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]])
     }else{
       matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]])
     }
-    duplicate_cols(vec, length(unique(matching_groups$index_groups[[idx]])))
+    duplicate_cols(vec, length(matching_groups$index_groups[[idx]]))
   }))
   weights <- if(is.null(matching_groups$weights)){
-    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      sum(matching_groups$index_groups[[idx]] == igr)
-    }, FUN.VALUE = 0.0)))
+    rep(1, ncol(Y))
   }else{
-    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      sum(matching_groups$weights[[idx]][matching_groups$index_groups[[idx]] == igr])
-    }, FUN.VALUE = 0.0)))
+    unlist(lapply(seq_along(matching_groups$matches), \(idx) lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      matching_groups$weights[[idx]][matching_groups$index_groups[[idx]] == igr]
+    })))
   }
 
   if(method == "rotation"){
