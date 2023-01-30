@@ -14,6 +14,7 @@
 ridge_regression <- function(Y, X, ridge_penalty = 0, weights = rep(1, nrow(X))){
   stopifnot(length(weights) == nrow(X))
   if(! is.matrix(ridge_penalty)){
+    stopifnot(length(ridge_penalty) == 1 || length(ridge_penalty) == ncol(X))
     ridge_penalty <- diag(ridge_penalty, nrow = ncol(X))
   }
   ridge_penalty_sq <- sqrt(sum(weights)) * (t(ridge_penalty) %*% ridge_penalty)
