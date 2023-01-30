@@ -23,7 +23,7 @@ align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+
 #' @export
 align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
                           design = fit$alignment_design_matrix,
-                          ridge_penalty = 0, max_iter = 10, verbose = TRUE){
+                          ridge_penalty = 0, min_cluster_membership = 0.1, max_iter = 10, verbose = TRUE){
   method <- match.arg(method)
   if(verbose) message("Select cells that are considered close with 'harmony'")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
@@ -35,7 +35,8 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
   harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
-    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > 0.1))
+    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > min_cluster_membership))
+    weights <- lapply(seq_len(harm_obj$K), \(row_idx) harm_obj$R[row_idx,matches[[row_idx]]])
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups),

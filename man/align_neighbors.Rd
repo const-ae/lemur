@@ -24,6 +24,7 @@ align_harmony(
   ...,
   design = fit$alignment_design_matrix,
   ridge_penalty = 0,
+  min_cluster_membership = 0.1,
   max_iter = 10,
   verbose = TRUE
 )
