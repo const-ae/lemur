@@ -32,14 +32,14 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     stop("'harmony' is not installed. Please install it from CRAN.")
   }
   # Ignore best practice and call private methods from harmony
-  harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, verbose = verbose)
+  harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, ..., verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
     matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > min_cluster_membership))
     weights <- lapply(seq_len(harm_obj$K), \(row_idx) harm_obj$R[row_idx,matches[[row_idx]]])
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-    correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups),
+    correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups, weights = weights),
                                                harm_obj$Z_orig, design, method = method, ridge_penalty = ridge_penalty)
     harm_obj$Z_corr <- correction$diffemb_embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
