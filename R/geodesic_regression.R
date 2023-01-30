@@ -147,7 +147,7 @@ rotation_geodesic_regression <- function(rotations, design, base_point, weights 
 #'
 #' Here data = t(grassmann_map(V * X)) Y
 #'
-rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, tangent_regression = FALSE){
+rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, tangent_regression = FALSE){
   nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA) | apply(obs_embedding, 2, anyNA)
   data <- data[,!nas,drop=FALSE]
   design <- design[!nas,,drop=FALSE]
@@ -169,7 +169,12 @@ rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty =
     sel <- mm_groups == gr
     procrustes_rotation(data[,sel,drop=FALSE], obs_embedding[,sel,drop=FALSE])
   })
-  group_sizes <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+  group_sizes <- if(is.null(weights)){
+    vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+  }else{
+    stopifnot(length(weights) == n_obs)
+    vapply(groups, \(gr) sum(weights[mm_groups == gr]), FUN.VALUE = numeric(1L))
+  }
   coef <- rotation_geodesic_regression(group_rot, design = reduced_design, base_point = base_point, weights = group_sizes, ridge_penalty = ridge_penalty, tangent_regression = TRUE)
   # line search
   original_error <- sum(vapply(groups, \(gr){
@@ -304,7 +309,7 @@ spd_geodesic_regression <- function(spd_matrices, design, base_point, weights = 
 #'
 #' Here data = t(grassmann_map(V * X)) Y
 #'
-spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, tangent_regression = FALSE){
+spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, tangent_regression = FALSE){
   nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA) | apply(obs_embedding, 2, anyNA)
   data <- data[,!nas,drop=FALSE]
   design <- design[!nas,,drop=FALSE]
@@ -332,7 +337,13 @@ spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, t
     y <- data[,sel,drop=FALSE]
     procrustes_spd(y, x)
   })
-  group_sizes <- vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+  group_sizes <- if(is.null(weights)){
+    vapply(groups, \(gr) sum(mm_groups == gr), FUN.VALUE = integer(1L))
+  }else{
+    stopifnot(length(weights) == n_obs)
+    vapply(groups, \(gr) sum(weights[mm_groups == gr]), FUN.VALUE = numeric(1L))
+  }
+
 
   coef <- spd_geodesic_regression(group_spd, design = reduced_design, base_point = base_point, weights = group_sizes, ridge_penalty = ridge_penalty, tangent_regression = TRUE)
   # line search
