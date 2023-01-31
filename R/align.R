@@ -1,30 +1,27 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param fit a `DiffEmbSeqFit` object
-#' @param method how flexible should the alignment be
 #' @param design_matrix the design matrix for the alignment
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters that are passed on to relevant functions
 #'
 #'
 #' @export
-align_neighbors <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
+align_neighbors <- function(fit, rotating = TRUE, stretching = TRUE,
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
                             design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
-  method <- match.arg(method)
   if(verbose) message("Find mutual nearest neighbors")
   mnn_groups <- get_mutual_neighbors(data_matrix, design, cells_per_cluster = cells_per_cluster, mnn = mnn)
-  if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, method = method, ridge_penalty = ridge_penalty)
+  # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
+  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
 #' @rdname align_neighbors
 #' @export
-align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+stretching"), ...,
+align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
                           design = fit$alignment_design_matrix,
                           ridge_penalty = 0, min_cluster_membership = 0.1, max_iter = 10, verbose = TRUE){
-  method <- match.arg(method)
   if(verbose) message("Select cells that are considered close with 'harmony'")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
@@ -38,9 +35,9 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
     matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > min_cluster_membership))
     weights <- lapply(seq_len(harm_obj$K), \(row_idx) harm_obj$R[row_idx,matches[[row_idx]]])
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
-    if(verbose) message("Adjust latent positions using a '", method, "' transformation")
+    # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups, weights = weights),
-                                               harm_obj$Z_orig, design, method = method, ridge_penalty = ridge_penalty)
+                                               harm_obj$Z_orig, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
     harm_obj$Z_corr <- correction$diffemb_embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
@@ -55,24 +52,21 @@ align_harmony <- function(fit, method = c("rotation", "stretching", "rotation+st
 
 #' @rdname align_neighbors
 #' @export
-align_by_template <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
+align_by_template <- function(fit, rotating = TRUE, stretching = TRUE,
                               alignment_template, cells_per_cluster = 20, mnn = 10,
                               design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
-  method <- match.arg(method)
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
-  align_neighbors(fit, method = method, data_mat = alignment_template,
+  align_neighbors(fit, rotating = rotating, stretching = stretching, data_mat = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
                   design = design, ridge_penalty = ridge_penalty, verbose = verbose)
 }
 
 #' @rdname align_neighbors
 #' @export
-align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotation+stretching"),
-                              grouping,
-                              design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
-  method <- match.arg(method)
+align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
+                              grouping, design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
     # Check that it conforms to the expectation of the mnn_grouping
@@ -102,7 +96,7 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
     grouping$index_groups <- lapply(matches, \(idx) mm_groups[idx])
   }
 
-  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, method = method, ridge_penalty = ridge_penalty)
+  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
@@ -119,9 +113,8 @@ align_by_grouping <- function(fit, method = c("rotation", "stretching", "rotatio
 #'   }
 #'
 #' @keywords internal
-correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, method = c("rotation", "stretching", "rotation+stretching"),
+correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, rotating = TRUE, stretching = TRUE,
                                          ridge_penalty = 0, max_iter = 100, tolerance = 1e-8,  verbose = TRUE){
-  method <- match.arg(method)
 
   n_embedding <- nrow(diffemb_embedding)
   base_point <- diag(nrow = n_embedding)
@@ -166,13 +159,17 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     }, FUN.VALUE = 0.0)))
   }
 
-  if(method == "rotation"){
+  # lin_coef <- t(lm.fit(D, t(Y - M))$coefficients)
+  # Y <- Y - lin_coef %*% t(D)
+
+
+  if(rotating && ! stretching){
     rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
     stretch_coef <- array(0, dim(rotation_coef))
-  }else if(method == "stretching"){
+  }else if(stretching && ! rotating){
     stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
     rotation_coef <- array(0, dim(stretch_coef))
-  }else if(method == "rotation+stretching"){
+  }else if(stretching && rotating){
     rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
     # rotation_coef <- array(0, dim(stretch_coef))
     error <- error_last_round <- mean((Y - M)^2)
@@ -193,12 +190,12 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     }
   }
 
-  diffemb_embedding <- apply_rotation(
-    apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point),
-    rotation_coef, design_matrix, base_point)
+  # diffemb_embedding <- diffemb_embedding - lin_coef %*% t(design_matrix)
+  diffemb_embedding <- apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point)
+  diffemb_embedding <- apply_rotation(diffemb_embedding, rotation_coef, design_matrix, base_point)
 
 
-  list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
+  list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef, #linear_coefficients= lin_coef,
        diffemb_embedding = diffemb_embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
 
