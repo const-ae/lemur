@@ -141,14 +141,20 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
       }
     }))
   }))
+
+  # M is the mean of the aggregated groups Y
   M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
-    vec <- if(is.null(matching_groups$weights)){
-      matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]])
-    }else{
-      matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]])
-    }
+    Y_tmp <- do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
+      if(is.null(matching_groups$weights)){
+        matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
+      }else{
+        matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
+      }
+    }))
+    vec <- rowMeans(Y_tmp)
     duplicate_cols(vec, length(unique(matching_groups$index_groups[[idx]])))
   }))
+
   weights <- if(is.null(matching_groups$weights)){
     unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
       sum(matching_groups$index_groups[[idx]] == igr)
