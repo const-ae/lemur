@@ -159,9 +159,6 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     }, FUN.VALUE = 0.0)))
   }
 
-  # lin_coef <- t(lm.fit(D, t(Y - M))$coefficients)
-  # Y <- Y - lin_coef %*% t(D)
-
 
   if(rotating && ! stretching){
     rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
@@ -171,7 +168,6 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     rotation_coef <- array(0, dim(stretch_coef))
   }else if(stretching && rotating){
     rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-    # rotation_coef <- array(0, dim(stretch_coef))
     error <- error_last_round <- mean((Y - M)^2)
     for(idx in seq_len(max_iter)){
       # Apply **inverse** of rotation to means before fitting stretching
@@ -188,14 +184,16 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
       }
       error_last_round <- error
     }
+  }else{
+    stretch_coef <- array(0, c(nrow(Y), nrow(Y), ncol(D)))
+    rotation_coef <- array(0, dim(stretch_coef))
   }
 
-  # diffemb_embedding <- diffemb_embedding - lin_coef %*% t(design_matrix)
   diffemb_embedding <- apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point)
   diffemb_embedding <- apply_rotation(diffemb_embedding, rotation_coef, design_matrix, base_point)
 
 
-  list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef, #linear_coefficients= lin_coef,
+  list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
        diffemb_embedding = diffemb_embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
 
