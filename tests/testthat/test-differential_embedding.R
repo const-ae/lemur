@@ -158,7 +158,8 @@ test_that("n_embedding = 0 works", {
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
 
   fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
-  fit <- align_by_grouping(fit, grouping = sample(LETTERS[1:2], 500, replace = TRUE), verbose = FALSE, method = "rotation+stretching")
+  fit <- align_by_grouping(fit, grouping = sample(LETTERS[1:2], 500, replace = TRUE),
+                           verbose = FALSE, rotating = TRUE, stretching = TRUE)
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   res1 <- test_differential_expression(fit, contrast = c(1,0,0))
@@ -229,9 +230,9 @@ test_that("align_neighbors works", {
   expect_equal(fit$alignment_method, FALSE)
   expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
-  al_rot <- align_neighbors(fit, method = "rotation", cells_per_cluster = 1, verbose = FALSE)
-  al_stretch <- align_neighbors(fit, method = "stretching", cells_per_cluster = 1, verbose = FALSE)
-  al_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", cells_per_cluster = 1, verbose = FALSE)
+  al_rot <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, cells_per_cluster = 1, verbose = FALSE)
+  al_stretch <- align_neighbors(fit, rotating = FALSE, stretching = TRUE, cells_per_cluster = 1, verbose = FALSE)
+  al_rot_stretch <- align_neighbors(fit, rotating = TRUE, stretching = TRUE, cells_per_cluster = 1, verbose = FALSE)
 
   expect_equal(predict(fit), predict(al_rot))
   expect_equal(predict(fit), predict(al_stretch), tolerance = 1e-4)
@@ -242,8 +243,8 @@ test_that("align_harmony works", {
   dat <- make_synthetic_data(n_genes = 15)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = Inf, n_embedding = 3, verbose = FALSE)
-  al_harm <- align_harmony(fit, method = "rotation+stretching", verbose = FALSE)
-  al_nei <- align_neighbors(fit, method = "rotation", verbose = FALSE)
+  al_harm <- align_harmony(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
+  al_nei <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
 })
 
 test_that("aligning works with alternative design matrices", {

@@ -5,9 +5,9 @@ fit <- differential_embedding(dat, ~ condition + patient, n_embedding = 5, n_amb
 
 
 test_that("alignment with Harmony work", {
-  fit_rot <- align_harmony(fit, method = "rotation", verbose = FALSE)
-  fit_stretch <- align_harmony(fit, method = "stretching", verbose = FALSE)
-  fit_rot_stretch <- align_harmony(fit, method = "rotation+stretching", verbose = FALSE, max_iter = 1)
+  fit_rot <- align_harmony(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
+  fit_stretch <- align_harmony(fit, rotating = FALSE, stretching = TRUE, verbose = FALSE)
+  fit_rot_stretch <- align_harmony(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE, max_iter = 1)
 
   n_coef <- ncol(fit$design_matrix)
   n_lat <- fit$n_embedding
@@ -43,7 +43,7 @@ test_that("alignment with Harmony work", {
 
 
 test_that("alignment with mututal nearest neighbors work", {
-  fit_rot_stretch <- align_neighbors(fit, method = "rotation+stretching", verbose = FALSE)
+  fit_rot_stretch <- align_neighbors(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
 
   n_coef <- ncol(fit$design_matrix)
   n_lat <- fit$n_embedding
@@ -56,12 +56,12 @@ test_that("alignment with mututal nearest neighbors work", {
 
 
 test_that("alignment with custom alignment_design works", {
-  fit_rot <- align_harmony(fit, method = "rotation", verbose = FALSE)
+  fit_rot <- align_harmony(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
   set.seed(1)
-  fit_rot2 <- align_harmony(fit, method = "rotation", design = ~ patient * condition, verbose = FALSE)
+  fit_rot2 <- align_harmony(fit, rotating = TRUE, stretching = FALSE, design = ~ patient * condition, verbose = FALSE)
   set.seed(1)
   align_mm <- model.matrix(~ patient * condition, data = colData(dat))
-  fit_rot3 <- align_harmony(fit, method = "rotation", design = align_mm, verbose = FALSE)
+  fit_rot3 <- align_harmony(fit, rotating = TRUE, stretching = FALSE, design = align_mm, verbose = FALSE)
 
   expect_true(all(fit_rot$alignment_rotation[,,1][lower.tri(fit_rot$alignment_rotation[,,1])] != 0))
   expect_equal(sum(fit_rot$alignment_rotation), 0) # Tangent space is skew symmetric
