@@ -11,7 +11,8 @@ align_neighbors <- function(fit, rotating = TRUE, stretching = TRUE,
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
                             design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
   if(verbose) message("Find mutual nearest neighbors")
-  mnn_groups <- get_mutual_neighbors(data_matrix, design, cells_per_cluster = cells_per_cluster, mnn = mnn)
+  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
+  mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
   # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
   correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
