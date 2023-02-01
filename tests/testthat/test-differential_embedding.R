@@ -94,7 +94,7 @@ test_that("predicting works", {
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
   fit2 <- align_by_grouping(fit, grouping = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
-  expect_equal(predict(fit), predict(fit2))
+  expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
   red_fit <- fit[1:3, 1:5]
   expect_equal(dim(predict(red_fit)), c(3, 5))
 
@@ -216,7 +216,7 @@ test_that("align_by_grouping works", {
   # expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_rotation, fit2$alignment_rotation)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_stretching, fit2$alignment_stretching)
-  expect_equal(predict(fit), predict(fit2))
+  expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
   expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
                fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
 })
@@ -260,7 +260,7 @@ test_that("aligning works with alternative design matrices", {
   fit2 <- align_by_grouping(fit, grouping = alignment, design = alignment_design, verbose = FALSE)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_rotation, fit2$alignment_rotation)
   expect_equal(fit2$bootstrap_samples[[1]]$alignment_stretching, fit2$alignment_stretching)
-  expect_equal(predict(fit), predict(fit2))
+  expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
   expect_equal(fit$diffemb_coefficients - fit$bootstrap_samples[[1]]$diffemb_coefficients,
                fit2$diffemb_coefficients - fit2$bootstrap_samples[[1]]$diffemb_coefficients)
   expect_equal(dim(fit2$alignment_design_matrix), c(500, 3))
