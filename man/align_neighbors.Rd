@@ -9,7 +9,8 @@
 \usage{
 align_neighbors(
   fit,
-  method = c("rotation", "stretching", "rotation+stretching"),
+  rotating = TRUE,
+  stretching = TRUE,
   data_matrix = assay(fit),
   cells_per_cluster = 20,
   mnn = 10,
@@ -20,7 +21,8 @@ align_neighbors(
 
 align_harmony(
   fit,
-  method = c("rotation", "stretching", "rotation+stretching"),
+  rotating = TRUE,
+  stretching = TRUE,
   ...,
   design = fit$alignment_design_matrix,
   ridge_penalty = 0,
@@ -31,7 +33,8 @@ align_harmony(
 
 align_by_template(
   fit,
-  method = c("rotation", "stretching", "rotation+stretching"),
+  rotating = TRUE,
+  stretching = TRUE,
   alignment_template,
   cells_per_cluster = 20,
   mnn = 10,
@@ -42,7 +45,8 @@ align_by_template(
 
 align_by_grouping(
   fit,
-  method = c("rotation", "stretching", "rotation+stretching"),
+  rotating = TRUE,
+  stretching = TRUE,
   grouping,
   design = fit$alignment_design_matrix,
   ridge_penalty = 0,
@@ -51,8 +55,6 @@ align_by_grouping(
 }
 \arguments{
 \item{fit}{a \code{DiffEmbSeqFit} object}
-
-\item{method}{how flexible should the alignment be}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 

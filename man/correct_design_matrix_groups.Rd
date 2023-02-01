@@ -9,10 +9,9 @@ correct_design_matrix_groups(
   matching_groups,
   diffemb_embedding,
   design,
-  method = c("rotation", "stretching", "rotation+stretching"),
+  rotating = TRUE,
+  stretching = TRUE,
   ridge_penalty = 0,
-  max_iter = 100,
-  tolerance = 1e-08,
   verbose = TRUE
 )
 }
