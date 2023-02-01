@@ -54,6 +54,11 @@ test_that("alignment with mututal nearest neighbors work", {
   expect_true(all(fit_rot_stretch$alignment_stretching != 0))
 })
 
+test_that("alignment works with empty groups", {
+  grouping <- list(matches = list(c(1:10), integer(0L), c(25:30)))
+  expect_silent(fit2 <- align_by_grouping(fit, grouping = grouping, stretching = FALSE, verbose = FALSE))
+})
+
 
 test_that("alignment with custom alignment_design works", {
   fit_rot <- align_harmony(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)

@@ -93,7 +93,7 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
   if(!"index_groups" %in% names(grouping)){
     design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
     mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
-    grouping$index_groups <- lapply(matches, \(idx) mm_groups[idx])
+    grouping$index_groups <- lapply(grouping$matches, \(idx) mm_groups[idx])
   }
 
   correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
@@ -151,7 +151,11 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
         matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
       }
     }))
-    vec <- rowMeans(Y_tmp)
+    vec <- if(is.null(Y_tmp)){
+      matrix(nrow = nrow(diffemb_embedding), ncol = 0)
+    }else{
+      rowMeans(Y_tmp)
+    }
     duplicate_cols(vec, length(unique(matching_groups$index_groups[[idx]])))
   }))
 
