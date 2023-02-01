@@ -114,7 +114,7 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
 #'
 #' @keywords internal
 correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, rotating = TRUE, stretching = TRUE,
-                                         ridge_penalty = 0, max_iter = 100, tolerance = 1e-8,  verbose = TRUE){
+                                         ridge_penalty = 0, verbose = TRUE){
 
   n_embedding <- nrow(diffemb_embedding)
   base_point <- diag(nrow = n_embedding)
@@ -173,23 +173,9 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
     rotation_coef <- array(0, dim(stretch_coef))
   }else if(stretching && rotating){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-    error <- error_last_round <- mean((Y - M)^2)
-    for(idx in seq_len(max_iter)){
-      # Apply **inverse** of rotation to means before fitting stretching
-      Mprime <- apply_rotation(M, -rotation_coef, D, base_point)
-      stretch_coef <- spd_lm(Mprime, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
-      # Stretch the observations before fitting the rotation
-      Yprime <- apply_stretching(Y, stretch_coef, D, base_point)
-      rotation_coef <- rotation_lm(M, design = D, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-      # Calculate error
-      error <- mean((apply_rotation(apply_stretching(Y, stretch_coef, D, base_point), rotation_coef, D, base_point) - M)^2)
-      if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
-        # Error can be NaN if nrow(diffemb_embedding) == 0
-        break
-      }
-      error_last_round <- error
-    }
+    plm <- polar_lm(M, D, Y, base_point = base_point, ridge_penalty = ridge_penalty, weights = weights)
+    stretch_coef <- plm$stretch_coef
+    rotation_coef <- plm$rotation_coef
   }else{
     stretch_coef <- array(0, c(nrow(Y), nrow(Y), ncol(D)))
     rotation_coef <- array(0, dim(stretch_coef))
@@ -202,6 +188,82 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
        diffemb_embedding = diffemb_embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
+
+
+polar_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, max_iter = 10, tolerance = 1e-8){
+  ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
+
+  if(length(unique(get_groups(design, n_groups = ncol(design) * 10))) == ncol(design)){
+    # Clever initialization
+    tryCatch({
+      pla <- polar_lm_analytic(data, design, obs_embedding, base_point)
+      rotation_coef <- pla$rotation_coef
+      stretch_coef <- pla$stretch_coef
+    }, error = function(e){
+      # Error might occur if some group has too few observations
+      rotation_coef <<- rotation_lm(data, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
+      stretch_coef <<- array(0, dim(rotation_coef))
+    })
+  }else{
+    # Naive initialization
+    rotation_coef <- rotation_lm(data, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
+    stretch_coef <- array(0, dim(rotation_coef))
+  }
+
+  error <- error_last_round <- mean((apply_rotation(apply_stretching(obs_embedding, stretch_coef, design, base_point), rotation_coef, design, base_point) - data)^2)
+  for(idx in seq_len(max_iter)){
+    # Apply **inverse** of rotation to means before fitting stretching
+    Mprime <- apply_rotation(data, -rotation_coef, design, base_point)
+    stretch_coef <- spd_lm(Mprime, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
+    # Stretch the observations before fitting the rotation
+    Yprime <- apply_stretching(obs_embedding, stretch_coef, design, base_point)
+    rotation_coef <- rotation_lm(data, design = design, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
+    # Calculate error
+    error <- mean((apply_rotation(apply_stretching(obs_embedding, stretch_coef, design, base_point), rotation_coef, design, base_point) - data)^2)
+    if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
+      # Error can be NaN if nrow(diffemb_embedding) == 0
+      break
+    }
+    error_last_round <- error
+  }
+  list(rotation_coef = rotation_coef, stretch_coef = stretch_coef)
+}
+
+polar_lm_analytic <-  function(data, design, obs_embedding, base_point){
+  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  groups <- unique(mm_groups)
+
+  if(length(groups) == ncol(design)){
+    coefs <- lapply(groups, \(gr){
+      # Simple linear regression
+      beta <- t(coef(lm.fit(t(obs_embedding[,mm_groups == gr,drop=FALSE]), t(data[,mm_groups == gr,drop=FALSE]))))
+      if(any(is.na(beta))){
+        stop("Group ", gr, " contains too few observations")
+      }else{
+        # Polar decomposition where I force U to be a rotation
+        svd <- svd(beta)
+        diag_elem <- c(rep(1, times = ncol(beta) - 1), Matrix::det(svd$u %*% t(svd$v)))
+        U <- svd$u %*% diag(diag_elem, nrow = length(diag_elem))  %*% t(svd$v)
+        P <- project_psd(coef(lm.fit(U, beta)))
+
+        list(rotation_coef = rotation_log(base_point, U), stretch_coef = spd_log(base_point, P))
+      }
+    })
+    rot_coefs_matrix <- do.call(cbind, lapply(coefs, \(e) c(e$rotation_coef)))
+    stretch_coefs_matrix <- do.call(cbind, lapply(coefs, \(e) c(e$stretch_coef)))
+    artificial_design <- as.matrix(Matrix::sparseMatrix(i = seq_along(mm_groups), j = mm_groups, x = rep(1, length(mm_groups))))
+    change_mat <- t(coef(lm.fit(design, artificial_design)))
+    rot_coefs_matrix <- rot_coefs_matrix %*% change_mat
+    stretch_coefs_matrix <- stretch_coefs_matrix %*% change_mat
+
+    dims <- c(nrow(data), nrow(data), ncol(design))
+    dimnames <- list(NULL, NULL, colnames(design))
+    list(rotation_coef = array(rot_coefs_matrix, dims, dimnames), stretch_coef = array(stretch_coefs_matrix, dims, dimnames))
+  }else{
+    stop("More groups than design columns")
+  }
+}
+
 
 apply_rotation <- function(A, rotation_coef, design, base_point){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)

@@ -241,3 +241,55 @@ test_that("Stretching works for scalars", {
   expect_equal(procrustes_spd(x, y), matrix(2))
 })
 
+
+test_that("Solving a linear equation by iterating rotation and stretching works", {
+  # Right polar decomposition
+  polar_decomp <- function(A){
+    svd <- svd(A)
+    list(U = svd$u %*% t(svd$v), P = svd$v %*% diag(svd$d) %*% t(svd$v))
+  }
+
+  # Half the time beta flips the data which makes logm(pd$U) all NA
+  set.seed(1)
+  A <- randn(3, 20)
+  B <- randn(3, 20)
+
+
+  I <- diag(nrow = 3)
+  D <- matrix(1, nrow = ncol(A))
+
+  plm <- polar_lm(B, A, design = D, base_point = I, max_iter = 100)
+  error1 <- sum((B - rotation_map(plm$rotation_coef[,,1], I) %*% spd_map(plm$stretch_coef[,,1], I) %*% A)^2)
+
+  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I)
+  error2 <- sum((B - rotation_map(plm2$rotation_coef[,,1], I) %*% spd_map(plm2$stretch_coef[,,1], I) %*% A)^2)
+
+  expect_equal(error1, error2)
+  expect_equal(plm2$rotation_coef[,,1], plm$rotation_coef[,,1], ignore_attr = "names", tolerance = 1e-3)
+  expect_equal(plm2$stretch_coef[,,1], plm$stretch_coef[,,1], ignore_attr = "names", tolerance = 1e-3)
+
+  # Compare with manual polar decomposition
+  beta <- t(coef(lm.fit(t(A), t(B))))
+  pd <- polar_decomp(beta)
+  error_opt <- sum((B - beta %*% A)^2)
+  expect_equal(error1, error_opt, tolerance = 1e-3)
+  expect_equal(error2, error_opt, tolerance = 1e-3)
+  expect_equal(spd_log(I, pd$P), plm$stretch_coef[,,1], tolerance = 1e-3)
+  expect_equal(rotation_log(I, pd$U), plm$rotation_coef[,,1], tolerance = 1e-3)
+})
+
+
+test_that("Solving a linear equation by iterating rotation and stretching works", {
+  A <- randn(3, 200)
+  B <- randn(3, 200)
+
+  I <- diag(nrow = 3)
+  D <- duplicate_rows(matrix(rnorm(4), nrow = 2, ncol = 2), each = 100)
+  plm <- polar_lm(B, A, design = D, base_point = I, max_iter = 100)
+  error1 <- sum((B - apply_rotation(apply_stretching(A, plm$stretch_coef, D, I), plm$rotation_coef, D, I))^2)
+
+  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I)
+  error2 <- sum((B - apply_rotation(apply_stretching(A, plm2$stretch_coef, D, I), plm2$rotation_coef, D, I))^2)
+
+  expect_equal(error1, error2, tolerance = 1e-2)
+})
