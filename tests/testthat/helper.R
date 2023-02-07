@@ -2,8 +2,8 @@
 
 make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_lat = 2, treatment_effect = 0.1){
   n_lat <- min(n_lat, n_genes)
-  centers <- randn(n_centers, n_lat, sd = 2)
-  true_Z <- matrix(c(centers) + rnorm(n_cells * n_centers * n_lat, sd = 0.1), nrow = n_lat, ncol = n_cells)
+  centers <- duplicate_cols(randn(n_lat, n_centers, sd = 2), ceiling(n_cells / n_centers))[,seq_len(n_cells)]
+  true_Z <- centers + rnorm(n_cells * n_lat, sd = 0.1)
   stopifnot(n_centers <= length(LETTERS))
   cell_type <- rep(LETTERS[seq_len(n_centers)], length.out = n_cells)
   condition <- sample(letters[1:3], n_cells, replace = TRUE)
