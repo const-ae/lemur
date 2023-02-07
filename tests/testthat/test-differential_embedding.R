@@ -328,6 +328,17 @@ test_that("Under-determined fits run successfully", {
 })
 
 
+test_that("fixing linear coefficients works", {
+  mat <- matrix(rnorm(5 * 20), nrow = 5, ncol = 20)
+  mat <- mat - rowMeans(mat)
+
+  design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
+  coef <- t(lm.fit(design, t(mat))$coefficients)
+  res1 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef)
+  res2 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2)
+  expect_equal(res1, res2)
+})
+
 test_that("regularization helps", {
 
   # dat <- make_synthetic_data(n_genes = 30, treatment_effect = 0.04, n_centers = 3)

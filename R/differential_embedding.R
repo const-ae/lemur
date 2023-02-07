@@ -175,9 +175,12 @@ differential_embedding_impl <- function(Y, design_matrix,
         linear_fit <- lm.fit(design_matrix, t(Y_clean))
       }
       linear_coefficients <- t(linear_fit$coefficients)
+      residuals <- linear_fit$residuals
+    }else{
+      residuals <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix, diffemb_coefficients = diffemb_coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
     }
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
-    error <- sum(linear_fit$residuals^2)
+    error <- sum(residuals^2)
     if(verbose) message("-Iteration: ", iter, "\terror: ", sprintf("%.3g", error))
     if(is.na(error) || abs(last_round_error - error) / (error + 0.5) < tol){
       if(verbose) message("Converged")
