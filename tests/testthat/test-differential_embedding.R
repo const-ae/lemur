@@ -334,9 +334,23 @@ test_that("fixing linear coefficients works", {
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   coef <- t(lm.fit(design, t(mat))$coefficients)
-  res1 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef)
-  res2 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2)
+  res1 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
+  res2 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
   expect_equal(res1, res2)
+})
+
+
+test_that("Columns/rows of the results are orthogonal", {
+  mat <- matrix(rnorm(5 * 20), nrow = 5, ncol = 20)
+
+  design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
+  res <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  expect_equal(sum(res$diffemb_embedding[1,] * res$diffemb_embedding[2,]), 0)
+  V1 <- DiffEmbSeq:::grassmann_map(res$diffemb_coefficients[,,1], res$diffemb_basepoint)
+  V2 <- DiffEmbSeq:::grassmann_map(res$diffemb_coefficients[,,2], res$diffemb_basepoint)
+  expect_equal(t(V1) %*% V1, diag(nrow = 2))
+  expect_equal(t(V2) %*% V2, diag(nrow = 2))
+  expect_equal(t(res$diffemb_basepoint) %*% res$diffemb_basepoint, diag(nrow = 2))
 })
 
 test_that("regularization helps", {

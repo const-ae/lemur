@@ -201,7 +201,12 @@ differential_embedding_impl <- function(Y, design_matrix,
     alignment_stretching <- array(0, c(n_embedding, n_embedding, ncol(alignment_design_matrix)))
   }
 
-
+  # Make sure that axes are ordered by variance
+  if(prod(dim(diffemb_embedding)) > 0 && all(!is.na(diffemb_embedding))){
+    svd_emb <- svd(diffemb_embedding)
+    base_point <- base_point %*% svd_emb$u
+    diffemb_embedding <- t(svd_emb$v) * svd_emb$d
+  }
 
   list(n_ambient = n_ambient, n_embedding = n_embedding,
        ambient_coordsystem = amb_pca$coordsystem, ambient_offset = amb_pca$offset,
