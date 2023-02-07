@@ -59,7 +59,7 @@ align_by_template <- function(fit, rotating = TRUE, stretching = TRUE,
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
-  align_neighbors(fit, rotating = rotating, stretching = stretching, data_mat = alignment_template,
+  align_neighbors(fit, rotating = rotating, stretching = stretching, data_matrix = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
                   design = design, ridge_penalty = ridge_penalty, verbose = verbose)
 }
