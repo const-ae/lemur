@@ -58,7 +58,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   approx <- if(with_linear_model){
     linear_coefficients %*% t(newdesign)
   }else{
-    matrix(0, nrow = min(n_ambient, nrow(object)), ncol = nrow(newdesign))
+    matrix(0, nrow = min(n_ambient, nrow(linear_coefficients)), ncol = nrow(newdesign))
   }
 
   if(with_differential_embedding){
