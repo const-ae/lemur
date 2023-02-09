@@ -276,6 +276,7 @@ which_extreme <- function(x, ignore = NULL){
     for(idx in seq_along(x)){
       if(! ignore[idx] && abs(x[idx]) > max){
         extreme_idx <- idx
+        max <- abs(x[idx])
       }
     }
     extreme_idx

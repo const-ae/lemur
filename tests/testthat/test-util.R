@@ -60,3 +60,13 @@ test_that("resample works", {
   samp <- resample(100, group)
 
 })
+
+
+test_that("which_extreme works", {
+  x <- abs(rnorm(10))
+  expect_equal(which_extreme(x), which.max(x))
+  expect_equal(which_extreme(-x), which.min(-x))
+
+  ignore <- rep(c(FALSE, TRUE), each = 5)
+  expect_equal(which_extreme(x, ignore), which.max(x[! ignore]))
+})
