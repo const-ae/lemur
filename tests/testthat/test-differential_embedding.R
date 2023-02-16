@@ -44,7 +44,7 @@ test_that("the fit is valid", {
 
 
 test_that("subsetting works", {
-
+  set.seed(1)
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
   fit <- differential_embedding(dat, design = ~ condition,
                                 n_embedding = 5, n_ambient = 30, verbose = FALSE)
@@ -74,6 +74,13 @@ test_that("subsetting works", {
   fit4 <- fit["gene_13", ]
   expect_equal(nrow(fit4), 1)
   expect_equal(nrow(fit4$bootstrap_samples[[1]]), 1)
+
+  # No ambient PCA
+  fit5 <- differential_embedding(dat[,1:20], design = ~ condition,
+                                 n_embedding = 2, n_ambient = 30, verbose = FALSE)
+  expect_true(validObject(fit5))
+  fit6 <- fit5[1,]
+  expect_true(validObject(fit6))
 })
 
 

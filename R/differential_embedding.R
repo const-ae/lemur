@@ -107,6 +107,7 @@ differential_embedding_impl <- function(Y, design_matrix,
       )
     }else{
       if(verbose) message("Fit ambient PCA")
+      n_ambient <- min(n_ambient, nrow(Y), ncol(Y))
       amb_pca <- pca(Y, n_ambient)
     }
     n_ambient_eff <- min(nrow(Y), n_ambient)
