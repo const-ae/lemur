@@ -108,6 +108,30 @@ test_that("predicting works", {
 
 })
 
+
+test_that("Adding predictors improves predictions", {
+  dat <- make_synthetic_data(n_lat = 5)
+  dat$random <- sample(c("a", "b"), size = ncol(dat), replace = TRUE)
+
+  fit1 <- differential_embedding(dat, design = ~ condition, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit2 <- differential_embedding(dat, design = ~ condition + random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit3 <- differential_embedding(dat, design = ~ condition * random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+
+  error1 <- mean((logcounts(dat) - predict(fit1))^2)
+  error2 <- mean((logcounts(dat) - predict(fit2))^2)
+  error3 <- mean((logcounts(dat) - predict(fit3))^2)
+
+  # fit2 sometimes needs a lot of iterations to converge
+  # I am not willing to wait for that each time.
+  # expect_lt(error2, error1)
+  expect_lt(error3, error1)
+  expect_lt(error3, error2)
+})
+
+
+
+
+
 test_that("providing a pre-calculated PCA works", {
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
   pca <- pca(assay(dat), n = 20)

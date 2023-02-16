@@ -205,7 +205,11 @@ differential_embedding_impl <- function(Y, design_matrix,
   # Make sure that axes are ordered by variance
   if(prod(dim(diffemb_embedding)) > 0 && all(!is.na(diffemb_embedding))){
     svd_emb <- svd(diffemb_embedding)
-    base_point <- base_point %*% svd_emb$u
+    rot <- svd_emb$u
+    base_point <- base_point %*% rot
+    for(idx in seq_len(dim(diffemb_coefficients)[3])) {
+      diffemb_coefficients[,,idx] <- diffemb_coefficients[,,idx] %*% rot
+    }
     diffemb_embedding <- t(svd_emb$v) * svd_emb$d
   }
 
