@@ -1,4 +1,4 @@
 library(testthat)
-library(DiffEmbSeq)
+library(lemur)
 
-test_check("DiffEmbSeq")
+test_check("lemur")

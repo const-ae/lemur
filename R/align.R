@@ -1,6 +1,6 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
-#' @param fit a `DiffEmbSeqFit` object
+#' @param fit a `lemur_fit_obj` object
 #' @param design_matrix the design matrix for the alignment
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters that are passed on to relevant functions
