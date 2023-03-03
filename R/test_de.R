@@ -182,11 +182,11 @@ test_differential_embedding <- function(fit,
       if(cntrst$relation != "equal"){
         stop("differential embedding test can only be two-sided.")
       }
-      lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$lhs)), fit$basepoint),
-                                   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$rhs)), fit$basepoint))
+      lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$coefficients, c(cntrst$lhs)), fit$basepoint),
+                                   grassmann_map(sum_tangent_vectors(fit$coefficients, c(cntrst$rhs)), fit$basepoint))
       cntrst <- cntrst$lhs - cntrst$rhs
     }else{
-      lfc_diffemb <- sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst))
+      lfc_diffemb <- sum_tangent_vectors(fit$coefficients, c(cntrst))
     }
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(full_design)){
@@ -241,7 +241,7 @@ test_differential_embedding <- function(fit,
       vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(bs$linear_coefficients %*% cntrst), ncol = n_ambient_eff)))
     }
     if(with_emb){
-      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$diffemb_coefficients, cntrst)), ncol = n_ambient_eff * fit$n_embedding)))
+      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$coefficients, cntrst)), ncol = n_ambient_eff * fit$n_embedding)))
     }
     # Filter out zero variance obs
     # vals <- vals[matrixStats::rowSds(vals) > 1e-6,,drop=FALSE]

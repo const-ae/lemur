@@ -8,7 +8,7 @@
 \alias{ambient_offset,lemur_fit_obj-method}
 \alias{design,lemur_fit_obj-method}
 \alias{basepoint,lemur_fit_obj-method}
-\alias{diffemb_coefficients,lemur_fit_obj-method}
+\alias{coefficients,lemur_fit_obj-method}
 \alias{diffemb_embedding,lemur_fit_obj-method}
 \alias{alignment_method,lemur_fit_obj-method}
 \alias{alignment_rotation,lemur_fit_obj-method}
@@ -33,7 +33,7 @@
 
 \S4method{basepoint}{lemur_fit_obj}(object)
 
-\S4method{diffemb_coefficients}{lemur_fit_obj}(object)
+\S4method{coefficients}{lemur_fit_obj}(object)
 
 \S4method{diffemb_embedding}{lemur_fit_obj}(object)
 

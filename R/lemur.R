@@ -54,7 +54,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
              design = des$design_formula, design_matrix = res$design_matrix,
              linear_coefficients = res$linear_coefficients,
              basepoint = res$basepoint,
-             diffemb_coefficients = res$diffemb_coefficients,
+             coefficients = res$coefficients,
              diffemb_embedding = res$diffemb_embedding,
              alignment_method = res$alignment_method,
              alignment_rotation = res$alignment_rotation,
@@ -70,7 +70,7 @@ lemur_impl <- function(Y, design_matrix,
                                         base_point = c("global_embedding", "mean"),
                                         amb_pca = NULL,
                                         linear_coefficients = NULL,
-                                        diffemb_coefficients = NULL,
+                                        coefficients = NULL,
                                         diffemb_embedding = NULL,
                                         alignment_rotation = NULL,
                                         alignment_stretching = NULL,
@@ -85,7 +85,7 @@ lemur_impl <- function(Y, design_matrix,
   stopifnot(n_ambient >= 0 && n_embedding >= 0)
   n_embedding <- min(n_embedding, nrow(Y), n_ambient)
   linear_coef_fixed <-  ! is.null(linear_coefficients)
-  diffemb_coef_fixed <- ! is.null(diffemb_coefficients)
+  diffemb_coef_fixed <- ! is.null(coefficients)
   diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
   alignment_rot_fixed <- ! is.null(alignment_rotation)
   alignment_stretch_fixed <- ! is.null(alignment_stretching)
@@ -159,16 +159,16 @@ lemur_impl <- function(Y, design_matrix,
   for(iter in seq_len(n_iter)){
     if(! diffemb_coef_fixed){
       if(verbose) message("---Fit Grassmann linear model")
-      diffemb_coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
+      coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
     }
     if(! diffemb_embedding_fixed){
       diffemb_embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
-                                                   diffemb_coefficients = diffemb_coefficients, base_point = base_point)
+                                                   coefficients = coefficients, base_point = base_point)
     }
     if(! linear_coef_fixed){
       if(verbose) message("---Update linear regression")
       Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix,
-                                                                     diffemb_coefficients = diffemb_coefficients, base_point = base_point)
+                                                                     coefficients = coefficients, base_point = base_point)
       if(any(is.na(Y_clean))){
         linear_fit <- list(coefficients = matrix(NA, nrow = ncol(design_matrix), ncol = nrow(Y_clean)),
                            residuals = NA)
@@ -178,7 +178,7 @@ lemur_impl <- function(Y, design_matrix,
       linear_coefficients <- t(linear_fit$coefficients)
       residuals <- linear_fit$residuals
     }else{
-      residuals <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix, diffemb_coefficients = diffemb_coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
+      residuals <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
     }
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
     error <- sum(residuals^2)
@@ -207,8 +207,8 @@ lemur_impl <- function(Y, design_matrix,
     svd_emb <- svd(diffemb_embedding)
     rot <- svd_emb$u
     base_point <- base_point %*% rot
-    for(idx in seq_len(dim(diffemb_coefficients)[3])) {
-      diffemb_coefficients[,,idx] <- diffemb_coefficients[,,idx] %*% rot
+    for(idx in seq_len(dim(coefficients)[3])) {
+      coefficients[,,idx] <- coefficients[,,idx] %*% rot
     }
     diffemb_embedding <- t(svd_emb$v) * svd_emb$d
   }
@@ -218,7 +218,7 @@ lemur_impl <- function(Y, design_matrix,
        design_matrix = design_matrix, data = Y,
        linear_coefficients = linear_coefficients,
        basepoint = base_point,
-       diffemb_coefficients = diffemb_coefficients,
+       coefficients = coefficients,
        diffemb_embedding = diffemb_embedding,
        alignment_method = alignment,
        alignment_rotation = alignment_rotation,
@@ -250,24 +250,24 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
 }
 
 
-project_diffemb_into_data_space <- function(diffemb_embedding, design, diffemb_coefficients, base_point){
+project_diffemb_into_data_space <- function(diffemb_embedding, design, coefficients, base_point){
   n_amb <- nrow(base_point)
   res <- matrix(NA, nrow = n_amb, ncol = ncol(diffemb_embedding))
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covars), base_point) %*% diffemb_embedding[,mm_groups == gr,drop=FALSE]
+    res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(coefficients, covars), base_point) %*% diffemb_embedding[,mm_groups == gr,drop=FALSE]
   }
   res
 }
 
-project_data_on_diffemb <- function(Y_clean, design, diffemb_coefficients, base_point){
+project_data_on_diffemb <- function(Y_clean, design, coefficients, base_point){
   n_emb <- ncol(base_point)
   res <- matrix(NA, nrow = n_emb, ncol = ncol(Y_clean))
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(diffemb_coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]
+    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]
   }
   res
 }

@@ -6,7 +6,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                        n_ambient, n_embedding,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
-                       basepoint, diffemb_coefficients, diffemb_embedding,
+                       basepoint, coefficients, diffemb_embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
                        alignment_design, alignment_design_matrix, bootstrap_samples = NULL, knn_graph = NULL){
 
@@ -26,7 +26,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                               metadata = list(n_ambient = n_ambient, n_embedding = n_embedding,
                                               ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
                                               design = design,
-                                              basepoint = basepoint, diffemb_coefficients = diffemb_coefficients,
+                                              basepoint = basepoint, coefficients = coefficients,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
                                               alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
                                               bootstrap_samples = bootstrap_samples, knn_graph = knn_graph))
@@ -66,8 +66,8 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(is.null(ambient_offset)) msg <- c(msg, "'ambient_offset' must not be NULL")
   basepoint <- obj$basepoint
   if(is.null(basepoint)) msg <- c(msg, "'basepoint' must not be NULL")
-  diffemb_coefficients <- obj$diffemb_coefficients
-  if(is.null(diffemb_coefficients)) msg <- c(msg, "'diffemb_coefficients' must not be NULL")
+  coefficients <- obj$coefficients
+  if(is.null(coefficients)) msg <- c(msg, "'coefficients' must not be NULL")
   alignment_method <- obj$alignment_method
   alignment_rotation <- obj$alignment_rotation
   if(is.null(alignment_rotation)) msg <- c(msg, "'alignment_rotation' must not be NULL")
@@ -95,10 +95,10 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(! is.null(linear_coefficients) && ncol(linear_coefficients) != ncol(design_matrix)) msg <- c(msg, "`ncol(linear_coefficients)` does not match `ncol(design_matrix)`")
   if(! is.null(basepoint) && nrow(basepoint) != eff_n_ambient) msg <- c(msg, "`nrow(basepoint)` does not match `n_ambient`")
   if(! is.null(basepoint) && ncol(basepoint) != n_embedding) msg <- c(msg, "`ncol(basepoint)` does not match `n_embedding`")
-  if(! is.null(diffemb_coefficients) && ! is.array(diffemb_coefficients) || length(dim(diffemb_coefficients)) != 3) msg <- c(msg, "`diffemb_coefficients` must be a three dimensional array")
-  if(! is.null(diffemb_coefficients) && dim(diffemb_coefficients)[1] != eff_n_ambient) msg <- c(msg, "`dim(diffemb_coefficients)[1]` does not match `n_ambient`")
-  if(! is.null(diffemb_coefficients) && dim(diffemb_coefficients)[2] != n_embedding) msg <- c(msg, "`dim(diffemb_coefficients)[2]` does not match `n_embedding`")
-  if(! is.null(diffemb_coefficients) && dim(diffemb_coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(diffemb_coefficients)[3]` does not match `ncol(design_matrix)`")
+  if(! is.null(coefficients) && ! is.array(coefficients) || length(dim(coefficients)) != 3) msg <- c(msg, "`coefficients` must be a three dimensional array")
+  if(! is.null(coefficients) && dim(coefficients)[1] != eff_n_ambient) msg <- c(msg, "`dim(coefficients)[1]` does not match `n_ambient`")
+  if(! is.null(coefficients) && dim(coefficients)[2] != n_embedding) msg <- c(msg, "`dim(coefficients)[2]` does not match `n_embedding`")
+  if(! is.null(coefficients) && dim(coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(coefficients)[3]` does not match `ncol(design_matrix)`")
   if(! is.null(diffemb_embedding) && nrow(diffemb_embedding) != n_embedding) msg <- c(msg, "`nrow(diffemb_embedding)` does not match `n_embedding`")
   if(! is.null(diffemb_embedding) && ncol(diffemb_embedding) != n_obs) msg <- c(msg, "`ncol(diffemb_embedding)` does not match number of observations")
   if(! is.null(alignment_method) && length(alignment_method) != 1 && length(alignment_method) != n_obs) msg <- c(msg, "`length(alignment_method)` must either be a single value or a vector with the same length as the number of observation")
@@ -171,7 +171,7 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
 .methods_to_suggest <- c("n_ambient", "n_embedding",
                          "ambient_coordsystem", "ambient_offset",
                          "design", "basepoint",
-                         "diffemb_coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
+                         "coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
                          "bootstrap_samples", "knn_graph", "colData", "rowData")
 
@@ -231,20 +231,20 @@ setMethod("design", signature = "lemur_fit_obj", function(object){
  metadata(object)[["design"]]
 })
 
-setGeneric("diffemb_basepoint", function(object, ...) standardGeneric("diffemb_basepoint"))
+setGeneric("basepoint", function(object, ...) standardGeneric("basepoint"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_basepoint", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["diffemb_basepoint"]]
+setMethod("basepoint", signature = "lemur_fit_obj", function(object){
+  metadata(object)[["basepoint"]]
 })
 
-setGeneric("diffemb_coefficients", function(object, ...) standardGeneric("diffemb_coefficients"))
+setGeneric("coefficients", function(object, ...) standardGeneric("coefficients"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_coefficients", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["diffemb_coefficients"]]
+setMethod("coefficients", signature = "lemur_fit_obj", function(object){
+  metadata(object)[["coefficients"]]
 })
 
 setGeneric("diffemb_embedding", function(object, ...) standardGeneric("diffemb_embedding"))

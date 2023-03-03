@@ -59,10 +59,10 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     }
 
     if(refit_differential_embedding){
-      diffemb_coefficients <- NULL
+      coefficients <- NULL
       diffemb_embedding <- NULL
     }else{
-      diffemb_coefficients <- fit$diffemb_coefficients
+      coefficients <- fit$coefficients
       diffemb_embedding <- fit$diffemb_embedding[,resampling,drop=FALSE]
     }
 
@@ -82,7 +82,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 alignment = alignment_method, base_point = base_point,
                                 amb_pca = amb_pca,
                                 linear_coefficients = linear_coefficients,
-                                diffemb_coefficients = diffemb_coefficients,
+                                coefficients = coefficients,
                                 diffemb_embedding = diffemb_embedding,
                                 alignment_rotation = alignment_rotation,
                                 alignment_stretching = alignment_stretching,
@@ -96,7 +96,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
       original_embedding - res$linear_coefficients %*% t(fit$design_matrix)
     }
     refitted_diffemb_embedding <- project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
-                                                          diffemb_coefficients = res$diffemb_coefficients,
+                                                          coefficients = res$coefficients,
                                                           base_point = base_point)
 
     # Create lemur_fit_obj object
@@ -107,7 +107,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                design = fit$design, design_matrix = fit$design_matrix,
                linear_coefficients = res$linear_coefficients,
                basepoint = res$basepoint,
-               diffemb_coefficients = res$diffemb_coefficients,
+               coefficients = res$coefficients,
                diffemb_embedding = refitted_diffemb_embedding,
                alignment_method = alignment_method,
                alignment_rotation = res$alignment_rotation,
