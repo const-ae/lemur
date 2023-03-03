@@ -1,7 +1,7 @@
 
 make_knn_graph <- function(fit, k, knn_matrix = NULL){
   if(is.null(knn_matrix)){
-    knn_matrix <-   BiocNeighbors::findKNN(t(fit$diffemb_embedding), k = k, BNPARAM = BiocNeighbors::AnnoyParam())$index
+    knn_matrix <-   BiocNeighbors::findKNN(t(fit$embedding), k = k, BNPARAM = BiocNeighbors::AnnoyParam())$index
   }
   stopifnot(ncol(knn_matrix) == k)
   stopifnot(nrow(knn_matrix) == ncol(fit))

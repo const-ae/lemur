@@ -6,7 +6,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                        n_ambient, n_embedding,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
-                       basepoint, coefficients, diffemb_embedding,
+                       basepoint, coefficients, embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
                        alignment_design, alignment_design_matrix, bootstrap_samples = NULL, knn_graph = NULL){
 
@@ -22,7 +22,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
   colnames(linearFit) <- colnames(linear_coefficients)
   sce <- SingleCellExperiment(assays, colData = col_data, rowData = row_data,
                               reducedDims = list(linearFit = linearFit,
-                                                 diffemb_embedding = t(diffemb_embedding)),
+                                                 embedding = t(embedding)),
                               metadata = list(n_ambient = n_ambient, n_embedding = n_embedding,
                                               ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
                                               design = design,
@@ -76,8 +76,8 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   alignment_design <- obj$alignment_design
   alignment_design_matrix <- obj$alignment_design_matrix
   if(is.null(alignment_design_matrix)) msg <- c(msg, "'alignment_design_matrix' must not be NULL")
-  diffemb_embedding <- obj$diffemb_embedding
-  if(is.null(diffemb_embedding)) msg <- c(msg, "'diffemb_embedding' must not be NULL")
+  embedding <- obj$embedding
+  if(is.null(embedding)) msg <- c(msg, "'embedding' must not be NULL")
   design <- obj$design
   design_matrix <- sampleFactors(reducedDim(obj, "linearFit"))
   if(is.null(design_matrix)) msg <- c(msg, "'design_matrix' must not be NULL")
@@ -99,8 +99,8 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(! is.null(coefficients) && dim(coefficients)[1] != eff_n_ambient) msg <- c(msg, "`dim(coefficients)[1]` does not match `n_ambient`")
   if(! is.null(coefficients) && dim(coefficients)[2] != n_embedding) msg <- c(msg, "`dim(coefficients)[2]` does not match `n_embedding`")
   if(! is.null(coefficients) && dim(coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(coefficients)[3]` does not match `ncol(design_matrix)`")
-  if(! is.null(diffemb_embedding) && nrow(diffemb_embedding) != n_embedding) msg <- c(msg, "`nrow(diffemb_embedding)` does not match `n_embedding`")
-  if(! is.null(diffemb_embedding) && ncol(diffemb_embedding) != n_obs) msg <- c(msg, "`ncol(diffemb_embedding)` does not match number of observations")
+  if(! is.null(embedding) && nrow(embedding) != n_embedding) msg <- c(msg, "`nrow(embedding)` does not match `n_embedding`")
+  if(! is.null(embedding) && ncol(embedding) != n_obs) msg <- c(msg, "`ncol(embedding)` does not match number of observations")
   if(! is.null(alignment_method) && length(alignment_method) != 1 && length(alignment_method) != n_obs) msg <- c(msg, "`length(alignment_method)` must either be a single value or a vector with the same length as the number of observation")
   if(! is.null(alignment_rotation) && ! is.array(alignment_rotation) || length(dim(alignment_rotation)) != 3) msg <- c(msg, "`alignment_rotation` must be a three dimensional array")
   if(! is.null(alignment_rotation) && dim(alignment_rotation)[1] != n_embedding) msg <- c(msg, "`dim(alignment_rotation)[1]` does not match `n_embedding`")
@@ -171,7 +171,7 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
 .methods_to_suggest <- c("n_ambient", "n_embedding",
                          "ambient_coordsystem", "ambient_offset",
                          "design", "basepoint",
-                         "coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
+                         "coefficients", "embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
                          "bootstrap_samples", "knn_graph", "colData", "rowData")
 
@@ -247,12 +247,12 @@ setMethod("coefficients", signature = "lemur_fit_obj", function(object){
   metadata(object)[["coefficients"]]
 })
 
-setGeneric("diffemb_embedding", function(object, ...) standardGeneric("diffemb_embedding"))
+setGeneric("embedding", function(object, ...) standardGeneric("embedding"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_embedding", signature = "lemur_fit_obj", function(object){
-  t(reducedDim(object, "diffemb_embedding"))
+setMethod("embedding", signature = "lemur_fit_obj", function(object){
+  t(reducedDim(object, "embedding"))
 })
 
 setGeneric("alignment_method", function(object, ...) standardGeneric("alignment_method"))

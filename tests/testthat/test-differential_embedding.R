@@ -11,7 +11,7 @@ test_that("making data works", {
   expect_equal(format(fit$design), "~condition")
   expect_equal(dim(fit$basepoint), c(40, 5))
   expect_equal(dim(fit$coefficients), c(40, 5, 3))
-  expect_equal(dim(fit$diffemb_embedding), c(5, ncol(dat)))
+  expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
   expect_equal(dim(fit$linear_coefficients), c(40, 3))
   expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
@@ -32,7 +32,7 @@ test_that("the fit is valid", {
   expect_equal(format(fit$design), "~condition")
   expect_equal(dim(fit$basepoint), c(30, 5))
   expect_equal(dim(fit$coefficients), c(30, 5, 3))
-  expect_equal(dim(fit$diffemb_embedding), c(5, ncol(dat)))
+  expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
   expect_equal(dim(fit$linear_coefficients), c(30, 3))
   expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
@@ -64,7 +64,7 @@ test_that("subsetting works", {
   expect_equal(fit3$n_embedding, 5)
   expect_equal(dim(fit3$basepoint), c(30, 5))
   expect_equal(dim(fit3$coefficients), c(30, 5, 3))
-  expect_equal(dim(fit3$diffemb_embedding), c(5, 20))
+  expect_equal(dim(fit3$embedding), c(5, 20))
   expect_equal(dim(fit3$design_matrix), c(20, 3))
   expect_equal(dim(fit3$linear_coefficients), c(30, 3))
   # expect_equal(length(fit3$alignment_method), 20)
@@ -172,7 +172,7 @@ test_that("Skipping ambient PCA works", {
 
   # The latent things are equal up to the sign
   expect_equal(abs(fit_alt$ambient_coordsystem %*% fit_alt$basepoint), abs(fit$basepoint))
-  expect_equal(abs(fit$diffemb_embedding), abs(fit_alt$diffemb_embedding))
+  expect_equal(abs(fit$embedding), abs(fit_alt$embedding))
 })
 
 
@@ -184,7 +184,7 @@ test_that("n_embedding = 0 works", {
   zero_dim_mat <- matrix(nrow = 5, ncol = 0)
   expect_equal(fit$basepoint, zero_dim_mat)
   expect_equal(fit$coefficients, array(dim = c(5, 0, 3)), ignore_attr = "dimnames")
-  expect_equal(fit$diffemb_embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
+  expect_equal(fit$embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
 
@@ -209,7 +209,7 @@ test_that("bootstrapping works", {
   expect_equal(colnames(fit2$bootstrap_samples[[1]]), colnames(fit2))
   expect_equal(fit2$bootstrap_samples[[1]]$ambient_coordsystem, fit2$ambient_coordsystem)
   # The differential embeddings of the bootstraps should be well correlated
-  expect_gt(cor(c(fit2$diffemb_embedding), c(fit2$bootstrap_samples[[1]]$diffemb_embedding)), 0.9)
+  expect_gt(cor(c(fit2$embedding), c(fit2$bootstrap_samples[[1]]$embedding)), 0.9)
 })
 
 test_that("adding a KNN-graph to the fit object works",  {
@@ -300,7 +300,7 @@ test_that("aligning works with alternative design matrices", {
   expect_error(predict(fit2, alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5)))
   pred <- predict(fit2, newdesign = duplicate_rows(1, 5),
                   alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5),
-                  diffemb_embedding  = randn(5, 5))
+                  embedding  = randn(5, 5))
   expect_equal(dim(pred), c(30, 5))
 })
 
@@ -376,7 +376,7 @@ test_that("Columns/rows of the results are orthogonal", {
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   res <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
-  expect_equal(sum(res$diffemb_embedding[1,] * res$diffemb_embedding[2,]), 0)
+  expect_equal(sum(res$embedding[1,] * res$embedding[2,]), 0)
   V1 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,1], res$basepoint)
   V2 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,2], res$basepoint)
   expect_equal(t(V1) %*% V1, diag(nrow = 2))
@@ -436,7 +436,7 @@ test_that("regularization helps", {
   # #     scale_color_gradient2() +
   # #     NULL
   # #
-  # # tibble(emb = c(fit$diffemb_embedding)) %>%
+  # # tibble(emb = c(fit$embedding)) %>%
   # #   bind_cols(as_tibble(colData(fit))) %>%
   # #   ggplot(aes(x = emb)) +
   # #   geom_histogram(aes(fill = cell_type), bins = 100)
@@ -469,8 +469,8 @@ test_that("regularization helps", {
   # tmp <- matrix(einsum::einsum("ijk->ikj", abind::abind(tmp1, tmp2, along = 3)), nrow = 3, ncol = ncol(tmp1) * 2)
   # segments3d(x = tmp[1,], y = tmp[2,], z = tmp[3,])
   #
-  # contr1 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,0), diffemb_embedding = fit$diffemb_embedding)
-  # contr2 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,1), diffemb_embedding = fit$diffemb_embedding)
+  # contr1 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,0), embedding = fit$embedding)
+  # contr2 <- t(dat_pca$coordsystem) %*% predict(fit, newdesign = c(1,1), embedding = fit$embedding)
   #
   # contr <- matrix(einsum::einsum("ijk->ikj", abind::abind(contr1, contr2, along = 3)), nrow = 3, ncol = ncol(contr1) * 2)
   # segments3d(x = contr[1,], y = contr[2,], z = contr[3,], col = "green")

@@ -12,7 +12,7 @@ test_differential_expression(
          contrast
      }
  },
-  diffemb_embedding = NULL,
+  embedding = NULL,
   consider = c("embedding+linear", "embedding", "linear"),
   variance_est = c("bootstrap", "none"),
   return = c("table", "matrix")
@@ -36,7 +36,7 @@ coefficients, they are compared directly (e.g. \code{fact(treatment = "A", sex =
 \item{alignment_contrast}{same as \code{contrast} but applied to the \code{alignment_design_matrix}. This is for advanced use cases where
 separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the \code{contrast} argument.}
 
-\item{diffemb_embedding}{matrix of size \code{n_embedding} \eqn{\times} \code{n} that specifies where in the latent space
+\item{embedding}{matrix of size \code{n_embedding} \eqn{\times} \code{n} that specifies where in the latent space
 the differential expression is tested. It defaults to the position of all cells from the original fit.}
 
 \item{consider}{specify which part of the model are considered for the differential expression test.}

@@ -102,7 +102,7 @@ test_that("alignment with template works", {
   fit <- lemur(mat, design = group, n_embedding = 2, verbose = FALSE)
 
 
-  template <- fit$diffemb_embedding
+  template <- fit$embedding
   # change <- randn(2, 2)
   # change <- random_rotation_point(2)
   # change <- random_spd_point(2)
@@ -114,24 +114,24 @@ test_that("alignment with template works", {
   template[,group == "a"] <- change %*% template[,group == "a"]
 
   fit_al <- align_by_template(fit, alignment_template = template, verbose = FALSE, rotating = TRUE, stretching = TRUE, mnn = 1, cells_per_cluster = 1)
-  # match_rot <- procrustes_rotation(fit$diffemb_embedding[,group == "b"], fit_al$diffemb_embedding[,group == "b"])
+  # match_rot <- procrustes_rotation(fit$embedding[,group == "b"], fit_al$embedding[,group == "b"])
   # match_rot <- diag(nrow = 2)
-  match_rot <- t(coef(lm.fit(t(fit_al$diffemb_embedding[,group == "b"]), t(fit$diffemb_embedding[,group == "b"]))))
-  template_approx <- match_rot %*% fit_al$diffemb_embedding
+  match_rot <- t(coef(lm.fit(t(fit_al$embedding[,group == "b"]), t(fit$embedding[,group == "b"]))))
+  template_approx <- match_rot %*% fit_al$embedding
 
-  plot(t(fit$diffemb_embedding), col = group, pch = 16, asp = 1)
+  plot(t(fit$embedding), col = group, pch = 16, asp = 1)
 
   points(t(template), col = group, pch = 17)
-  segments(x0 = fit$diffemb_embedding[1, ], y0 = fit$diffemb_embedding[2,],
+  segments(x0 = fit$embedding[1, ], y0 = fit$embedding[2,],
            x1 = template[1,], y1 = template[2,], col = "grey")
 
   points(t(template_approx), col = group, pch = 18, cex = 1.4)
-  segments(x0 = fit$diffemb_embedding[1, ], y0 = fit$diffemb_embedding[2,],
+  segments(x0 = fit$embedding[1, ], y0 = fit$embedding[2,],
            x1 = template_approx[1,], y1 = template_approx[2,])
 
   plot(template + template_approx, template - template_approx)
 
-  original_nn <- BiocNeighbors::findAnnoy(t(fit$diffemb_embedding), k = 3)$index
+  original_nn <- BiocNeighbors::findAnnoy(t(fit$embedding), k = 3)$index
   template_nn <- BiocNeighbors::findAnnoy(t(template), k = 3)$index
   template_approx_nn <- BiocNeighbors::findAnnoy(t(template_approx), k = 3)$index
 

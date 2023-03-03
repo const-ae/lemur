@@ -1,7 +1,7 @@
 
 
-harmony_init <- function(diffemb_embedding, design_matrix,
-                         theta = 2, lambda = 1, sigma = 0.1, nclust = min(round(ncol(diffemb_embedding) / 30), 100),
+harmony_init <- function(embedding, design_matrix,
+                         theta = 2, lambda = 1, sigma = 0.1, nclust = min(round(ncol(embedding) / 30), 100),
                          tau = 0, block.size = 0.05,  max.iter.cluster = 200,
                          epsilon.cluster = 1e-5, epsilon.harmony = 1e-4, verbose = TRUE){
 
@@ -12,10 +12,10 @@ harmony_init <- function(diffemb_embedding, design_matrix,
   #   t(onehot(meta_data[[var_use]]))
   # }))
   n_groups <- length(unique(mm_groups))
-  phi <- matrix(0, nrow = n_groups, ncol = ncol(diffemb_embedding))
+  phi <- matrix(0, nrow = n_groups, ncol = ncol(embedding))
   phi[mm_groups + n_groups * (seq_along(mm_groups)-1)] <- 1
 
-  N <- ncol(diffemb_embedding)
+  N <- ncol(embedding)
   N_b <- rowSums(phi)
   Pr_b <- N_b / N
   theta <- rep_len(theta, n_groups)
@@ -30,7 +30,7 @@ harmony_init <- function(diffemb_embedding, design_matrix,
 
   harmonyObj <- new(harmony:::harmony, 0) ## 0 is a dummy variable - will change later
   harmonyObj$setup(
-    diffemb_embedding, phi, phi_moe,
+    embedding, phi, phi_moe,
     Pr_b, sigma, theta, max.iter.cluster,epsilon.cluster,
     epsilon.harmony, nclust, tau, block.size, lambda_mat, verbose
   )

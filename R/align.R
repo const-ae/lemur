@@ -14,7 +14,7 @@ align_neighbors <- function(fit, rotating = TRUE, stretching = TRUE,
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
   # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
+  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
@@ -30,7 +30,7 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
     stop("'harmony' is not installed. Please install it from CRAN.")
   }
   # Ignore best practice and call private methods from harmony
-  harm_obj <- harmony_init(fit$diffemb_embedding, design_matrix, ..., verbose = verbose)
+  harm_obj <- harmony_init(fit$embedding, design_matrix, ..., verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
     matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > min_cluster_membership))
@@ -39,7 +39,7 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
     # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups, weights = weights),
                                                harm_obj$Z_orig, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
-    harm_obj$Z_corr <- correction$diffemb_embedding
+    harm_obj$Z_corr <- correction$embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
       if(verbose) message("Converged")
@@ -97,7 +97,7 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
     grouping$index_groups <- lapply(grouping$matches, \(idx) mm_groups[idx])
   }
 
-  correction <- correct_design_matrix_groups(fit, grouping, fit$diffemb_embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
+  correction <- correct_design_matrix_groups(fit, grouping, fit$embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
@@ -114,10 +114,10 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
 #'   }
 #'
 #' @keywords internal
-correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding, design, rotating = TRUE, stretching = TRUE,
+correct_design_matrix_groups <- function(fit, matching_groups, embedding, design, rotating = TRUE, stretching = TRUE,
                                          ridge_penalty = 0, verbose = TRUE){
 
-  n_embedding <- nrow(diffemb_embedding)
+  n_embedding <- nrow(embedding)
   base_point <- diag(nrow = n_embedding)
   ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
 
@@ -136,9 +136,9 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   Y <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
     do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
       if(is.null(matching_groups$weights)){
-        matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
+        matrixStats::rowMeans2(embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
       }else{
-        matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
+        matrixStats::rowWeightedMeans(embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
       }
     }))
   }))
@@ -147,13 +147,13 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
   M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
     Y_tmp <- do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
       if(is.null(matching_groups$weights)){
-        matrixStats::rowMeans2(diffemb_embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
+        matrixStats::rowMeans2(embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
       }else{
-        matrixStats::rowWeightedMeans(diffemb_embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
+        matrixStats::rowWeightedMeans(embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
       }
     }))
     vec <- if(is.null(Y_tmp)){
-      matrix(nrow = nrow(diffemb_embedding), ncol = 0)
+      matrix(nrow = nrow(embedding), ncol = 0)
     }else{
       rowMeans(Y_tmp)
     }
@@ -186,12 +186,12 @@ correct_design_matrix_groups <- function(fit, matching_groups, diffemb_embedding
     rotation_coef <- array(0, dim(stretch_coef))
   }
 
-  diffemb_embedding <- apply_stretching(diffemb_embedding, stretch_coef, design_matrix, base_point)
-  diffemb_embedding <- apply_rotation(diffemb_embedding, rotation_coef, design_matrix, base_point)
+  embedding <- apply_stretching(embedding, stretch_coef, design_matrix, base_point)
+  embedding <- apply_rotation(embedding, rotation_coef, design_matrix, base_point)
 
 
   list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
-       diffemb_embedding = diffemb_embedding, design_matrix = design_matrix, design_formula = design_formula)
+       embedding = embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
 
 
@@ -226,7 +226,7 @@ polar_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0,
     # Calculate error
     error <- mean((apply_rotation(apply_stretching(obs_embedding, stretch_coef, design, base_point), rotation_coef, design, base_point) - data)^2)
     if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
-      # Error can be NaN if nrow(diffemb_embedding) == 0
+      # Error can be NaN if nrow(embedding) == 0
       break
     }
     error_last_round <- error
@@ -357,7 +357,7 @@ correct_fit <- function(fit, correction){
     on.exit(S4Vectors:::disableValidity(old))
   }
 
-  reducedDim(fit, "diffemb_embedding") <- t(correction$diffemb_embedding)
+  reducedDim(fit, "embedding") <- t(correction$embedding)
   if(! matrix_equals(correction$design_matrix, fit$alignment_design_matrix) ||
      is.null(correction$design_formula) != is.null(fit$alignment_design) ||
      correction$design_formula != fit$alignment_design){
@@ -370,8 +370,8 @@ correct_fit <- function(fit, correction){
     metadata(fit)[["alignment_stretching"]] <-  metadata(fit)[["alignment_stretching"]] + correction$stretch_coefficients
   }
   metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
-    reducedDim(samp, "diffemb_embedding") <- t(apply_rotation(
-      apply_stretching(samp$diffemb_embedding, -correction$stretch_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)),
+    reducedDim(samp, "embedding") <- t(apply_rotation(
+      apply_stretching(samp$embedding, -correction$stretch_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)),
       -correction$rotation_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)))
     if(! matrix_equals(correction$design_matrix, samp$alignment_design_matrix) ||
        is.null(correction$design_formula) != is.null(fit$alignment_design) ||

@@ -60,10 +60,10 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
 
     if(refit_differential_embedding){
       coefficients <- NULL
-      diffemb_embedding <- NULL
+      embedding <- NULL
     }else{
       coefficients <- fit$coefficients
-      diffemb_embedding <- fit$diffemb_embedding[,resampling,drop=FALSE]
+      embedding <- fit$embedding[,resampling,drop=FALSE]
     }
 
     alignment_method <- fit$alignment_method
@@ -83,19 +83,19 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                 amb_pca = amb_pca,
                                 linear_coefficients = linear_coefficients,
                                 coefficients = coefficients,
-                                diffemb_embedding = diffemb_embedding,
+                                embedding = embedding,
                                 alignment_rotation = alignment_rotation,
                                 alignment_stretching = alignment_stretching,
                                 alignment_design_matrix = alignment_design_matrix,
                                 verbose = FALSE)
 
-    # Use the results of the resampled fit, to make 'diffemb_embedding' correspond to the original data
+    # Use the results of the resampled fit, to make 'embedding' correspond to the original data
     refitted_Y_clean <- if(refit_ambient_pca){
       as.matrix(t(res$ambient_coordsystem) %*% (assay(fit, "expr") - res$ambient_offset) - res$linear_coefficients %*% t(fit$design_matrix))
     }else{
       original_embedding - res$linear_coefficients %*% t(fit$design_matrix)
     }
-    refitted_diffemb_embedding <- project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
+    refitted_embedding <- project_data_on_diffemb(refitted_Y_clean, design = fit$design_matrix,
                                                           coefficients = res$coefficients,
                                                           base_point = base_point)
 
@@ -108,7 +108,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                linear_coefficients = res$linear_coefficients,
                basepoint = res$basepoint,
                coefficients = res$coefficients,
-               diffemb_embedding = refitted_diffemb_embedding,
+               embedding = refitted_embedding,
                alignment_method = alignment_method,
                alignment_rotation = res$alignment_rotation,
                alignment_stretching = res$alignment_stretching,

@@ -9,7 +9,7 @@
 \alias{design,lemur_fit_obj-method}
 \alias{basepoint,lemur_fit_obj-method}
 \alias{coefficients,lemur_fit_obj-method}
-\alias{diffemb_embedding,lemur_fit_obj-method}
+\alias{embedding,lemur_fit_obj-method}
 \alias{alignment_method,lemur_fit_obj-method}
 \alias{alignment_rotation,lemur_fit_obj-method}
 \alias{alignment_stretching,lemur_fit_obj-method}
@@ -35,7 +35,7 @@
 
 \S4method{coefficients}{lemur_fit_obj}(object)
 
-\S4method{diffemb_embedding}{lemur_fit_obj}(object)
+\S4method{embedding}{lemur_fit_obj}(object)
 
 \S4method{alignment_method}{lemur_fit_obj}(object)
 

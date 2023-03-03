@@ -8,7 +8,7 @@
   object,
   newdata = NULL,
   newdesign = NULL,
-  diffemb_embedding = object$diffemb_embedding,
+  embedding = object$embedding,
   with_ambient_pca = TRUE,
   with_linear_model = TRUE,
   with_differential_embedding = TRUE,

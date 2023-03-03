@@ -55,7 +55,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
              linear_coefficients = res$linear_coefficients,
              basepoint = res$basepoint,
              coefficients = res$coefficients,
-             diffemb_embedding = res$diffemb_embedding,
+             embedding = res$embedding,
              alignment_method = res$alignment_method,
              alignment_rotation = res$alignment_rotation,
              alignment_stretching = res$alignment_stretching,
@@ -71,22 +71,22 @@ lemur_impl <- function(Y, design_matrix,
                                         amb_pca = NULL,
                                         linear_coefficients = NULL,
                                         coefficients = NULL,
-                                        diffemb_embedding = NULL,
+                                        embedding = NULL,
                                         alignment_rotation = NULL,
                                         alignment_stretching = NULL,
                                         alignment_design_matrix = NULL,
                                         n_iter = 10, tol = 1e-8,
                                         reshuffling_fraction = 0,
                                         verbose = TRUE){
-  alignment_rot_fixed_but_embedding_fitted <- ! is.null(alignment_rotation) && is.null(diffemb_embedding)
-  alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(diffemb_embedding)
+  alignment_rot_fixed_but_embedding_fitted <- ! is.null(alignment_rotation) && is.null(embedding)
+  alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(embedding)
 
   # Set reduced dimensions
   stopifnot(n_ambient >= 0 && n_embedding >= 0)
   n_embedding <- min(n_embedding, nrow(Y), n_ambient)
   linear_coef_fixed <-  ! is.null(linear_coefficients)
   diffemb_coef_fixed <- ! is.null(coefficients)
-  diffemb_embedding_fixed <- ! is.null(diffemb_embedding)
+  embedding_fixed <- ! is.null(embedding)
   alignment_rot_fixed <- ! is.null(alignment_rotation)
   alignment_stretch_fixed <- ! is.null(alignment_stretching)
   if(is.null(alignment_design_matrix)){
@@ -161,13 +161,13 @@ lemur_impl <- function(Y, design_matrix,
       if(verbose) message("---Fit Grassmann linear model")
       coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
     }
-    if(! diffemb_embedding_fixed){
-      diffemb_embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
+    if(! embedding_fixed){
+      embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
                                                    coefficients = coefficients, base_point = base_point)
     }
     if(! linear_coef_fixed){
       if(verbose) message("---Update linear regression")
-      Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix,
+      Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix,
                                                                      coefficients = coefficients, base_point = base_point)
       if(any(is.na(Y_clean))){
         linear_fit <- list(coefficients = matrix(NA, nrow = ncol(design_matrix), ncol = nrow(Y_clean)),
@@ -178,7 +178,7 @@ lemur_impl <- function(Y, design_matrix,
       linear_coefficients <- t(linear_fit$coefficients)
       residuals <- linear_fit$residuals
     }else{
-      residuals <- amb_pca$embedding - project_diffemb_into_data_space(diffemb_embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
+      residuals <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
     }
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
     error <- sum(residuals^2)
@@ -192,8 +192,8 @@ lemur_impl <- function(Y, design_matrix,
   }
 
   if(alignment_rot_fixed_but_embedding_fitted || alignment_stretch_fixed_but_embedding_fitted){
-    # Rotate the diffemb_embedding if it wasn't provided
-    stop("Fixing 'alignment_rotation' or 'alignment_stretching' without fixing 'diffemb_embedding' is not implemented")
+    # Rotate the embedding if it wasn't provided
+    stop("Fixing 'alignment_rotation' or 'alignment_stretching' without fixing 'embedding' is not implemented")
   }else if((! alignment_rot_fixed || ! alignment_stretch_fixed) && ! isFALSE(alignment)){
     if(verbose) message("Align points")
     stop("Cannot handle 'alignment='", alignment)
@@ -203,14 +203,14 @@ lemur_impl <- function(Y, design_matrix,
   }
 
   # Make sure that axes are ordered by variance
-  if(prod(dim(diffemb_embedding)) > 0 && all(!is.na(diffemb_embedding))){
-    svd_emb <- svd(diffemb_embedding)
+  if(prod(dim(embedding)) > 0 && all(!is.na(embedding))){
+    svd_emb <- svd(embedding)
     rot <- svd_emb$u
     base_point <- base_point %*% rot
     for(idx in seq_len(dim(coefficients)[3])) {
       coefficients[,,idx] <- coefficients[,,idx] %*% rot
     }
-    diffemb_embedding <- t(svd_emb$v) * svd_emb$d
+    embedding <- t(svd_emb$v) * svd_emb$d
   }
 
   list(n_ambient = n_ambient, n_embedding = n_embedding,
@@ -219,7 +219,7 @@ lemur_impl <- function(Y, design_matrix,
        linear_coefficients = linear_coefficients,
        basepoint = base_point,
        coefficients = coefficients,
-       diffemb_embedding = diffemb_embedding,
+       embedding = embedding,
        alignment_method = alignment,
        alignment_rotation = alignment_rotation,
        alignment_stretching = alignment_stretching,
@@ -250,13 +250,13 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
 }
 
 
-project_diffemb_into_data_space <- function(diffemb_embedding, design, coefficients, base_point){
+project_diffemb_into_data_space <- function(embedding, design, coefficients, base_point){
   n_amb <- nrow(base_point)
-  res <- matrix(NA, nrow = n_amb, ncol = ncol(diffemb_embedding))
+  res <- matrix(NA, nrow = n_amb, ncol = ncol(embedding))
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(coefficients, covars), base_point) %*% diffemb_embedding[,mm_groups == gr,drop=FALSE]
+    res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(coefficients, covars), base_point) %*% embedding[,mm_groups == gr,drop=FALSE]
   }
   res
 }

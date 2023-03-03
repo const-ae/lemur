@@ -4,20 +4,20 @@
 #'
 #' @export
 predict.lemur_fit_obj <- function(object, newdata = NULL, newdesign = NULL,
-                               diffemb_embedding = object$diffemb_embedding,
+                               embedding = object$embedding,
                                with_ambient_pca = TRUE,
                                with_linear_model = TRUE,
                                with_differential_embedding = TRUE,
                                with_alignment = TRUE,
                                ...){
-  predict_impl(object, newdata = newdata, newdesign = newdesign, diffemb_embedding = diffemb_embedding,
+  predict_impl(object, newdata = newdata, newdesign = newdesign, embedding = embedding,
                with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
                with_differential_embedding = with_differential_embedding, with_alignment = with_alignment, ...)
 
 }
 
 predict_impl <- function(object, newdata = NULL, newdesign = NULL,
-                         diffemb_embedding = object$diffemb_embedding,
+                         embedding = object$embedding,
                          with_ambient_pca = TRUE,
                          with_linear_model = TRUE,
                          with_differential_embedding = TRUE,
@@ -38,10 +38,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     if(is.null(design)) stop("'newdata' is provided, but 'object' does not contain a design formula.")
     newdesign <- model.matrix(design, newdata)
   }else if(! is.matrix(newdesign)){
-    newdesign <- matrix(newdesign, nrow = ncol(diffemb_embedding), ncol = length(newdesign), byrow = TRUE)
+    newdesign <- matrix(newdesign, nrow = ncol(embedding), ncol = length(newdesign), byrow = TRUE)
   }
   if(! is.matrix(alignment_design_matrix)){
-    alignment_design_matrix <- matrix(alignment_design_matrix, nrow = ncol(diffemb_embedding), ncol = length(alignment_design_matrix), byrow = TRUE)
+    alignment_design_matrix <- matrix(alignment_design_matrix, nrow = ncol(embedding), ncol = length(alignment_design_matrix), byrow = TRUE)
   }
 
   if(all(dim(design_matrix) == dim(alignment_design_matrix)) && all(design_matrix == alignment_design_matrix)){
@@ -49,8 +49,8 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     alignment_design_matrix <- newdesign
   }
 
-  if(nrow(newdesign) != ncol(diffemb_embedding)){
-    stop("The number of rows in 'newdesign' must match the number of columns in 'diffemb_embedding'")
+  if(nrow(newdesign) != ncol(embedding)){
+    stop("The number of rows in 'newdesign' must match the number of columns in 'embedding'")
   }
   if(nrow(newdesign) != nrow(alignment_design_matrix)){
     stop("The number of rows in 'newdesign' (", nrow(newdesign) ,") and 'alignment_design_matrix'(", nrow(alignment_design_matrix) ,")  must be the same")
@@ -79,7 +79,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
         diag(nrow = n_embedding)
       }
       sel <- gr1 == mm_groups & gr2 == mm_al_groups
-      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% diffemb_embedding[,sel]
+      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% embedding[,sel]
     }
   }
 
@@ -123,7 +123,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                                           embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
-    Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
+    Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_differential_embedding = TRUE,
                  n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
@@ -139,7 +139,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                                           embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
-    Y - predict_impl(object = NULL, diffemb_embedding = fit_alt$diffemb_embedding,
+    Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_differential_embedding = FALSE,
                  n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,

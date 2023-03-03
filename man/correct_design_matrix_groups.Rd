@@ -7,7 +7,7 @@
 correct_design_matrix_groups(
   fit,
   matching_groups,
-  diffemb_embedding,
+  embedding,
   design,
   rotating = TRUE,
   stretching = TRUE,
