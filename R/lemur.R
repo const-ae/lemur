@@ -1,6 +1,6 @@
 
 
-#' Main function to fit the differential embedding object
+#' Main function to fit the latent embedding multivariate regression (LEMUR) model
 #'
 #' @param data a matrix with obsevations in the columns and features in the rows.
 #'   Or a `SummarizedExperiment` / `SingleCellExperiment` object
@@ -24,13 +24,13 @@
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
 #' @export
-differential_embedding <- function(data, design = ~ 1, col_data = NULL,
-                                   n_ambient = 30, n_embedding = 15,
-                                   alignment = FALSE,
-                                   base_point = c("global_embedding", "mean"),
-                                   use_assay = "logcounts",
-                                   ...,
-                                   verbose = TRUE){
+lemur <- function(data, design = ~ 1, col_data = NULL,
+                  n_ambient = 30, n_embedding = 15,
+                  alignment = FALSE,
+                  base_point = c("global_embedding", "mean"),
+                  use_assay = "logcounts",
+                  ...,
+                  verbose = TRUE){
 
   data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
 

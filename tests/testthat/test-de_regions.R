@@ -1,5 +1,5 @@
 dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
-fit <- differential_embedding(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
 DE <- test_differential_expression(fit, contrast = fact(condition = "a") == fact(condition = "b"),
                                    return = "matrix", variance_est = "none")
 fit <- add_knn_graph(fit, k = 5)

@@ -1,7 +1,7 @@
 set.seed(1)
 dat <- make_synthetic_data(n_centers = 4, n_genes = 50)
 dat$patient <- sample(paste0("p", 1:3), 500, replace = TRUE)
-fit <- differential_embedding(dat, ~ condition + patient, n_embedding = 5, n_ambient = Inf, verbose = FALSE)
+fit <- lemur(dat, ~ condition + patient, n_embedding = 5, n_ambient = Inf, verbose = FALSE)
 
 
 test_that("alignment with Harmony work", {
@@ -99,7 +99,7 @@ test_that("alignment with template works", {
   n_cells <- 300
   mat <- randn(10, n_cells)
   group <- as.factor(sample(letters[1:2], size = n_cells, replace = TRUE))
-  fit <- differential_embedding(mat, design = group, n_embedding = 2, verbose = FALSE)
+  fit <- lemur(mat, design = group, n_embedding = 2, verbose = FALSE)
 
 
   template <- fit$diffemb_embedding

@@ -50,7 +50,7 @@ handle_design_parameter <- function(design, data, col_data){
   if(any(matrixStats::rowAnyNAs(design_matrix))){
     stop("The design matrix contains 'NA's for sample ",
          paste0(head(which(DelayedMatrixStats::rowAnyNAs(design_matrix))), collapse = ", "),
-         ". Please remove them before you call 'differential_embedding()'.")
+         ". Please remove them before you call 'lemur()'.")
   }
 
   if(ncol(design_matrix) >= n_samples && ! ignore_degeneracy){

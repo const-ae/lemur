@@ -2,7 +2,7 @@ test_that("making data works", {
 
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_ambient, 40)
@@ -22,7 +22,7 @@ test_that("making data works", {
 
 test_that("the fit is valid", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 30, n_embedding = 5, verbose = FALSE)
 
   expect_equal(dim(fit), dim(dat))
@@ -46,7 +46,7 @@ test_that("the fit is valid", {
 test_that("subsetting works", {
   set.seed(1)
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_embedding = 5, n_ambient = 30, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
   fit2 <- fit[1:10, 101:120]
@@ -76,7 +76,7 @@ test_that("subsetting works", {
   expect_equal(nrow(fit4$bootstrap_samples[[1]]), 1)
 
   # No ambient PCA
-  fit5 <- differential_embedding(dat[,1:20], design = ~ condition,
+  fit5 <- lemur(dat[,1:20], design = ~ condition,
                                  n_embedding = 2, n_ambient = 30, verbose = FALSE)
   expect_true(validObject(fit5))
   fit6 <- fit5[1,]
@@ -87,7 +87,7 @@ test_that("subsetting works", {
 test_that("predicting works", {
   # Cpmpare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
-  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 10, n_embedding = 0, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_ambient = 10, n_embedding = 0, verbose = FALSE)
   fit_lm <- lm(t(assay(dat) - fit$ambient_offset) ~ condition, data = colData(dat))
   expect_equal(fit$ambient_coordsystem %*% fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
   expect_equal(predict(fit, with_differential_embedding = FALSE),
@@ -98,7 +98,7 @@ test_that("predicting works", {
 
 
   # Alignment does not disturb prediction
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
   fit2 <- align_by_grouping(fit, grouping = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
@@ -113,9 +113,9 @@ test_that("Adding predictors improves predictions", {
   dat <- make_synthetic_data(n_lat = 5)
   dat$random <- sample(c("a", "b"), size = ncol(dat), replace = TRUE)
 
-  fit1 <- differential_embedding(dat, design = ~ condition, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
-  fit2 <- differential_embedding(dat, design = ~ condition + random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
-  fit3 <- differential_embedding(dat, design = ~ condition * random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit1 <- lemur(dat, design = ~ condition, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit2 <- lemur(dat, design = ~ condition + random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit3 <- lemur(dat, design = ~ condition * random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
 
   error1 <- mean((logcounts(dat) - predict(fit1))^2)
   error2 <- mean((logcounts(dat) - predict(fit2))^2)
@@ -135,15 +135,15 @@ test_that("Adding predictors improves predictions", {
 test_that("providing a pre-calculated PCA works", {
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
   pca <- pca(assay(dat), n = 20)
-  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 20,
+  fit <- lemur(dat, design = ~ condition, n_ambient = 20,
                                 n_embedding = 5, verbose = FALSE,
                                 amb_pca = pca)
 
-  expect_error(differential_embedding(dat, design = ~ condition, n_ambient = 10,
+  expect_error(lemur(dat, design = ~ condition, n_ambient = 10,
                                        n_embedding = 5, verbose = FALSE, amb_pca = pca))
 
   assay(dat, "sin") <- sin(assay(dat, "logcounts"))
-  expect_error(differential_embedding(dat, design = ~ condition, n_ambient = 20,
+  expect_error(lemur(dat, design = ~ condition, n_ambient = 20,
                                       n_embedding = 5, verbose = FALSE,
                                       use_assay = "sin", amb_pca = pca))
   expect_silent(
@@ -156,13 +156,13 @@ test_that("providing a pre-calculated PCA works", {
 test_that("Skipping ambient PCA works", {
   dat <- make_synthetic_data(n_genes = 30)
   # Using n_ambient > nrow(dat)
-  fit <- differential_embedding(dat, n_ambient = 50, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, n_ambient = 50, n_embedding = 5, verbose = FALSE)
   expect_s4_class(fit$ambient_coordsystem, "ddiMatrix")
   expect_s4_class(fit$ambient_coordsystem[1:2,], "dgCMatrix")
   expect_equal(as.matrix(fit$ambient_coordsystem), diag(nrow = 30))
   expect_true(is.matrix(predict(fit)))
 
-  fit_alt <- differential_embedding(dat, n_ambient = 30, n_embedding = 5, verbose = FALSE)
+  fit_alt <- lemur(dat, n_ambient = 30, n_embedding = 5, verbose = FALSE)
   expect_equal(dim(fit), dim(fit_alt))
   expect_equal(fit$n_ambient, Inf)
   expect_equal(fit$n_embedding, fit_alt$n_embedding)
@@ -179,7 +179,7 @@ test_that("Skipping ambient PCA works", {
 test_that("n_embedding = 0 works", {
 
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
-  fit <- differential_embedding(dat, design = ~ condition, n_ambient = 5,
+  fit <- lemur(dat, design = ~ condition, n_ambient = 5,
                                 n_embedding = 0, verbose = FALSE)
   zero_dim_mat <- matrix(nrow = 5, ncol = 0)
   expect_equal(fit$diffemb_basepoint, zero_dim_mat)
@@ -200,7 +200,7 @@ test_that("n_embedding = 0 works", {
 
 test_that("bootstrapping works", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
   fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_null(fit$bootstrap_samples)
@@ -214,7 +214,7 @@ test_that("bootstrapping works", {
 
 test_that("adding a KNN-graph to the fit object works",  {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
   fit <- add_knn_graph(fit, k = 4)
   expect_true(validObject(fit))
@@ -228,14 +228,14 @@ test_that("adding a KNN-graph to the fit object works",  {
 #   Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
 #   group <- c(sample(letters[1:2], 100, replace = TRUE),
 #            sample(letters[1:2], 60, replace = TRUE, prob = c(5,1)))
-#   fit <- differential_embedding(Y, design = ~ group, verbose = FALSE)
+#   fit <- lemur(Y, design = ~ group, verbose = FALSE)
 #   expect_equal(fit$linear_coefficients, matrix(0, ncol = 2), ignore_attr = "dimnames")
 # })
 
 
 test_that("align_by_grouping works", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
@@ -255,7 +255,7 @@ test_that("align_by_grouping works", {
 
 test_that("align_neighbors works", {
   dat <- make_synthetic_data(n_genes = 15)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = Inf, n_embedding = 3, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 2, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
@@ -272,7 +272,7 @@ test_that("align_neighbors works", {
 
 test_that("align_harmony works", {
   dat <- make_synthetic_data(n_genes = 15)
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = Inf, n_embedding = 3, verbose = FALSE)
   al_harm <- align_harmony(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
   al_nei <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
@@ -280,7 +280,7 @@ test_that("align_harmony works", {
 
 test_that("aligning works with alternative design matrices", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- differential_embedding(dat, design = ~ 1,
+  fit <- lemur(dat, design = ~ 1,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
@@ -349,7 +349,7 @@ test_that("Under-determined fits run successfully", {
   dat <- make_synthetic_data()
   dat$condition <- as.factor(dat$condition)
   dat <- dat[,dat$condition != "c"]
-  fit <- differential_embedding(dat, design = ~ condition,
+  fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 2, verbose = FALSE)
   expect_warning({
     fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition,
@@ -365,8 +365,8 @@ test_that("fixing linear coefficients works", {
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   coef <- t(lm.fit(design, t(mat))$coefficients)
-  res1 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
-  res2 <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  res1 <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
+  res2 <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
   expect_equal(res1, res2)
 })
 
@@ -375,7 +375,7 @@ test_that("Columns/rows of the results are orthogonal", {
   mat <- matrix(rnorm(5 * 20), nrow = 5, ncol = 20)
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
-  res <- differential_embedding(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  res <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
   expect_equal(sum(res$diffemb_embedding[1,] * res$diffemb_embedding[2,]), 0)
   V1 <- DiffEmbSeq:::grassmann_map(res$diffemb_coefficients[,,1], res$diffemb_basepoint)
   V2 <- DiffEmbSeq:::grassmann_map(res$diffemb_coefficients[,,2], res$diffemb_basepoint)
@@ -399,7 +399,7 @@ test_that("regularization helps", {
   #     # coord_fixed() +
   #     NULL
   #
-  # fit <- differential_embedding(dat, design = ~ condition,
+  # fit <- lemur(dat, design = ~ condition,
   #                               n_ambient = 3, n_embedding = 2, verbose = FALSE)
   # sum(residuals(fit)^2)
   # de <- test_differential_expression(fit, contrast = fact(condition = "a") == fact(condition = "b"),
@@ -478,7 +478,7 @@ test_that("regularization helps", {
 })
 
 
-# fit_new <- differential_embedding(dat, design = ~ condition,
+# fit_new <- lemur(dat, design = ~ condition,
 #                               n_ambient = 3, n_embedding = 2, verbose = FALSE, reshuffling_fraction = 0.2)
 # coef_new <- t(dat_pca$coordsystem) %*% fit_new$ambient_coordsystem %*% fit_new$linear_coefficients
 # intercept_vec_new <- t(dat_pca$coordsystem) %*%
