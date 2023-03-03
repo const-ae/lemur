@@ -35,8 +35,8 @@ test_that("alignment with Harmony work", {
   expect_equal(pred0_fixed[,unchanged_subset], pred2_fixed[,unchanged_subset])
   expect_equal(pred2_fixed, pred1_fixed)
 
-  de1 <- test_differential_expression(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"))
-  de2 <- test_differential_expression(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"),
+  de1 <- test_de(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"))
+  de2 <- test_de(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"),
                         alignment_contrast = fact(condition = "a", patient = "p1") == fact(condition = "b", patient = "p1"))
   expect_equal(de1, de2)
 })
@@ -85,12 +85,12 @@ test_that("alignment with custom alignment_design works", {
 
   pred <- predict(fit_rot, newdesign = c(1, 0, 0, 0, 0))
 
-  de1 <- test_differential_expression(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"),
+  de1 <- test_de(fit_rot, contrast = fact(condition = "a") == fact(condition = "b"),
                                       alignment_contrast = fact(condition = "a", patient = "p2") == fact(condition = "b", patient = "p2"))
-  de2 <- test_differential_expression(fit_rot2, contrast = fact(condition = "a") == fact(condition = "b"),
+  de2 <- test_de(fit_rot2, contrast = fact(condition = "a") == fact(condition = "b"),
                                       alignment_contrast = fact(condition = "a", patient = "p2") == fact(condition = "b", patient = "p2"))
   expect_error({
-    test_differential_expression(fit_rot3, contrast = fact(condition = "a") == fact(condition = "b"),
+    test_de(fit_rot3, contrast = fact(condition = "a") == fact(condition = "b"),
                                  alignment_contrast = fact(condition = "a", patient = "p2") == fact(condition = "b", patient = "p2"))
   })
 })

@@ -20,7 +20,7 @@
 #' @param return Should the function return a matrix or a long table of the results
 #'
 #' @export
-test_differential_expression <- function(fit,
+test_de <- function(fit,
                                         contrast,
                                         alignment_contrast = {{contrast}},
                                         embedding = NULL,
@@ -30,7 +30,7 @@ test_differential_expression <- function(fit,
   variance_est <- match.arg(variance_est)
   return <- match.arg(return)
   if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
-    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_differential_expression()'.")
+    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_de()'.")
   }
   if(is.null(embedding)){
     embedding <- fit$embedding
@@ -164,7 +164,7 @@ test_global <- function(fit,
 
   variance_est <- match.arg(variance_est)
   if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
-    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_differential_expression()'.")
+    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_de()'.")
   }else if(variance_est == "bootstrap" && missing(contrast)){
     stop("Boostrap test is only compatible with 'contrast' argument. Not with a 'reduced_design'.")
   }

@@ -193,8 +193,8 @@ test_that("n_embedding = 0 works", {
                            verbose = FALSE, rotating = TRUE, stretching = TRUE)
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
-  res1 <- test_differential_expression(fit, contrast = c(1,0,0))
-  res2 <- test_differential_expression(fit, contrast = c(1,0,0), consider = "linear")
+  res1 <- test_de(fit, contrast = c(1,0,0))
+  res2 <- test_de(fit, contrast = c(1,0,0), consider = "linear")
   expect_equal(res1, res2)
 })
 
@@ -295,7 +295,7 @@ test_that("aligning works with alternative design matrices", {
   expect_equal(fit$coefficients - fit$bootstrap_samples[[1]]$coefficients,
                fit2$coefficients - fit2$bootstrap_samples[[1]]$coefficients)
   expect_equal(dim(fit2$alignment_design_matrix), c(500, 3))
-  de <- test_differential_expression(fit2, contrast = 1, alignment_contrast = c(1, 0, 0))
+  de <- test_de(fit2, contrast = 1, alignment_contrast = c(1, 0, 0))
   expect_equal(nrow(de), 500 * 30)
   expect_error(predict(fit2, alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5)))
   pred <- predict(fit2, newdesign = duplicate_rows(1, 5),
@@ -355,7 +355,7 @@ test_that("Under-determined fits run successfully", {
     fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition,
                              verbose = FALSE)
   })
-  expect_silent(test_differential_expression(fit, conditionb))
+  expect_silent(test_de(fit, conditionb))
 })
 
 
@@ -402,7 +402,7 @@ test_that("regularization helps", {
   # fit <- lemur(dat, design = ~ condition,
   #                               n_ambient = 3, n_embedding = 2, verbose = FALSE)
   # sum(residuals(fit)^2)
-  # de <- test_differential_expression(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+  # de <- test_de(fit, contrast = fact(condition = "a") == fact(condition = "b"),
   #                                    variance_est = "none", return = "matrix")
   #
   # de_var <- matrixStats::rowVars(de)
