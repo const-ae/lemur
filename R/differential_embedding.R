@@ -18,7 +18,7 @@
 #'   dimension.
 #' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
 #'   which assay should be used.
-#' @param ... additional parameters that are passed on to the internal function `differential_embedding_impl`.
+#' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
 #'   For example, if you have pre-calculated the ambient PCA, you can provide it as a list with
 #'   the `coordsystem`, `embedding` and `offset` fields, to speed-up the fit.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
@@ -38,7 +38,7 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
   des <- handle_design_parameter(design, data, col_data)
 
 
-  res <- differential_embedding_impl(data_mat, des$design_matrix,
+  res <- lemur_impl(data_mat, des$design_matrix,
                                      n_ambient = n_ambient, n_embedding = n_embedding,
                                      alignment = alignment, base_point = base_point,
                                      verbose = verbose, ...)
@@ -64,7 +64,7 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
 }
 
 
-differential_embedding_impl <- function(Y, design_matrix,
+lemur_impl <- function(Y, design_matrix,
                                         n_ambient = 30, n_embedding = 15,
                                         alignment = FALSE,
                                         base_point = c("global_embedding", "mean"),

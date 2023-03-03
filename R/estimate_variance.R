@@ -46,7 +46,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
     }else{
       # Project data on coordinate system
       embedding <- original_embedding[,resampling,drop=FALSE]
-      # If amb_pca is provided, 'differential_embedding_impl' doesn't need 'data_mat'
+      # If amb_pca is provided, 'lemur_impl' doesn't need 'data_mat'
       # except to check that 'n_ambient' is correct
       data_mat <- matrix(nrow = nrow(fit), ncol = 0)
       amb_pca <- list(coordsystem = fit$ambient_coordsystem, embedding = embedding, offset = fit$ambient_offset)
@@ -77,7 +77,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
       alignment_rotation <- fit$alignment_rotation
       alignment_stretching <- fit$alignment_stretching
     }
-    res <- differential_embedding_impl(data_mat, design_matrix = design_matrix,
+    res <- lemur_impl(data_mat, design_matrix = design_matrix,
                                 n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                 alignment = alignment_method, base_point = base_point,
                                 amb_pca = amb_pca,
