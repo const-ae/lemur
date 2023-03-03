@@ -17,8 +17,6 @@
 \alias{alignment_design_matrix,lemur_fit_obj-method}
 \alias{design_matrix,lemur_fit_obj-method}
 \alias{linear_coefficients,lemur_fit_obj-method}
-\alias{bootstrap_samples,lemur_fit_obj-method}
-\alias{knn_graph,lemur_fit_obj-method}
 \title{Get different features and elements of the 'lemur_fit_obj' object}
 \usage{
 \S4method{n_ambient}{lemur_fit_obj}(object)
@@ -50,10 +48,6 @@
 \S4method{design_matrix}{lemur_fit_obj}(object)
 
 \S4method{linear_coefficients}{lemur_fit_obj}(object)
-
-\S4method{bootstrap_samples}{lemur_fit_obj}(object)
-
-\S4method{knn_graph}{lemur_fit_obj}(object)
 }
 \arguments{
 \item{object}{the 'lemur_fit_obj' object}

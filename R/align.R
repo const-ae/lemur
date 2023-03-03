@@ -369,23 +369,6 @@ correct_fit <- function(fit, correction){
     metadata(fit)[["alignment_rotation"]] <-  metadata(fit)[["alignment_rotation"]] + correction$rotation_coefficients
     metadata(fit)[["alignment_stretching"]] <-  metadata(fit)[["alignment_stretching"]] + correction$stretch_coefficients
   }
-  metadata(fit)[["bootstrap_samples"]] <- lapply(metadata(fit)[["bootstrap_samples"]], \(samp){
-    reducedDim(samp, "embedding") <- t(apply_rotation(
-      apply_stretching(samp$embedding, -correction$stretch_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)),
-      -correction$rotation_coefficients, correction$design_matrix, diag(nrow = samp$n_embedding)))
-    if(! matrix_equals(correction$design_matrix, samp$alignment_design_matrix) ||
-       is.null(correction$design_formula) != is.null(fit$alignment_design) ||
-       correction$design_formula != fit$alignment_design){
-      metadata(samp)[["alignment_rotation"]] <- correction$rotation_coefficients
-      metadata(samp)[["alignment_stretching"]] <- correction$stretch_coefficients
-      metadata(samp)[["alignment_design_matrix"]] <-   correction$design_matrix
-      metadata(samp)[["alignment_design"]] <- correction$design_formula
-    }else{
-      metadata(samp)[["alignment_rotation"]] <- metadata(samp)[["alignment_rotation"]] + correction$rotation_coefficients
-      metadata(samp)[["alignment_stretching"]] <- metadata(samp)[["alignment_stretching"]] + correction$stretch_coefficients
-    }
-    samp
-  })
   fit
 }
 

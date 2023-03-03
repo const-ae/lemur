@@ -13,9 +13,7 @@ test_de(
      }
  },
   embedding = NULL,
-  consider = c("embedding+linear", "embedding", "linear"),
-  variance_est = c("bootstrap", "none"),
-  return = c("table", "matrix")
+  consider = c("embedding+linear", "embedding", "linear")
 )
 }
 \arguments{
@@ -40,10 +38,6 @@ separate experimental designs are used in the multi-condition PCA and the alignm
 the differential expression is tested. It defaults to the position of all cells from the original fit.}
 
 \item{consider}{specify which part of the model are considered for the differential expression test.}
-
-\item{variance_est}{How or if the variance should be estimated}
-
-\item{return}{Should the function return a matrix or a long table of the results}
 }
 \description{
 Differential expression for each cell (or position in the latent emebedding)

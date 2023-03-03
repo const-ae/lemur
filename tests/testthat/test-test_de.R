@@ -4,15 +4,12 @@ test_that("test_de works", {
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 5, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
-
-  fit <- estimate_variance(fit, n_bootstrap_samples = 3, verbose = FALSE)
   fit <- fit[,1:10]
 
   res <- test_de(fit, fact(condition = "b") == fact(condition = "a"))
   res2 <- test_de(fit, conditionb)
 
   expect_equal(dim(res), dim(res2))
-  expect_equal(res[, c("feature", "obs")], res2[, c("feature", "obs")])
 })
 
 test_that("my implementation of Welford's algorithm works", {
@@ -35,8 +32,6 @@ test_that("test_de works with custom embedding", {
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 5, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
-
-  fit <- estimate_variance(fit, n_bootstrap_samples = 3, verbose = FALSE)
   fit <- fit[,1:10]
   test_point <- matrix(0, nrow = 3, ncol = 1)
   colnames(test_point) <- "zero"
@@ -44,31 +39,22 @@ test_that("test_de works with custom embedding", {
                                       embedding = test_point)
   res2 <- test_de(fit, conditionb, embedding = test_point)
 
-  expect_equal(nrow(res), 30)
-  expect_equal(res$obs, rep("zero", 30))
-  expect_equal(nrow(res2), 30)
-  expect_equal(res2$obs, rep("zero", 30))
-  expect_equal(res[, c("feature", "obs")], res2[, c("feature", "obs")])
+  expect_equal(dim(res), c(30, 1))
+  expect_equal(dim(res2), c(30, 1))
 })
 
 
 test_that("test_global works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 5, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_ambient = 5, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 3, verbose = FALSE)
 
-  res <- test_global(fit, reduced_design = ~ 1, consider = "linear",
-                                     variance_est = "analytical", verbose = FALSE)
+  res <- test_global(fit, reduced_design = ~ 1, consider = "linear", variance_est = "analytical", verbose = FALSE)
   expect_s3_class(res, "data.frame")
 
-  res2 <- test_global(fit, contrast = fact(condition = "a"), variance_est = "bootstrap", verbose = FALSE)
-  expect_s3_class(res2, "data.frame")
-
   res3 <- test_global(fit, contrast = fact(condition = "a") == fact(condition = "b"),
-                                      variance_est = "resampling", verbose = FALSE)
-  expect_s3_class(res2, "data.frame")
+                      variance_est = "resampling", verbose = FALSE)
+  expect_s3_class(res3, "data.frame")
 })
 
 test_that("the angle between planes is correctly calculated", {
@@ -115,10 +101,7 @@ test_that("test_global's analytical test produces uniform p-values", {
     rand_cond <- sample(LETTERS[1:2], ncol(dat), replace = TRUE)
     fit <- lemur(dat, design = ~ rand_cond,
                                   n_ambient = 3, n_embedding = 2, verbose = FALSE)
-    fit <- estimate_variance(fit, n_bootstrap_samples = 30)
-
-    test_global(fit, contrast = rand_condB,
-                                variance_est = "bootstrap", verbose = FALSE)
+    test_global(fit, contrast = rand_condB, verbose = FALSE)
   }))
   hist(res$pval, breaks = 40)
   plot(sort(res$pval), ppoints(nrow(res)), asp = 1, log = "xy"); abline(0,1)
@@ -147,15 +130,12 @@ test_that("test_global's analytical test produces uniform p-values", {
     dat$num <- round(runif(ncol(dat), min = -0.7, max = 0.7))
     fit <- lemur(dat, design = ~ rand_cond + num,
                                   n_ambient = 4, n_embedding = 0, verbose = FALSE)
-    fit <- estimate_variance(fit, n_bootstrap_samples = 30, verbose = FALSE)
-    res1 <- test_global(fit, contrast = rand_condB,
-                                variance_est = "resampling", verbose = FALSE)
-    res2 <- test_global(fit, contrast = rand_condB,
-                                        variance_est = "bootstrap", verbose = FALSE)
+    res1 <- test_global(fit, contrast = rand_condB, variance_est = "resampling", verbose = FALSE)
+
     res3 <- test_global(fit, contrast = rand_condB,
                                         variance_est = "analytical", consider = "linear", verbose = FALSE)
-    tmp <- rbind(res1, res2, res3)
-    tmp$method <- c("resampling", "bootstrap", "analytical")
+    tmp <- rbind(res1, res3)
+    tmp$method <- c("resampling", "analytical")
     tmp
   }))
   res

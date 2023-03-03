@@ -8,7 +8,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                        design, design_matrix, linear_coefficients,
                        base_point, coefficients, embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
-                       alignment_design, alignment_design_matrix, bootstrap_samples = NULL, knn_graph = NULL){
+                       alignment_design, alignment_design_matrix){
 
 
   if(is.null(data_mat)){
@@ -28,8 +28,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                                               design = design,
                                               base_point = base_point, coefficients = coefficients,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
-                                              alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
-                                              bootstrap_samples = bootstrap_samples, knn_graph = knn_graph))
+                                              alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix))
   .lemur_fit_obj(sce)
 }
 
@@ -83,9 +82,6 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(is.null(design_matrix)) msg <- c(msg, "'design_matrix' must not be NULL")
   linear_coefficients <- featureLoadings(reducedDim(obj, "linearFit"))
   if(is.null(linear_coefficients)) msg <- c(msg, "'linear_coefficients' must not be NULL")
-  bootstrap_samples <- obj$bootstrap_samples
-  knn_graph <- obj$knn_graph
-
 
   if(! is.null(ambient_coordsystem) && nrow(ambient_coordsystem) != n_features) msg <- c(msg, "`nrow(ambient_coordsystem)` does not match the number of features")
   if(! is.null(ambient_coordsystem) && ncol(ambient_coordsystem) != eff_n_ambient) msg <- c(msg, "`ncol(ambient_coordsystem)` does not match `n_ambient`")
@@ -113,9 +109,6 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(! is.null(alignment_design_matrix) && nrow(alignment_design_matrix) != n_obs) msg <- c(msg, "`nrow(alignment_design_matrix)` does not match number of observations")
   if(! is.null(alignment_design) &&  ! inherits(alignment_design, "formula")) msg <- c(msg, "`alignment_design` must inherit from formula or be NULL")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
-  if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "lemur_fit_obj"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'lemur_fit_obj' objects.")
-  if(! is.null(knn_graph) && ! inherits(knn_graph, "igraph")) msg <- c(msg, "knn_graph must be an object of class 'igraph'.")
-  if(! is.null(knn_graph) && igraph::vcount(knn_graph) != n_obs) msg <- c(msg, "knn_graph must have one vertex for each observation.")
 
 
   if(is.null(msg)){
@@ -138,14 +131,6 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
 
   i_missing <- missing(i)
   j_missing <- missing(j)
-  if(! is.null(x$bootstrap_samples)){
-    metadata(x)$bootstrap_samples <- lapply(x$bootstrap_samples, \(bs) {
-      if(!i_missing && !j_missing) bs[i,j,...]
-      else if(!i_missing && j_missing) bs[i,,...]
-      else if(i_missing && !j_missing) bs[,j,...]
-      else bs[]
-    })
-  }
 
   if (!missing(i)) {
     # Update metadata
@@ -160,7 +145,6 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
     if(! isTRUE(am) && ! isFALSE(am)){
       metadata(x)[["alignment_method"]] <- metadata(x)[["alignment_method"]][jj]
     }
-    if(! is.null(metadata(x)[["knn_graph"]])) metadata(x)[["knn_graph"]] <- igraph::induced_subgraph(metadata(x)[["knn_graph"]], jj)
   }
 
   callNextMethod()
@@ -173,7 +157,7 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
                          "design", "base_point",
                          "coefficients", "embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
-                         "bootstrap_samples", "knn_graph", "colData", "rowData")
+                         "colData", "rowData")
 
 #' Get different features and elements of the 'lemur_fit_obj' object
 #'
@@ -314,23 +298,6 @@ setGeneric("linear_coefficients", function(object, ...) standardGeneric("linear_
 setMethod("linear_coefficients", signature = "lemur_fit_obj", function(object){
   featureLoadings(reducedDim(object, "linearFit"))
 })
-
-setGeneric("bootstrap_samples", function(object, ...) standardGeneric("bootstrap_samples"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("bootstrap_samples", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["bootstrap_samples"]]
-})
-
-setGeneric("knn_graph", function(object, ...) standardGeneric("knn_graph"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("knn_graph", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["knn_graph"]]
-})
-
 
 #' @rdname cash-lemur_fit_obj-method
 #' @export

@@ -9,7 +9,7 @@ test_global(
   contrast,
   reduced_design = NULL,
   consider = c("embedding+linear", "embedding", "linear"),
-  variance_est = c("bootstrap", "analytical", "resampling", "none"),
+  variance_est = c("analytical", "resampling", "none"),
   verbose = TRUE,
   ...
 )
@@ -33,8 +33,7 @@ coefficients, they are compared directly (e.g. \code{fact(treatment = "A", sex =
 
 \item{consider}{specify which part of the model are considered for the differential expression test.}
 
-\item{variance_est}{How or if the variance should be estimated. \code{'bootstrap'} is only compatible with a constrast,
-\code{'analytical'} is only compatible with \code{consider = "linear"}. \code{'resampling'} is the most flexible (to adapt the number
+\item{variance_est}{How or if the variance should be estimated. \code{'analytical'} is only compatible with \code{consider = "linear"}. \code{'resampling'} is the most flexible (to adapt the number
 of resampling iterations, set \code{n_resampling_iter}. Default: \code{100})}
 }
 \value{

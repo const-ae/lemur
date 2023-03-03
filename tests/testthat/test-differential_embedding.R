@@ -48,7 +48,6 @@ test_that("subsetting works", {
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
   fit <- lemur(dat, design = ~ condition,
                                 n_embedding = 5, n_ambient = 30, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
   fit2 <- fit[1:10, 101:120]
   expect_true(validObject(fit2))
 
@@ -73,7 +72,6 @@ test_that("subsetting works", {
 
   fit4 <- fit["gene_13", ]
   expect_equal(nrow(fit4), 1)
-  expect_equal(nrow(fit4$bootstrap_samples[[1]]), 1)
 
   # No ambient PCA
   fit5 <- lemur(dat[,1:20], design = ~ condition,
@@ -146,9 +144,7 @@ test_that("providing a pre-calculated PCA works", {
   expect_error(lemur(dat, design = ~ condition, n_ambient = 20,
                                       n_embedding = 5, verbose = FALSE,
                                       use_assay = "sin", amb_pca = pca))
-  expect_silent(
-    estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
-  )
+
 
 })
 
@@ -188,7 +184,6 @@ test_that("n_embedding = 0 works", {
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
 
-  fit <- estimate_variance(fit, n_bootstrap_samples = 2, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = sample(LETTERS[1:2], 500, replace = TRUE),
                            verbose = FALSE, rotating = TRUE, stretching = TRUE)
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
@@ -198,31 +193,6 @@ test_that("n_embedding = 0 works", {
   expect_equal(res1, res2)
 })
 
-test_that("bootstrapping works", {
-  dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
-  fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
-  expect_null(fit$bootstrap_samples)
-  expect_s4_class(fit2$bootstrap_samples[[1]], "lemur_fit_obj")
-  expect_equal(rownames(fit2$bootstrap_samples[[1]]), rownames(fit2))
-  expect_equal(colnames(fit2$bootstrap_samples[[1]]), colnames(fit2))
-  expect_equal(fit2$bootstrap_samples[[1]]$ambient_coordsystem, fit2$ambient_coordsystem)
-  # The differential embeddings of the bootstraps should be well correlated
-  expect_gt(cor(c(fit2$embedding), c(fit2$bootstrap_samples[[1]]$embedding)), 0.9)
-})
-
-test_that("adding a KNN-graph to the fit object works",  {
-  dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  fit <- add_knn_graph(fit, k = 4)
-  expect_true(validObject(fit))
-
-  # Subsetting is no problem
-  expect_silent(fit[,1:10])
-  expect_silent(fit[,rep(c(TRUE,FALSE), length = ncol(fit))])
-})
 
 # test_that("linear fit and embedding don't work against each other", {
 #   Y <- matrix(c(rnorm(100, mean = -3), rnorm(60, mean = 2)), nrow = 1)
@@ -237,19 +207,12 @@ test_that("align_by_grouping works", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
-  expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   fit2 <- align_by_grouping(fit, grouping = alignment, verbose = FALSE)
   # expect_equal(fit2$alignment_method, alignment)
-  # expect_equal(fit2$bootstrap_samples[[1]]$alignment_method, alignment)
-  expect_equal(fit2$bootstrap_samples[[1]]$alignment_rotation, fit2$alignment_rotation)
-  expect_equal(fit2$bootstrap_samples[[1]]$alignment_stretching, fit2$alignment_stretching)
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
-  expect_equal(fit$coefficients - fit$bootstrap_samples[[1]]$coefficients,
-               fit2$coefficients - fit2$bootstrap_samples[[1]]$coefficients)
 })
 
 
@@ -257,9 +220,7 @@ test_that("align_neighbors works", {
   dat <- make_synthetic_data(n_genes = 15)
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = Inf, n_embedding = 3, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 2, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
-  expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
   al_rot <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, cells_per_cluster = 1, verbose = FALSE)
   al_stretch <- align_neighbors(fit, rotating = FALSE, stretching = TRUE, cells_per_cluster = 1, verbose = FALSE)
@@ -280,23 +241,16 @@ test_that("align_harmony works", {
 
 test_that("aligning works with alternative design matrices", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ 1,
-                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
-  fit <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
+  fit <- lemur(dat, design = ~ 1, n_ambient = 10, n_embedding = 5, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
-  expect_equal(fit$bootstrap_samples[[1]]$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   alignment_design <- model.matrix(~ condition, fit$colData)
   fit2 <- align_by_grouping(fit, grouping = alignment, design = alignment_design, verbose = FALSE)
-  expect_equal(fit2$bootstrap_samples[[1]]$alignment_rotation, fit2$alignment_rotation)
-  expect_equal(fit2$bootstrap_samples[[1]]$alignment_stretching, fit2$alignment_stretching)
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
-  expect_equal(fit$coefficients - fit$bootstrap_samples[[1]]$coefficients,
-               fit2$coefficients - fit2$bootstrap_samples[[1]]$coefficients)
   expect_equal(dim(fit2$alignment_design_matrix), c(500, 3))
   de <- test_de(fit2, contrast = 1, alignment_contrast = c(1, 0, 0))
-  expect_equal(nrow(de), 500 * 30)
+  expect_equal(dim(de), c(30, 500))
   expect_error(predict(fit2, alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5)))
   pred <- predict(fit2, newdesign = duplicate_rows(1, 5),
                   alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5),
@@ -351,10 +305,7 @@ test_that("Under-determined fits run successfully", {
   dat <- dat[,dat$condition != "c"]
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 10, n_embedding = 2, verbose = FALSE)
-  expect_warning({
-    fit <- estimate_variance(fit, n_bootstrap_samples = 4, replicates_by = condition,
-                             verbose = FALSE)
-  })
+
   expect_silent(test_de(fit, conditionb))
 })
 

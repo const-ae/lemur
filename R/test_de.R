@@ -16,22 +16,13 @@
 #' @param embedding matrix of size `n_embedding` \eqn{\times} `n` that specifies where in the latent space
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
-#' @param variance_est How or if the variance should be estimated
-#' @param return Should the function return a matrix or a long table of the results
 #'
 #' @export
 test_de <- function(fit,
-                                        contrast,
-                                        alignment_contrast = {{contrast}},
-                                        embedding = NULL,
-                                        consider = c("embedding+linear", "embedding", "linear"),
-                                        variance_est = c("bootstrap", "none"),
-                                        return = c("table", "matrix")){
-  variance_est <- match.arg(variance_est)
-  return <- match.arg(return)
-  if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
-    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_de()'.")
-  }
+                    contrast,
+                    alignment_contrast = {{contrast}},
+                    embedding = NULL,
+                    consider = c("embedding+linear", "embedding", "linear")){
   if(is.null(embedding)){
     embedding <- fit$embedding
     use_provided_diff_emb <- FALSE
@@ -39,18 +30,6 @@ test_de <- function(fit,
     use_provided_diff_emb <- TRUE
   }
 
-  if(return == "table"){
-    feature_names <- if(is.null(rownames(fit))){
-      rep(paste0("feature_", seq_len(nrow(fit))), times = ncol(embedding))
-    }else{
-      rep(rownames(fit), times = ncol(embedding))
-    }
-    obs_names <- if(is.null(colnames(embedding))){
-      rep(paste0("obs_", seq_len(ncol(embedding))), each = nrow(fit))
-    }else{
-      rep(colnames(embedding), each = nrow(fit))
-    }
-  }
   consider <- match.arg(consider)
   with_lm <- consider == "embedding+linear" || consider == "linear"
   with_emb <- consider == "embedding+linear" || consider == "embedding"
@@ -66,70 +45,10 @@ test_de <- function(fit,
   }else{
     predict(fit, newdesign = cntrst, alignment_design_matrix = al_cntrst, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
   }
-  if(variance_est == "bootstrap"){
-    # Welfords's online algorithm to calculate mean and sd of bootstrap estimates
-    msq_init <- mean_init <- matrix(0, nrow = nrow(fit), ncol = ncol(embedding))
-    preds <- fold_left(list(mean = mean_init, msq = msq_init, iter = 1))(fit$bootstrap_samples, \(elem, accum){
-      bs_embedding <- if(use_provided_diff_emb){
-        embedding
-      }else{
-        elem$embedding
-      }
-      diff <- if(inherits(cntrst, "contrast_relation")){
-        linearCoefficients <- elem$linear_coefficients
-        predict(elem, newdesign = cntrst$lhs, alignment_design_matrix = al_cntrst$lhs, embedding = bs_embedding, with_linear_model = with_lm,
-                with_differential_embedding = with_emb) -
-          predict(elem, newdesign = cntrst$rhs, alignment_design_matrix = al_cntrst$rhs, embedding = bs_embedding, with_linear_model = with_lm,
-                  with_differential_embedding = with_emb)
-      }else{
-        predict(elem, newdesign = cntrst, alignment_design_matrix = al_cntrst, embedding = bs_embedding, with_linear_model = with_lm,
-                with_differential_embedding = with_emb)
-      }
-      delta <- diff - accum$mean
-      accum$mean <- accum$mean + delta / accum$iter
-      delta2 <- diff - accum$mean
-      accum$msq <- accum$msq + delta * delta2
-      accum$iter <- accum$iter + 1
-      accum
-    })
-    # The point estimate using the original data is better
-    # than the mean of the bootstrap samples (although they are close anyways)
-    # diff <- preds$mean
-    sd <- sqrt(preds$msq / (length(fit$bootstrap_samples) - 1))
 
-    if(return == "matrix"){
-      colnames(sd) <- colnames(diff) <- colnames(embedding)
-      rownames(sd) <- rownames(diff) <- rownames(fit)
-
-      list(diff = diff, sd = sd)
-    }else{
-      pval <- if(! inherits(cntrst, "contrast_relation") || cntrst$relation == "equal"){
-        pmin(pnorm(diff / sd, lower.tail = TRUE), pnorm(diff / sd, lower.tail = FALSE)) * 2
-      }else if(cntrst$relation == "less_than"){
-        pnorm(diff / sd, lower.tail = FALSE)
-      }else if(cntrst$relation == "greather_than"){
-        pnorm(diff / sd, lower.tail = TRUE)
-      }
-      adj_pval <- p.adjust(pval, "BH")
-      data.frame(feature = feature_names,
-                 obs = obs_names,
-                 pval = c(pval),
-                 adj_pval = c(adj_pval),
-                 diff = c(diff),
-                 adj_diff = c(diff / sd),
-                 sd = c(sd), stringsAsFactors = FALSE, row.names = NULL)
-    }
-  }else{ # variance_est == "none"
-    if(return == "matrix"){
-      colnames(diff) <- colnames(embedding)
-      rownames(diff) <- rownames(fit)
-      diff
-    }else{
-      data.frame(feature = feature_names,
-                 obs = obs_names,
-                 diff = c(diff), stringsAsFactors = FALSE, row.names = NULL)
-    }
-  }
+  colnames(diff) <- colnames(embedding)
+  rownames(diff) <- rownames(fit)
+  diff
 }
 
 
@@ -147,8 +66,7 @@ test_de <- function(fit,
 #'       `fact(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
 #' @param reduced_design an alternative specification of the null hypothesis.
 #' @param consider specify which part of the model are considered for the differential expression test.
-#' @param variance_est How or if the variance should be estimated. `'bootstrap'` is only compatible with a constrast,
-#'   `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number
+#' @param variance_est How or if the variance should be estimated. `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number
 #'   of resampling iterations, set `n_resampling_iter`. Default: `100`)
 #'
 #' @return a data.frame
@@ -158,16 +76,11 @@ test_global <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),
-                                        variance_est = c("bootstrap", "analytical", "resampling", "none"), verbose = TRUE,
+                                        variance_est = c("analytical", "resampling", "none"), verbose = TRUE,
                                         ...){
 
 
   variance_est <- match.arg(variance_est)
-  if(variance_est == "bootstrap" && is.null(fit$bootstrap_samples)){
-    stop("No bootstrap samples available. Please call 'estimate_variance()' before calling 'test_de()'.")
-  }else if(variance_est == "bootstrap" && missing(contrast)){
-    stop("Boostrap test is only compatible with 'contrast' argument. Not with a 'reduced_design'.")
-  }
   full_design <- fit$design_matrix
   consider <- match.arg(consider)
   with_lm <- consider == "embedding+linear" || consider == "linear"
@@ -233,25 +146,6 @@ test_global <- function(fit,
                                    RSS_red = resid_red %*% t(resid_red),
                                    n_features = fit$n_ambient, full_design, reduced_design_mat)
     }
-  }else if(variance_est == "bootstrap"){
-    # Get all fit values and check if they are different from zero
-    vals <- matrix(nrow = 0L, ncol = length(fit$bootstrap_samples))
-    n_ambient_eff <- min(fit$n_ambient, nrow(fit))
-    if(with_lm){
-      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(bs$linear_coefficients %*% cntrst), ncol = n_ambient_eff)))
-    }
-    if(with_emb){
-      vals <- rbind(vals, t(mply_dbl(fit$bootstrap_samples, \(bs) c(sum_tangent_vectors(bs$coefficients, cntrst)), ncol = n_ambient_eff * fit$n_embedding)))
-    }
-    # Filter out zero variance obs
-    # vals <- vals[matrixStats::rowSds(vals) > 1e-6,,drop=FALSE]
-
-    # Do an adapted version of the Hotelling z-test (based on the Mahalanobis distance)
-    # that can handle n_bootstrap < n_ambient * n_coef * (n_embedding + 1)
-    # see https://stats.stackexchange.com/a/514628/130486
-    # zstat <- drop(t(rowMeans(vals)) %*% corpcor::invcov.shrink(t(vals), verbose = FALSE) %*% rowMeans(vals))
-    zstat <- drop(t(rowMeans(vals)) %*% diag(1/(matrixStats::rowVars(vals)+1e-5), nrow = nrow(vals)) %*% rowMeans(vals))
-    pval <- pchisq(zstat, df = nrow(vals), lower.tail = FALSE)
   }else if(variance_est == "resampling"){
     if("n_resampling_iter" %in% ...names()){
       n_resampling_iter <- list(...)[["n_resampling_iter"]]
@@ -289,16 +183,6 @@ test_global <- function(fit,
                reduced_design = rlang::as_label(reduced_design),
                pval = pval)
   }
-}
-
-
-test_differential_abundance <- function(fit,
-                                        contrast,
-                                        reduced_design = NULL,
-                                        variance_est = c("none", "bootstrap")){
-
-  stop("Not implemented")
-
 }
 
 
