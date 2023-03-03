@@ -2,10 +2,10 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 cumz <- function(x) {
-    .Call(`_DiffEmbSeq_cumz`, x)
+    .Call(`_lemur_cumz`, x)
 }
 
 cumz_which_abs_max <- function(x) {
-    .Call(`_DiffEmbSeq_cumz_which_abs_max`, x)
+    .Call(`_lemur_cumz_which_abs_max`, x)
 }
 

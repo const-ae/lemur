@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // cumz
 NumericVector cumz(NumericVector x);
-RcppExport SEXP _DiffEmbSeq_cumz(SEXP xSEXP) {
+RcppExport SEXP _lemur_cumz(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
@@ -22,7 +22,7 @@ END_RCPP
 }
 // cumz_which_abs_max
 List cumz_which_abs_max(NumericVector x);
-RcppExport SEXP _DiffEmbSeq_cumz_which_abs_max(SEXP xSEXP) {
+RcppExport SEXP _lemur_cumz_which_abs_max(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
@@ -32,12 +32,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_DiffEmbSeq_cumz", (DL_FUNC) &_DiffEmbSeq_cumz, 1},
-    {"_DiffEmbSeq_cumz_which_abs_max", (DL_FUNC) &_DiffEmbSeq_cumz_which_abs_max, 1},
+    {"_lemur_cumz", (DL_FUNC) &_lemur_cumz, 1},
+    {"_lemur_cumz_which_abs_max", (DL_FUNC) &_lemur_cumz_which_abs_max, 1},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_DiffEmbSeq(DllInfo *dll) {
+RcppExport void R_init_lemur(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

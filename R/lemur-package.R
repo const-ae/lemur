@@ -16,7 +16,7 @@ NULL
 NULL
 
 ## usethis namespace: start
-#' @useDynLib DiffEmbSeq, .registration = TRUE
+#' @useDynLib lemur, .registration = TRUE
 ## usethis namespace: end
 NULL
 
