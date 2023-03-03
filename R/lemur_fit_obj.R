@@ -6,7 +6,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                        n_ambient, n_embedding,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
-                       diffemb_basepoint, diffemb_coefficients, diffemb_embedding,
+                       basepoint, diffemb_coefficients, diffemb_embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
                        alignment_design, alignment_design_matrix, bootstrap_samples = NULL, knn_graph = NULL){
 
@@ -26,7 +26,7 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                               metadata = list(n_ambient = n_ambient, n_embedding = n_embedding,
                                               ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
                                               design = design,
-                                              diffemb_basepoint = diffemb_basepoint, diffemb_coefficients = diffemb_coefficients,
+                                              basepoint = basepoint, diffemb_coefficients = diffemb_coefficients,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
                                               alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
                                               bootstrap_samples = bootstrap_samples, knn_graph = knn_graph))
@@ -64,8 +64,8 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(is.null(ambient_coordsystem)) msg <- c(msg, "'ambient_coordsystem' must not be NULL")
   ambient_offset <- obj$ambient_offset
   if(is.null(ambient_offset)) msg <- c(msg, "'ambient_offset' must not be NULL")
-  diffemb_basepoint <- obj$diffemb_basepoint
-  if(is.null(diffemb_basepoint)) msg <- c(msg, "'diffemb_basepoint' must not be NULL")
+  basepoint <- obj$basepoint
+  if(is.null(basepoint)) msg <- c(msg, "'basepoint' must not be NULL")
   diffemb_coefficients <- obj$diffemb_coefficients
   if(is.null(diffemb_coefficients)) msg <- c(msg, "'diffemb_coefficients' must not be NULL")
   alignment_method <- obj$alignment_method
@@ -93,8 +93,8 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   if(! is.null(design_matrix) && nrow(design_matrix) != n_obs) msg <- c(msg, "`nrow(design_matrix)` does not match number of observations")
   if(! is.null(linear_coefficients) && nrow(linear_coefficients) != eff_n_ambient) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_ambient`")
   if(! is.null(linear_coefficients) && ncol(linear_coefficients) != ncol(design_matrix)) msg <- c(msg, "`ncol(linear_coefficients)` does not match `ncol(design_matrix)`")
-  if(! is.null(diffemb_basepoint) && nrow(diffemb_basepoint) != eff_n_ambient) msg <- c(msg, "`nrow(diffemb_basepoint)` does not match `n_ambient`")
-  if(! is.null(diffemb_basepoint) && ncol(diffemb_basepoint) != n_embedding) msg <- c(msg, "`ncol(diffemb_basepoint)` does not match `n_embedding`")
+  if(! is.null(basepoint) && nrow(basepoint) != eff_n_ambient) msg <- c(msg, "`nrow(basepoint)` does not match `n_ambient`")
+  if(! is.null(basepoint) && ncol(basepoint) != n_embedding) msg <- c(msg, "`ncol(basepoint)` does not match `n_embedding`")
   if(! is.null(diffemb_coefficients) && ! is.array(diffemb_coefficients) || length(dim(diffemb_coefficients)) != 3) msg <- c(msg, "`diffemb_coefficients` must be a three dimensional array")
   if(! is.null(diffemb_coefficients) && dim(diffemb_coefficients)[1] != eff_n_ambient) msg <- c(msg, "`dim(diffemb_coefficients)[1]` does not match `n_ambient`")
   if(! is.null(diffemb_coefficients) && dim(diffemb_coefficients)[2] != n_embedding) msg <- c(msg, "`dim(diffemb_coefficients)[2]` does not match `n_embedding`")
@@ -170,7 +170,7 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
 
 .methods_to_suggest <- c("n_ambient", "n_embedding",
                          "ambient_coordsystem", "ambient_offset",
-                         "design", "diffemb_basepoint",
+                         "design", "basepoint",
                          "diffemb_coefficients", "diffemb_embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
                          "bootstrap_samples", "knn_graph", "colData", "rowData")

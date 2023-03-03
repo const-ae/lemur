@@ -182,8 +182,8 @@ test_differential_embedding <- function(fit,
       if(cntrst$relation != "equal"){
         stop("differential embedding test can only be two-sided.")
       }
-      lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$lhs)), fit$diffemb_basepoint),
-                                   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$rhs)), fit$diffemb_basepoint))
+      lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$lhs)), fit$basepoint),
+                                   grassmann_map(sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst$rhs)), fit$basepoint))
       cntrst <- cntrst$lhs - cntrst$rhs
     }else{
       lfc_diffemb <- sum_tangent_vectors(fit$diffemb_coefficients, c(cntrst))

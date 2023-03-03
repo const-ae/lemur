@@ -27,7 +27,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          ambient_coordsystem = object$ambient_coordsystem, ambient_offset = object$ambient_offset,
                          linear_coefficients = object$linear_coefficients,
                          diffemb_coefficients = object$diffemb_coefficients,
-                         diffemb_basepoint = object$diffemb_basepoint,
+                         basepoint = object$basepoint,
                          alignment_rotation = object$alignment_rotation,
                          alignment_stretching = object$alignment_stretching,
                          alignment_design_matrix = object$alignment_design_matrix,
@@ -70,7 +70,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
       gr1 <- mmg[idx,1]
       gr2 <- mmg[idx,2]
       covar1 <- newdesign[which(mm_groups == gr1)[1],]
-      diffemb <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covar1), diffemb_basepoint)
+      diffemb <- grassmann_map(sum_tangent_vectors(diffemb_coefficients, covar1), basepoint)
       alignment <- if(with_alignment){
         covar2 <- alignment_design_matrix[which(mm_al_groups == gr2)[1],]
         spd_map(sum_tangent_vectors(alignment_stretching, covar2), diag(nrow = n_embedding)) %*%
@@ -118,7 +118,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
   if(with_differential_embedding){
     fit_alt <- lemur_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
                                            n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
-                                           alignment = fit$alignment_method, base_point = fit$diffemb_basepoint,
+                                           alignment = fit$alignment_method, base_point = fit$basepoint,
                                            amb_pca = list(coordsystem = fit$ambient_coordsystem,
                                                           embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
                                                           offset = fit$ambient_offset),
@@ -129,7 +129,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_design_matrix = fit_alt$alignment_design_matrix,
+                 basepoint = fit_alt$basepoint, alignment_design_matrix = fit_alt$alignment_design_matrix,
                  alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
   }else{
     fit_alt <- lemur_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
@@ -145,7 +145,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, diffemb_coefficients = fit_alt$diffemb_coefficients,
-                 diffemb_basepoint = fit_alt$diffemb_basepoint, alignment_design_matrix = fit$alignment_design_matrix,
+                 basepoint = fit_alt$basepoint, alignment_design_matrix = fit$alignment_design_matrix,
                  alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
   }
 }
