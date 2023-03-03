@@ -27,7 +27,8 @@ Imports:
     matrixStats,
     BiocNeighbors,
     igraph,
-    collections
+    collections,
+    Rcpp
 Suggests: 
     testthat (>= 3.0.0),
     MASS,
@@ -37,4 +38,5 @@ Suggests:
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-
+LinkingTo: 
+    Rcpp
