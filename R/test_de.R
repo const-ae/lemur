@@ -6,11 +6,11 @@
 #'    * a numeric vector whose length matches the number of coefficients (e.g., `c(1, 0, -1, 0)`
 #'       to compare the coefficients A vs C in a model with four treatment options)
 #'    * the unquoted names of coefficients to compare (e.g., `treatmentA - treatmentC`)
-#'    * a call to `fact()` specifying a full observation (e.g. `fact(treatment = "A", sex = "male") - fact(treatment = "C", sex = "male")` to
+#'    * a call to `cond()` specifying a full observation (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
 #'       compare treatment A vs C for male observations). Unspecified factors default to the reference level.
 #'    * an extension of the previous two options where instead of subtracting the
-#'       coefficients, they are compared directly (e.g. `fact(treatment = "A", sex = "male") < fact(treatment = "C", sex = "male")` or
-#'       `fact(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
+#'       coefficients, they are compared directly (e.g. `cond(treatment = "A", sex = "male") < cond(treatment = "C", sex = "male")` or
+#'       `cond(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
 #' @param alignment_contrast same as `contrast` but applied to the `alignment_design_matrix`. This is for advanced use cases where
 #'   separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the `contrast` argument.
 #' @param embedding matrix of size `n_embedding` \eqn{\times} `n` that specifies where in the latent space
@@ -59,11 +59,11 @@ test_de <- function(fit,
 #'    * a numeric vector whose length matches the number of coefficients (e.g., `c(1, 0, -1, 0)`
 #'       to compare the coefficients A vs C in a model with four treatment options)
 #'    * the unquoted names of coefficients to compare (e.g., `treatmentA - treatmentC`)
-#'    * a call to `fact()` specifying a full observation (e.g. `fact(treatment = "A", sex = "male") - fact(treatment = "C", sex = "male")` to
+#'    * a call to `cond()` specifying a full observation (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
 #'       compare treatment A vs C for male observations). Unspecified factors default to the reference level.
 #'    * an extension of the previous two options where instead of subtracting the
-#'       coefficients, they are compared directly (e.g. `fact(treatment = "A", sex = "male") < fact(treatment = "C", sex = "male")` or
-#'       `fact(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
+#'       coefficients, they are compared directly (e.g. `cond(treatment = "A", sex = "male") < cond(treatment = "C", sex = "male")` or
+#'       `cond(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
 #' @param reduced_design an alternative specification of the null hypothesis.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #' @param variance_est How or if the variance should be estimated. `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number

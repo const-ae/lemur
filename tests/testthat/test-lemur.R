@@ -353,7 +353,7 @@ test_that("regularization helps", {
   # fit <- lemur(dat, design = ~ condition,
   #                               n_ambient = 3, n_embedding = 2, verbose = FALSE)
   # sum(residuals(fit)^2)
-  # de <- test_de(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+  # de <- test_de(fit, contrast = cond(condition = "a") == cond(condition = "b"),
   #                                    variance_est = "none", return = "matrix")
   #
   # de_var <- matrixStats::rowVars(de)
