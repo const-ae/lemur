@@ -154,7 +154,7 @@ test_differential_expression <- function(fit,
 #' @return a data.frame
 #'
 #' @export
-test_differential_embedding <- function(fit,
+test_global <- function(fit,
                                         contrast,
                                         reduced_design = NULL,
                                         consider = c("embedding+linear", "embedding", "linear"),

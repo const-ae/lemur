@@ -52,21 +52,21 @@ test_that("test_differential_expression works with custom embedding", {
 })
 
 
-test_that("test_differential_embedding works", {
+test_that("test_global works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
   fit <- lemur(dat, design = ~ condition,
                                 n_ambient = 5, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
   fit <- estimate_variance(fit, n_bootstrap_samples = 3, verbose = FALSE)
 
-  res <- test_differential_embedding(fit, reduced_design = ~ 1, consider = "linear",
+  res <- test_global(fit, reduced_design = ~ 1, consider = "linear",
                                      variance_est = "analytical", verbose = FALSE)
   expect_s3_class(res, "data.frame")
 
-  res2 <- test_differential_embedding(fit, contrast = fact(condition = "a"), variance_est = "bootstrap", verbose = FALSE)
+  res2 <- test_global(fit, contrast = fact(condition = "a"), variance_est = "bootstrap", verbose = FALSE)
   expect_s3_class(res2, "data.frame")
 
-  res3 <- test_differential_embedding(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+  res3 <- test_global(fit, contrast = fact(condition = "a") == fact(condition = "b"),
                                       variance_est = "resampling", verbose = FALSE)
   expect_s3_class(res2, "data.frame")
 })
@@ -82,16 +82,16 @@ test_that("the angle between planes is correctly calculated", {
   # The angle and delta_diffemb for a left-right contrast are slightly different than the results
   # for a one-sided contrast. The left-right contrast is slighly more accurate because it calculate
   # log(map(a, p), map(b, p)) instead of simply a - b
-  res <- test_differential_embedding(fit, contrast = fact(condition = "a") - fact(condition = "b"),
+  res <- test_global(fit, contrast = fact(condition = "a") - fact(condition = "b"),
                                       variance_est = "none", verbose = FALSE)
-  res2 <- test_differential_embedding(fit, contrast = fact(condition = "a") == fact(condition = "b"),
+  res2 <- test_global(fit, contrast = fact(condition = "a") == fact(condition = "b"),
                                      variance_est = "none", verbose = FALSE)
   plane_a <- pca(assay(dat)[,dat$condition == "a"], n = n_emb)$coordsystem
   plane_b <- pca(assay(dat)[,dat$condition == "b"], n = n_emb)$coordsystem
   expect_equal(res2$angle_degrees, tail(principal_angle(plane_a, plane_b), n = 1))
 })
 
-test_that("test_differential_embedding's analytical test produces uniform p-values", {
+test_that("test_global's analytical test produces uniform p-values", {
   skip("Long running test")
 
   # Analytical test for linear part
@@ -102,7 +102,7 @@ test_that("test_differential_embedding's analytical test produces uniform p-valu
     dat$rand_cond <- sample(LETTERS[1:3], ncol(dat), replace = TRUE)
     fit <- lemur(dat, design = ~ rand_cond,
                                   n_ambient = 5, n_embedding = 3, verbose = FALSE)
-    test_differential_embedding(fit, reduced_design = ~ 1, variance_est = "analytical",
+    test_global(fit, reduced_design = ~ 1, variance_est = "analytical",
                                 consider = "linear", verbose = FALSE)
   }))
   hist(res$pval, breaks = 40)
@@ -117,7 +117,7 @@ test_that("test_differential_embedding's analytical test produces uniform p-valu
                                   n_ambient = 3, n_embedding = 2, verbose = FALSE)
     fit <- estimate_variance(fit, n_bootstrap_samples = 30)
 
-    test_differential_embedding(fit, contrast = rand_condB,
+    test_global(fit, contrast = rand_condB,
                                 variance_est = "bootstrap", verbose = FALSE)
   }))
   hist(res$pval, breaks = 40)
@@ -132,7 +132,7 @@ test_that("test_differential_embedding's analytical test produces uniform p-valu
     dat$num <- round(runif(ncol(dat), min = -0.7, max = 0.7))
     fit <- lemur(dat, design = ~ rand_cond + num,
                                   n_ambient = 4, n_embedding = 2, verbose = FALSE)
-    test_differential_embedding(fit, contrast = rand_condB,
+    test_global(fit, contrast = rand_condB,
                                 variance_est = "resampling", verbose = FALSE)
   }))
   hist(res$pval, breaks = 40)
@@ -148,11 +148,11 @@ test_that("test_differential_embedding's analytical test produces uniform p-valu
     fit <- lemur(dat, design = ~ rand_cond + num,
                                   n_ambient = 4, n_embedding = 0, verbose = FALSE)
     fit <- estimate_variance(fit, n_bootstrap_samples = 30, verbose = FALSE)
-    res1 <- test_differential_embedding(fit, contrast = rand_condB,
+    res1 <- test_global(fit, contrast = rand_condB,
                                 variance_est = "resampling", verbose = FALSE)
-    res2 <- test_differential_embedding(fit, contrast = rand_condB,
+    res2 <- test_global(fit, contrast = rand_condB,
                                         variance_est = "bootstrap", verbose = FALSE)
-    res3 <- test_differential_embedding(fit, contrast = rand_condB,
+    res3 <- test_global(fit, contrast = rand_condB,
                                         variance_est = "analytical", consider = "linear", verbose = FALSE)
     tmp <- rbind(res1, res2, res3)
     tmp$method <- c("resampling", "bootstrap", "analytical")
