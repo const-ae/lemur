@@ -1,31 +1,26 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# DiffEmbSeq
+# Latent Embedding Multivariate Regression (LEMUR)
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of DiffEmbSeq is to enable easy analysis of multi-condition
-single-cell data. DiffEmbSeq fits a differential embedding model, which
-means that it tries to find the PCA embedding for each condition and
+The goal of lemur is to enable easy analysis of multi-condition
+single-cell data. Lemur fits latent embedding regression, which means
+that it tries to find the PCA embedding for each condition and
 parameterizes the transition from one embedding to the other. For this
-task, DiffEmbSeq uses geodesic regression on the Grassmann manifold,
-which is solved efficiently using tangent-space linear modelling. The
-result is an interpretable model of the gene expression for arbitrary
-experimental designs that can be expressed using a design matrix.
+task, lemur uses geodesic regression on the Grassmann manifold, which is
+solved efficiently using tangent-space linear modelling. The result is
+an interpretable model of the gene expression for arbitrary experimental
+designs that can be expressed using a design matrix.
 
 ## Installation
 
-You can install the released version of DiffEmbSeq from
-<https://git.embl.de/ahlmanne/DiffEmbSeq>
-
-To get read access you have set the following *access token* which is
-valid until the 25.02.2023.
+You can install the released version of lemur from Github
 
 ``` r
-Sys.setenv(GITLAB_PAT = "glpat-vE2cB9xNSjsU53d4z16f")
-remotes::install_gitlab(repo = "ahlmanne/DiffEmbSeq", host = "https://git.embl.de/")
+devtools::install_github("const-ae/lemur")
 ```
 
 ## Example
@@ -40,30 +35,30 @@ col_data <- data.frame(condition = sample(letters[1:2], 500, replace = TRUE))
 Fit the model
 
 ``` r
-fit <- DiffEmbSeq::differential_embedding(mat, design = ~ condition, col_data = col_data,
-                                          n_ambient = 10, n_embedding = 2)
+fit <- lemur::lemur(mat, design = ~ condition, col_data = col_data, n_ambient = 10, n_embedding = 2)
 #> Fit ambient PCA
 #> Regress out global effects
 #> Find base point for differential embedding
 #> Fit differential embedding model
-#> -Iteration: 0    error: 6.54e+03
+#> -Iteration: 0    error: 6.5e+03
 #> ---Fit Grassmann linear model
 #> ---Update linear regression
-#> -Iteration: 1    error: 4.88e+03
+#> -Iteration: 1    error: 4.85e+03
 #> ---Fit Grassmann linear model
 #> ---Update linear regression
-#> -Iteration: 2    error: 4.88e+03
+#> -Iteration: 2    error: 4.85e+03
 #> Converged
 fit
-#> class: DiffEmbFit 
+#> class: lemur_fit_obj 
 #> dim: 30 500 
-#> metadata(11): n_ambient n_embedding ... alignment_stretching ''
+#> metadata(12): n_ambient n_embedding ... alignment_design
+#>   alignment_design_matrix
 #> assays(1): expr
 #> rownames: NULL
 #> rowData names(0):
 #> colnames: NULL
 #> colData names(1): condition
-#> reducedDimNames(2): linearFit diffemb_embedding
+#> reducedDimNames(2): linearFit embedding
 #> mainExpName: NULL
 #> altExpNames(0):
 ```
@@ -71,110 +66,107 @@ fit
 Let’s look at the coefficients
 
 ``` r
-round(fit$diffemb_coefficients, 5)
+round(fit$coefficients, 5)
 #> , , Intercept
 #> 
 #>           [,1]     [,2]
-#>  [1,]  0.00562 -0.00553
-#>  [2,]  0.01415 -0.01122
-#>  [3,] -0.06522 -0.16661
-#>  [4,]  1.10901  0.02092
-#>  [5,]  0.33172  0.41483
-#>  [6,] -0.57218 -0.83102
-#>  [7,] -0.10213 -0.18001
-#>  [8,]  0.14411 -0.13790
-#>  [9,] -0.27461 -0.08411
-#> [10,]  0.12748 -0.41115
+#>  [1,] -0.00077  0.00096
+#>  [2,] -0.00308  0.00715
+#>  [3,]  0.33556  0.09131
+#>  [4,]  0.54514  0.85025
+#>  [5,] -0.44563 -0.21422
+#>  [6,]  0.34480 -0.01032
+#>  [7,] -0.12499 -0.12281
+#>  [8,]  0.00143  0.38604
+#>  [9,]  0.19342  0.17167
+#> [10,]  0.05171  0.05353
 #> 
 #> , , conditionb
 #> 
 #>           [,1]     [,2]
-#>  [1,] -0.00387  0.00878
-#>  [2,] -0.00964  0.01997
-#>  [3,]  0.31304  0.27604
-#>  [4,] -1.37932  0.38055
-#>  [5,] -0.43357 -0.25998
-#>  [6,]  0.37321  1.24946
-#>  [7,]  0.08710  0.08453
-#>  [8,] -0.10357  0.37645
-#>  [9,]  0.25211  0.18000
-#> [10,] -0.14092  0.29485
-plot(t(fit$diffemb_embedding), col = as.factor(col_data$condition))
+#>  [1,]  0.00114  0.00056
+#>  [2,]  0.00163  0.01919
+#>  [3,] -0.58263  0.43780
+#>  [4,] -0.46199 -1.20915
+#>  [5,]  0.65308 -0.05886
+#>  [6,] -0.57180 -0.07554
+#>  [7,]  0.12282  0.23320
+#>  [8,]  0.03196 -0.58948
+#>  [9,] -0.24322  0.05567
+#> [10,]  0.05912 -0.07358
+plot(t(fit$embedding), col = as.factor(col_data$condition))
 ```
 
 <img src="man/figures/README-show-fit-results-1.png" width="100%" />
 
-Bootstrap to get an estimate of the parameter variance
-
 ``` r
-fit <- DiffEmbSeq::estimate_variance(fit, n_bootstrap_samples = 30)
-#> Start bootstrap iteration 1
-#> Start bootstrap iteration 2
-#> Start bootstrap iteration 3
-#> Start bootstrap iteration 4
-#> Start bootstrap iteration 5
-#> Start bootstrap iteration 6
-#> Start bootstrap iteration 7
-#> Start bootstrap iteration 8
-#> Start bootstrap iteration 9
-#> Start bootstrap iteration 10
-#> Start bootstrap iteration 11
-#> Start bootstrap iteration 12
-#> Start bootstrap iteration 13
-#> Start bootstrap iteration 14
-#> Start bootstrap iteration 15
-#> Start bootstrap iteration 16
-#> Start bootstrap iteration 17
-#> Start bootstrap iteration 18
-#> Start bootstrap iteration 19
-#> Start bootstrap iteration 20
-#> Start bootstrap iteration 21
-#> Start bootstrap iteration 22
-#> Start bootstrap iteration 23
-#> Start bootstrap iteration 24
-#> Start bootstrap iteration 25
-#> Start bootstrap iteration 26
-#> Start bootstrap iteration 27
-#> Start bootstrap iteration 28
-#> Start bootstrap iteration 29
-#> Start bootstrap iteration 30
-```
-
-``` r
-res <- DiffEmbSeq::test_differential_expression(fit, contrast = fact(condition = "a") == fact(condition = "b"),
-                                                consider = "embedding+linear", variance_est = "bootstrap", 
-                                                return = "table")
-head(res)
-#>     feature   obs       pval  adj_pval       diff   adj_diff        sd
-#> 1 feature_1 obs_1 0.42323380 0.9601503  0.4774037  0.8008236 0.5961410
-#> 2 feature_2 obs_1 0.62604229 0.9994854 -0.2489013 -0.4873049 0.5107711
-#> 3 feature_3 obs_1 0.34931102 0.9280894 -0.4225459 -0.9359265 0.4514734
-#> 4 feature_4 obs_1 0.02360279 0.4168384 -0.9903750 -2.2635341 0.4375348
-#> 5 feature_5 obs_1 0.50884418 0.9938363  0.1461087  0.6606385 0.2211629
-#> 6 feature_6 obs_1 0.34926914 0.9280894 -0.2416553 -0.9360079 0.2581766
+de_mat <- lemur::test_de(fit, contrast = cond(condition = "a") == cond(condition = "b"))
+de_mat[1:5, 1:10]
+#>             [,1]         [,2]        [,3]        [,4]        [,5]       [,6]
+#> [1,]  0.54273594  0.227746766 -0.07380608  0.13953205 -0.40450075  0.6948219
+#> [2,] -0.28660964 -0.087217712  0.25464570  0.05567957  0.25241819 -0.2824847
+#> [3,]  0.32969179  0.118329964 -0.25143408 -0.03739997 -0.23873435  0.3204130
+#> [4,]  0.10420045  0.006754924 -0.09103860 -0.02313281 -0.18703047  0.1482544
+#> [5,]  0.04336833 -0.026404799 -0.40268196 -0.22439783 -0.04226467 -0.1287427
+#>             [,7]       [,8]        [,9]       [,10]
+#> [1,]  0.56702390 -0.2620746  0.05170869  0.01677785
+#> [2,] -0.29499019  0.2234453 -0.11071287  0.06736877
+#> [3,]  0.33823367 -0.2110121  0.14982926 -0.04656486
+#> [4,]  0.11150553 -0.1447949 -0.04367860 -0.05913853
+#> [5,]  0.03441165 -0.1361353  0.21118642 -0.11626663
 ```
 
 Show the gene expression changes on the latent embedding
 
 ``` r
 pal <- scales::col_numeric(scales::viridis_pal()(50), NULL)
-plot(t(fit$diffemb_embedding), col = pal(res[res$feature == "feature_10",]$diff),
-     pch = 16, cex = 1.3)
+plot(t(fit$embedding), col = pal(de_mat[10,]), pch = 16, cex = 1.3)
 ```
 
 <img src="man/figures/README-visualize-differential-expression-1.png" width="100%" />
+
+``` r
+counts <- matrix(rpois(30 * 500, lambda = 2.4), nrow = 30, ncol = 500)
+SummarizedExperiment::colData(fit)$patient_id <- sample(c("A", "B", "C"), size = 500, replace = TRUE)
+de_regions <- lemur::find_de_neighborhoods(fit, de_mat, counts = counts, group_by = glmGamPoi::vars(patient_id, condition), 
+                             contrast = cond(condition = "a") == cond(condition = "b"))
+#> Aggregating assay 'masked_counts' using 'rowSums2'.
+#> Aggregating assay 'masked_size_factors' using 'rowSums2'.
+#> Make initial dispersion estimate
+#> Make initial beta estimate
+#> Estimate beta
+#> Estimate dispersion
+#> Fit dispersion trend
+#> Shrink dispersion estimates
+#> Estimate beta again
+head(de_regions)
+#>        name region      indices n_cells       mean         pval     adj_pval
+#> 1 feature_1      1 1, 6, 7,....      98  0.6973596 0.000000e+00 0.000000e+00
+#> 2 feature_2      1      52, 222       2 -0.8845059 4.174344e-31 6.591070e-31
+#> 3 feature_3      1      52, 222       2  0.9624984 4.377569e-26 5.836759e-26
+#> 4 feature_4      1 5, 11, 1....     123 -0.2583617 0.000000e+00 0.000000e+00
+#> 5 feature_5      1           21       1  0.6887578 3.496154e-23 4.034023e-23
+#> 6 feature_6      1          191       1  1.9229842 9.999814e-01 9.999814e-01
+#>    f_statistic df1       df2        lfc
+#> 1 4.799248e+03   1 485790184  -4.715161
+#> 2 1.345344e+02   1 485790184 -10.000000
+#> 3 1.115974e+02   1 485790184  -4.624491
+#> 4 6.959848e+03   1 485790184  -5.000324
+#> 5 9.835558e+01   1 485790184  -4.977280
+#> 6 5.454098e-10   1 485790184 -10.000000
+```
 
 # Session Info
 
 ``` r
 sessionInfo()
-#> R version 4.1.1 (2021-08-10)
+#> R version 4.2.1 RC (2022-06-17 r82503)
 #> Platform: x86_64-apple-darwin17.0 (64-bit)
-#> Running under: macOS Big Sur 10.16
+#> Running under: macOS Big Sur ... 10.16
 #> 
 #> Matrix products: default
-#> BLAS:   /Library/Frameworks/R.framework/Versions/4.1/Resources/lib/libRblas.0.dylib
-#> LAPACK: /Library/Frameworks/R.framework/Versions/4.1/Resources/lib/libRlapack.dylib
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRblas.0.dylib
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRlapack.dylib
 #> 
 #> locale:
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
@@ -183,29 +175,29 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] Rcpp_1.0.7                  DiffEmbSeq_0.0.5           
-#>  [3] compiler_4.1.1              GenomeInfoDb_1.28.4        
-#>  [5] highr_0.9                   XVector_0.32.0             
-#>  [7] MatrixGenerics_1.9.0        bitops_1.0-7               
-#>  [9] tools_4.1.1                 zlibbioc_1.38.0            
-#> [11] SingleCellExperiment_1.14.1 digest_0.6.27              
-#> [13] viridisLite_0.4.0           lifecycle_1.0.0            
-#> [15] evaluate_0.14               lattice_0.20-44            
-#> [17] rlang_1.0.3                 Matrix_1.3-4               
-#> [19] DelayedArray_0.18.0         cli_3.3.0                  
-#> [21] rstudioapi_0.13             yaml_2.2.1                 
-#> [23] parallel_4.1.1              expm_0.999-6               
-#> [25] xfun_0.26                   fastmap_1.1.0              
-#> [27] GenomeInfoDbData_1.2.6      stringr_1.4.0              
-#> [29] knitr_1.34                  S4Vectors_0.30.0           
-#> [31] IRanges_2.26.0              stats4_4.1.1               
-#> [33] grid_4.1.1                  Biobase_2.52.0             
-#> [35] R6_2.5.1                    rmarkdown_2.11             
-#> [37] irlba_2.3.3                 farver_2.1.0               
-#> [39] magrittr_2.0.1              scales_1.1.1               
-#> [41] matrixStats_0.60.1          htmltools_0.5.2            
-#> [43] BiocGenerics_0.38.0         GenomicRanges_1.44.0       
-#> [45] SummarizedExperiment_1.22.0 colorspace_2.0-2           
-#> [47] stringi_1.7.4               glmGamPoi_1.11.0           
-#> [49] munsell_0.5.0               RCurl_1.98-1.4
+#>  [1] Rcpp_1.0.10                 compiler_4.2.1             
+#>  [3] GenomeInfoDb_1.34.9         highr_0.10                 
+#>  [5] XVector_0.38.0              DelayedMatrixStats_1.20.0  
+#>  [7] MatrixGenerics_1.10.0       bitops_1.0-7               
+#>  [9] tools_4.2.1                 zlibbioc_1.44.0            
+#> [11] SingleCellExperiment_1.20.0 digest_0.6.31              
+#> [13] viridisLite_0.4.1           evaluate_0.20              
+#> [15] lifecycle_1.0.3             lattice_0.20-45            
+#> [17] rlang_1.0.6                 Matrix_1.5-3               
+#> [19] DelayedArray_0.24.0         cli_3.6.0                  
+#> [21] rstudioapi_0.14             yaml_2.3.7                 
+#> [23] expm_0.999-7                xfun_0.37                  
+#> [25] fastmap_1.1.1               GenomeInfoDbData_1.2.9     
+#> [27] lemur_0.0.6                 knitr_1.42                 
+#> [29] vctrs_0.5.2                 S4Vectors_0.36.2           
+#> [31] IRanges_2.32.0              stats4_4.2.1               
+#> [33] grid_4.2.1                  Biobase_2.58.0             
+#> [35] R6_2.5.1                    rmarkdown_2.20             
+#> [37] irlba_2.3.5.1               farver_2.1.1               
+#> [39] sparseMatrixStats_1.10.0    scales_1.2.1               
+#> [41] matrixStats_0.63.0          htmltools_0.5.4            
+#> [43] BiocGenerics_0.44.0         GenomicRanges_1.50.2       
+#> [45] SummarizedExperiment_1.28.0 colorspace_2.1-0           
+#> [47] glmGamPoi_1.11.6            RCurl_1.98-1.10            
+#> [49] munsell_0.5.0
 ```
