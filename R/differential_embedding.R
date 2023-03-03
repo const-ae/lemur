@@ -48,7 +48,7 @@ differential_embedding <- function(data, design = ~ 1, col_data = NULL,
     NULL
   }
 
-  DiffEmbFit(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
+  lemur_fit_obj(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
              n_ambient = res$n_ambient, n_embedding = res$n_embedding,
              ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,
              design = des$design_formula, design_matrix = res$design_matrix,

@@ -1,8 +1,8 @@
 
 #' @export
-.DiffEmbFit <- setClass("DiffEmbFit", contains = "SingleCellExperiment")
+.lemur_fit_obj <- setClass("lemur_fit_obj", contains = "SingleCellExperiment")
 
-DiffEmbFit <- function(data_mat, col_data, row_data,
+lemur_fit_obj <- function(data_mat, col_data, row_data,
                        n_ambient, n_embedding,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
@@ -30,11 +30,11 @@ DiffEmbFit <- function(data_mat, col_data, row_data,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
                                               alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
                                               bootstrap_samples = bootstrap_samples, knn_graph = knn_graph))
-  .DiffEmbFit(sce)
+  .lemur_fit_obj(sce)
 }
 
 
-S4Vectors::setValidity2("DiffEmbFit", function(obj){
+S4Vectors::setValidity2("lemur_fit_obj", function(obj){
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
     S4Vectors:::disableValidity(TRUE)
@@ -113,7 +113,7 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
   if(! is.null(alignment_design_matrix) && nrow(alignment_design_matrix) != n_obs) msg <- c(msg, "`nrow(alignment_design_matrix)` does not match number of observations")
   if(! is.null(alignment_design) &&  ! inherits(alignment_design, "formula")) msg <- c(msg, "`alignment_design` must inherit from formula or be NULL")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
-  if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "DiffEmbFit"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'DiffEmbFit' objects.")
+  if(! is.null(bootstrap_samples) && any(vapply(bootstrap_samples, \(samp) ! is(samp, "lemur_fit_obj"), FUN.VALUE = logical(1L)))) msg <- c(msg, "all bootstrap samples must be valid 'lemur_fit_obj' objects.")
   if(! is.null(knn_graph) && ! inherits(knn_graph, "igraph")) msg <- c(msg, "knn_graph must be an object of class 'igraph'.")
   if(! is.null(knn_graph) && igraph::vcount(knn_graph) != n_obs) msg <- c(msg, "knn_graph must have one vertex for each observation.")
 
@@ -128,7 +128,7 @@ S4Vectors::setValidity2("DiffEmbFit", function(obj){
 # Subsetting
 
 #' @export
-setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
+setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
     S4Vectors:::disableValidity(TRUE)
@@ -175,14 +175,14 @@ setMethod("[", c("DiffEmbFit", "ANY", "ANY"), function(x, i, j, ...) {
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
                          "bootstrap_samples", "knn_graph", "colData", "rowData")
 
-#' Get different features and elements of the 'DiffEmbFit' object
+#' Get different features and elements of the 'lemur_fit_obj' object
 #'
 #' The functions listed below can all be accessed using the
 #' fluent dollar notation (ie. \code{fit$n_ambient}) without
 #' any additional parentheses.
 #'
 #'
-#' @param object the 'DiffEmbFit' object
+#' @param object the 'lemur_fit_obj' object
 #'
 #' @return See the documentation of the generics to find out what each method returns
 #'
@@ -195,7 +195,7 @@ setGeneric("n_ambient", function(object, ...) standardGeneric("n_ambient"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("n_ambient", signature = "DiffEmbFit", function(object){
+setMethod("n_ambient", signature = "lemur_fit_obj", function(object){
   metadata(object)[["n_ambient"]]
 })
 
@@ -203,7 +203,7 @@ setGeneric("n_embedding", function(object, ...) standardGeneric("n_embedding"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("n_embedding", signature = "DiffEmbFit", function(object){
+setMethod("n_embedding", signature = "lemur_fit_obj", function(object){
   metadata(object)[["n_embedding"]]
 })
 
@@ -211,7 +211,7 @@ setGeneric("ambient_coordsystem", function(object, ...) standardGeneric("ambient
 
 #' @rdname accessor_methods
 #' @export
-setMethod("ambient_coordsystem", signature = "DiffEmbFit", function(object){
+setMethod("ambient_coordsystem", signature = "lemur_fit_obj", function(object){
   metadata(object)[["ambient_coordsystem"]]
 })
 
@@ -219,7 +219,7 @@ setGeneric("ambient_offset", function(object, ...) standardGeneric("ambient_offs
 
 #' @rdname accessor_methods
 #' @export
-setMethod("ambient_offset", signature = "DiffEmbFit", function(object){
+setMethod("ambient_offset", signature = "lemur_fit_obj", function(object){
   metadata(object)[["ambient_offset"]]
 })
 
@@ -227,15 +227,15 @@ setMethod("ambient_offset", signature = "DiffEmbFit", function(object){
 
 #' @rdname accessor_methods
 #' @export
-setMethod("design", signature = "DiffEmbFit", function(object){
-  metadata(object)[["design"]]
+setMethod("design", signature = "lemur_fit_obj", function(object){
+ metadata(object)[["design"]]
 })
 
 setGeneric("diffemb_basepoint", function(object, ...) standardGeneric("diffemb_basepoint"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_basepoint", signature = "DiffEmbFit", function(object){
+setMethod("diffemb_basepoint", signature = "lemur_fit_obj", function(object){
   metadata(object)[["diffemb_basepoint"]]
 })
 
@@ -243,7 +243,7 @@ setGeneric("diffemb_coefficients", function(object, ...) standardGeneric("diffem
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_coefficients", signature = "DiffEmbFit", function(object){
+setMethod("diffemb_coefficients", signature = "lemur_fit_obj", function(object){
   metadata(object)[["diffemb_coefficients"]]
 })
 
@@ -251,7 +251,7 @@ setGeneric("diffemb_embedding", function(object, ...) standardGeneric("diffemb_e
 
 #' @rdname accessor_methods
 #' @export
-setMethod("diffemb_embedding", signature = "DiffEmbFit", function(object){
+setMethod("diffemb_embedding", signature = "lemur_fit_obj", function(object){
   t(reducedDim(object, "diffemb_embedding"))
 })
 
@@ -259,7 +259,7 @@ setGeneric("alignment_method", function(object, ...) standardGeneric("alignment_
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_method", signature = "DiffEmbFit", function(object){
+setMethod("alignment_method", signature = "lemur_fit_obj", function(object){
   metadata(object)[["alignment_method"]]
 })
 
@@ -269,7 +269,7 @@ setGeneric("alignment_rotation", function(object, ...) standardGeneric("alignmen
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_rotation", signature = "DiffEmbFit", function(object){
+setMethod("alignment_rotation", signature = "lemur_fit_obj", function(object){
   metadata(object)[["alignment_rotation"]]
 })
 
@@ -277,7 +277,7 @@ setGeneric("alignment_stretching", function(object, ...) standardGeneric("alignm
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_stretching", signature = "DiffEmbFit", function(object){
+setMethod("alignment_stretching", signature = "lemur_fit_obj", function(object){
   metadata(object)[["alignment_stretching"]]
 })
 
@@ -285,7 +285,7 @@ setGeneric("alignment_design", function(object, ...) standardGeneric("alignment_
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_design", signature = "DiffEmbFit", function(object){
+setMethod("alignment_design", signature = "lemur_fit_obj", function(object){
   metadata(object)[["alignment_design"]]
 })
 
@@ -294,7 +294,7 @@ setGeneric("alignment_design_matrix", function(object, ...) standardGeneric("ali
 
 #' @rdname accessor_methods
 #' @export
-setMethod("alignment_design_matrix", signature = "DiffEmbFit", function(object){
+setMethod("alignment_design_matrix", signature = "lemur_fit_obj", function(object){
   metadata(object)[["alignment_design_matrix"]]
 })
 
@@ -303,7 +303,7 @@ setGeneric("design_matrix", function(object, ...) standardGeneric("design_matrix
 
 #' @rdname accessor_methods
 #' @export
-setMethod("design_matrix", signature = "DiffEmbFit", function(object){
+setMethod("design_matrix", signature = "lemur_fit_obj", function(object){
   sampleFactors(reducedDim(object, "linearFit"))
 })
 
@@ -311,7 +311,7 @@ setGeneric("linear_coefficients", function(object, ...) standardGeneric("linear_
 
 #' @rdname accessor_methods
 #' @export
-setMethod("linear_coefficients", signature = "DiffEmbFit", function(object){
+setMethod("linear_coefficients", signature = "lemur_fit_obj", function(object){
   featureLoadings(reducedDim(object, "linearFit"))
 })
 
@@ -319,7 +319,7 @@ setGeneric("bootstrap_samples", function(object, ...) standardGeneric("bootstrap
 
 #' @rdname accessor_methods
 #' @export
-setMethod("bootstrap_samples", signature = "DiffEmbFit", function(object){
+setMethod("bootstrap_samples", signature = "lemur_fit_obj", function(object){
   metadata(object)[["bootstrap_samples"]]
 })
 
@@ -327,14 +327,14 @@ setGeneric("knn_graph", function(object, ...) standardGeneric("knn_graph"))
 
 #' @rdname accessor_methods
 #' @export
-setMethod("knn_graph", signature = "DiffEmbFit", function(object){
+setMethod("knn_graph", signature = "lemur_fit_obj", function(object){
   metadata(object)[["knn_graph"]]
 })
 
 
-#' @rdname cash-DiffEmbFit-method
+#' @rdname cash-lemur_fit_obj-method
 #' @export
-.DollarNames.DiffEmbFit <- function(x, pattern = ""){
+.DollarNames.lemur_fit_obj <- function(x, pattern = ""){
   grep(pattern, .methods_to_suggest, value = TRUE)
 }
 
@@ -344,7 +344,7 @@ setMethod("knn_graph", signature = "DiffEmbFit", function(object){
 #' @seealso \link{accessor_methods} for more documentation on the
 #'   accessor functions.
 #' @aliases dollar_methods
-setMethod("$", "DiffEmbFit",
+setMethod("$", "lemur_fit_obj",
           function(x, name){
             old <- S4Vectors:::disableValidity()
             if (!isTRUE(old)) {
@@ -358,15 +358,15 @@ setMethod("$", "DiffEmbFit",
             getGeneric(name)(x)
           })
 
-#' @rdname cash-DiffEmbFit-method
-setReplaceMethod("$", "DiffEmbFit",
+#' @rdname cash-lemur_fit_obj-method
+setReplaceMethod("$", "lemur_fit_obj",
                  function(x, name, value){
                    # if(name %in% c("rowData", "feature_parameters")){
                    #   getGeneric(paste0(name, "<-"))(x, value = value)
                    # }else{
                    #   stop("It is illegal to modify the content of ", name)
                    # }
-                   stop("It is illegal to modify the content of DiffEmbFit object")
+                   stop("It is illegal to modify the content of lemur_fit_obj object")
                  })
 
 

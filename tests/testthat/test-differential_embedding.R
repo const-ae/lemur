@@ -204,7 +204,7 @@ test_that("bootstrapping works", {
                                 n_ambient = 40, n_embedding = 5, verbose = FALSE)
   fit2 <- estimate_variance(fit, n_bootstrap_samples = 1, refit_ambient_pca = FALSE, verbose = FALSE)
   expect_null(fit$bootstrap_samples)
-  expect_s4_class(fit2$bootstrap_samples[[1]], "DiffEmbFit")
+  expect_s4_class(fit2$bootstrap_samples[[1]], "lemur_fit_obj")
   expect_equal(rownames(fit2$bootstrap_samples[[1]]), rownames(fit2))
   expect_equal(colnames(fit2$bootstrap_samples[[1]]), colnames(fit2))
   expect_equal(fit2$bootstrap_samples[[1]]$ambient_coordsystem, fit2$ambient_coordsystem)

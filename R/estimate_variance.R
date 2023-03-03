@@ -99,8 +99,8 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                                                           diffemb_coefficients = res$diffemb_coefficients,
                                                           base_point = base_point)
 
-    # Create DiffEmbFit object
-    samp <- DiffEmbFit(NULL, col_data = as.data.frame(matrix(nrow = ncol(fit), ncol = 0)),
+    # Create lemur_fit_obj object
+    samp <- lemur_fit_obj(NULL, col_data = as.data.frame(matrix(nrow = ncol(fit), ncol = 0)),
                row_data = as.data.frame(matrix(nrow = nrow(fit), ncol = 0)),
                n_ambient = res$n_ambient, n_embedding = res$n_embedding,
                ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,

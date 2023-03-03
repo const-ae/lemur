@@ -1,9 +1,9 @@
 
 
-#' Predict values from `DiffEmbFit` object
+#' Predict values from `lemur_fit_obj` object
 #'
 #' @export
-predict.DiffEmbFit <- function(object, newdata = NULL, newdesign = NULL,
+predict.lemur_fit_obj <- function(object, newdata = NULL, newdesign = NULL,
                                diffemb_embedding = object$diffemb_embedding,
                                with_ambient_pca = TRUE,
                                with_linear_model = TRUE,
@@ -96,10 +96,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 }
 
 
-#' Predict values from `DiffEmbFit` object
+#' Predict values from `lemur_fit_obj` object
 #'
 #' @export
-setMethod("residuals", signature = "DiffEmbFit", function(object,
+setMethod("residuals", signature = "lemur_fit_obj", function(object,
                                                           with_linear_model = TRUE,
                                                           with_differential_embedding = TRUE, ...){
   residuals_impl(object, with_linear_model = with_linear_model, with_differential_embedding = with_differential_embedding)
