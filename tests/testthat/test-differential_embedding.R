@@ -9,7 +9,7 @@ test_that("making data works", {
   expect_equal(fit$n_embedding, 5)
   expect_equal(dim(fit$ambient_coordsystem), c(nrow(dat), 40))
   expect_equal(format(fit$design), "~condition")
-  expect_equal(dim(fit$basepoint), c(40, 5))
+  expect_equal(dim(fit$base_point), c(40, 5))
   expect_equal(dim(fit$coefficients), c(40, 5, 3))
   expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
@@ -30,7 +30,7 @@ test_that("the fit is valid", {
   expect_equal(fit$n_embedding, 5)
   expect_equal(dim(fit$ambient_coordsystem), c(nrow(dat), 30))
   expect_equal(format(fit$design), "~condition")
-  expect_equal(dim(fit$basepoint), c(30, 5))
+  expect_equal(dim(fit$base_point), c(30, 5))
   expect_equal(dim(fit$coefficients), c(30, 5, 3))
   expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
@@ -62,7 +62,7 @@ test_that("subsetting works", {
   expect_equal(dim(fit3), c(2, 20))
   expect_equal(fit3$n_ambient, 30)
   expect_equal(fit3$n_embedding, 5)
-  expect_equal(dim(fit3$basepoint), c(30, 5))
+  expect_equal(dim(fit3$base_point), c(30, 5))
   expect_equal(dim(fit3$coefficients), c(30, 5, 3))
   expect_equal(dim(fit3$embedding), c(5, 20))
   expect_equal(dim(fit3$design_matrix), c(20, 3))
@@ -171,7 +171,7 @@ test_that("Skipping ambient PCA works", {
   expect_equal(fit$coefficients, fit_alt$coefficients)
 
   # The latent things are equal up to the sign
-  expect_equal(abs(fit_alt$ambient_coordsystem %*% fit_alt$basepoint), abs(fit$basepoint))
+  expect_equal(abs(fit_alt$ambient_coordsystem %*% fit_alt$base_point), abs(fit$base_point))
   expect_equal(abs(fit$embedding), abs(fit_alt$embedding))
 })
 
@@ -182,7 +182,7 @@ test_that("n_embedding = 0 works", {
   fit <- lemur(dat, design = ~ condition, n_ambient = 5,
                                 n_embedding = 0, verbose = FALSE)
   zero_dim_mat <- matrix(nrow = 5, ncol = 0)
-  expect_equal(fit$basepoint, zero_dim_mat)
+  expect_equal(fit$base_point, zero_dim_mat)
   expect_equal(fit$coefficients, array(dim = c(5, 0, 3)), ignore_attr = "dimnames")
   expect_equal(fit$embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
@@ -377,11 +377,11 @@ test_that("Columns/rows of the results are orthogonal", {
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   res <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
   expect_equal(sum(res$embedding[1,] * res$embedding[2,]), 0)
-  V1 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,1], res$basepoint)
-  V2 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,2], res$basepoint)
+  V1 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,1], res$base_point)
+  V2 <- DiffEmbSeq:::grassmann_map(res$coefficients[,,2], res$base_point)
   expect_equal(t(V1) %*% V1, diag(nrow = 2))
   expect_equal(t(V2) %*% V2, diag(nrow = 2))
-  expect_equal(t(res$basepoint) %*% res$basepoint, diag(nrow = 2))
+  expect_equal(t(res$base_point) %*% res$base_point, diag(nrow = 2))
 })
 
 test_that("regularization helps", {
@@ -413,15 +413,15 @@ test_that("regularization helps", {
   #
   # intercept_vec <- t(dat_pca$coordsystem) %*%
   #   fit$ambient_coordsystem %*%
-  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,0)), fit$basepoint)
+  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,0)), fit$base_point)
   #
   # b_vec <- t(dat_pca$coordsystem) %*%
   #   fit$ambient_coordsystem %*%
-  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,1)), fit$basepoint)
+  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,1)), fit$base_point)
   #
   # bprime_vec <- t(dat_pca$coordsystem) %*%
   #   fit$ambient_coordsystem %*%
-  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,0.5)), fit$basepoint)
+  #   grassmann_map(sum_tangent_vectors(fit$coefficients, c(1,0.5)), fit$base_point)
   #
   #
   #
@@ -483,11 +483,11 @@ test_that("regularization helps", {
 # coef_new <- t(dat_pca$coordsystem) %*% fit_new$ambient_coordsystem %*% fit_new$linear_coefficients
 # intercept_vec_new <- t(dat_pca$coordsystem) %*%
 #   fit_new$ambient_coordsystem %*%
-#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,0)), fit_new$basepoint)
+#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,0)), fit_new$base_point)
 #
 # b_vec_new <- t(dat_pca$coordsystem) %*%
 #   fit_new$ambient_coordsystem %*%
-#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,1)), fit_new$basepoint)
+#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,1)), fit_new$base_point)
 #
 # expect_equal(intercept_vec, intercept_vec_new)
 # expect_equal(b_vec, b_vec_new)

@@ -38,7 +38,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
 
     design_matrix <- fit$design_matrix[resampling,,drop=FALSE]
     alignment_design_matrix <- fit$alignment_design_matrix[resampling,,drop=FALSE]
-    base_point <- fit$basepoint
+    base_point <- fit$base_point
 
     if(refit_ambient_pca){
       data_mat <- assay(fit, "expr")[,resampling,drop=FALSE]
@@ -106,7 +106,7 @@ estimate_variance <- function(fit, n_bootstrap_samples = 100,
                ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,
                design = fit$design, design_matrix = fit$design_matrix,
                linear_coefficients = res$linear_coefficients,
-               basepoint = res$basepoint,
+               base_point = res$base_point,
                coefficients = res$coefficients,
                embedding = refitted_embedding,
                alignment_method = alignment_method,
