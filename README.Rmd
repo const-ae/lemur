@@ -9,7 +9,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  dpi = 300
 )
 ```
 
@@ -28,54 +29,143 @@ You can install the released version of lemur from Github
 devtools::install_github("const-ae/lemur")
 ```
 
+## A word of caution
+
+This package is being actively developed and I am still making breaking changes. I am delighted if you decide to try out the package and please open an issue if you think you found a bug, have an idea for a cool feature, or any question about how LEMUR works. Consider this a *beta* release with the goal to gather feedback but be aware that code written against the current version of lemur might not work in the future.
+
+
 ## Example
 
-Make some data
+We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The data consists of tumor biopsies from five glioblastomas which were treated using panobinostat or used as a control. Accordingly there are ten samples (patient-treatment combinations) which we will analyze using a paired experimental design.
 
-```{r generate-data}
-mat <- matrix(rnorm(30 * 500), nrow = 30, ncol = 500)
-col_data <- data.frame(condition = sample(letters[1:2], 500, replace = TRUE))
+We start by loading some packages which are necessary to analyze the data:
+```{r load_packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(SingleCellExperiment)
+library(lemur)
+set.seed(1)
 ```
 
-Fit the model
+We use a reduced-size version of the glioblastoma data that ships with the `lemur` package.
+```{r load_data}
+lemur::glioblastoma_example_data
+```
 
-```{r fit-differential-embedding-model}
-fit <- lemur::lemur(mat, design = ~ condition, col_data = col_data, n_ambient = 10, n_embedding = 2)
+Initially, the data separates by the known covariates `patient_id` and `condition`.
+```{r raw_umap}
+orig_umap <- uwot::umap(as.matrix(t(logcounts(glioblastoma_example_data))))
+
+as_tibble(orig_umap) %>%
+  bind_cols(as_tibble(colData(glioblastoma_example_data))) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    labs(title = "UMAP of logcounts")
+```
+
+We fit the LEMUR model by calling `lemur()`. We provide the experimental design using a formula. The elements of the formula can refer to columns of the `colData` of the `SingleCellExperiment` object.
+We also set the number of latent dimensions which has a similar interpretation as the number of dimensions in PCA. Optionally, we can further align corresponding cells either using manually annotated cell types (`align_by_grouping`) or an automated alignment procedure (e.g., `align_harmony`, `align_neighbors`).
+```{r fit_lemur}
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
+
+# We can regularize the alignment either using ridge regression
+# or by allowing only rotations or stretching
+fit <- align_harmony(fit, stretching = FALSE)
+
 fit
 ```
 
-Let's look at the coefficients
 
-```{r show-fit-results}
-round(fit$coefficients, 5)
-plot(t(fit$embedding), col = as.factor(col_data$condition))
+The `lemur()` function returns an object that extends `SingleCellExperiment` and thus supports subsetting and all the familiar data acessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`).
+In addition, `lemur` overloads the `$` operator to allow easy access to additional fields that are produced by the LEMUR model. For example the low-dimensional embedding can be accessed using `fit$embedding`:
+```{r lemur_umap}
+umap <- uwot::umap(t(fit$embedding))
+
+as_tibble(umap) %>%
+  bind_cols(as_tibble(fit$colData)) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    labs(title = "UMAP of latent space from LEMUR")
 ```
 
-
-```{r}
-de_mat <- lemur::test_de(fit, contrast = cond(condition = "a") == cond(condition = "b"))
-de_mat[1:5, 1:10]
+The `test_de` function takes a `lemur_fit_obj` and returns a matrix for all genes and cells containing the difference between two conditions specified in the `contrast`. Note, that you currently have to specify the contrast using `==`. This is because of implementation considerations and must only be used for `lemur::test_de` function (and not in `glmGamPoi::test_de`).
+```{r lemur_test_de}
+de_mat <- test_de(fit, contrast = cond(condition = "panobinostat") == cond(condition = "ctrl"))
 ```
 
-Show the gene expression changes on the latent embedding
-```{r visualize-differential-expression}
-pal <- scales::col_numeric(scales::viridis_pal()(50), NULL)
-plot(t(fit$embedding), col = pal(de_mat[10,]), pch = 16, cex = 1.3)
+We can pick any gene and show the differential expression pattern on the UMAP plot:
+```{r umap_de}
+# EEF1A1
+gene_sel <- "ENSG00000156508"
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[gene_sel,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    labs(title = "Differential expression on UMAP plot")
 ```
 
-
-```{r}
-counts <- matrix(rpois(30 * 500, lambda = 2.4), nrow = 30, ncol = 500)
-SummarizedExperiment::colData(fit)$patient_id <- sample(c("A", "B", "C"), size = 500, replace = TRUE)
-de_regions <- lemur::find_de_neighborhoods(fit, de_mat, counts = counts, group_by = glmGamPoi::vars(patient_id, condition), 
-                             contrast = cond(condition = "a") == cond(condition = "b"))
-head(de_regions)
+Alternatively, we can use the matrix of differential expression values (`de_mat`) to guide the selection of cell neighborhoods that show consistent differential expression. If we provide a count matrix, the function uses a pseudobulked differential expression test to confirm if the gene expression differences on the count level.
+```{r de_neighborhoods}
+neighborhoods <- find_de_neighborhoods(fit, de_mat = de_mat, counts = counts(glioblastoma_example_data),
+                                      group_by = vars(patient_id, condition),
+                                      contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"),
+                                      include_complement = FALSE, verbose = FALSE)
+as_tibble(neighborhoods) %>%
+  arrange(pval) %>%
+  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
 ```
+
+We can now specifically select regions with significant differential expression:
+```{r umap_de2}
+# HLA-DRB1
+sel_gene <- "ENSG00000196126"
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[sel_gene,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    labs(title = "Differential expression on UMAP plot")
+```
+
+To plot the boundaries of the differential expression neighborhood, we create a helper dataframe and use the `geom_density2d` function from `ggplot2`:
+```{r umap_de3}
+neighborhood_coordinates <- neighborhoods %>%
+  filter(name == sel_gene) %>%
+  mutate(cell_id = map(indices, \(idx) colnames(de_mat)[idx])) %>%
+  unnest(c(indices, cell_id)) %>%
+  left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
+  dplyr::select(name, cell_id, V1, V2)
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[sel_gene,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    geom_density2d(data = neighborhood_coordinates, breaks = 0.1, 
+                   contour_var = "ndensity", color = "black") +
+    labs(title = "Differential expression with neighborhood boundary")
+
+```
+
+To get a better idea of the expression differences across genes, we make a vulcano plot of the differential expression 
+```{r volcano_plot}
+neighborhoods %>%
+  ggplot(aes(x = lfc, y = -log10(pval))) +
+    geom_point(aes(color  = adj_pval < 0.1)) +
+    labs(title = "Vulcano plot of the neighborhoods")
+neighborhoods %>%
+  ggplot(aes(x = n_cells, y = -log10(pval))) +
+    geom_point(aes(color  = adj_pval < 0.1)) +
+    labs(title = "Neighborhood size vs neighborhood significance")
+```
+
 
 
 # Session Info
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
 

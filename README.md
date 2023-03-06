@@ -23,138 +23,247 @@ You can install the released version of lemur from Github
 devtools::install_github("const-ae/lemur")
 ```
 
+## A word of caution
+
+This package is being actively developed and I am still making breaking
+changes. I am delighted if you decide to try out the package and please
+open an issue if you think you found a bug, have an idea for a cool
+feature, or any question about how LEMUR works. Consider this a *beta*
+release with the goal to gather feedback but be aware that code written
+against the current version of lemur might not work in the future.
+
 ## Example
 
-Make some data
+We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The
+data consists of tumor biopsies from five glioblastomas which were
+treated using panobinostat or used as a control. Accordingly there are
+ten samples (patient-treatment combinations) which we will analyze using
+a paired experimental design.
+
+We start by loading some packages which are necessary to analyze the
+data:
 
 ``` r
-mat <- matrix(rnorm(30 * 500), nrow = 30, ncol = 500)
-col_data <- data.frame(condition = sample(letters[1:2], 500, replace = TRUE))
+library(tidyverse)
+library(SingleCellExperiment)
+library(lemur)
+set.seed(1)
 ```
 
-Fit the model
+We use a reduced-size version of the glioblastoma data that ships with
+the `lemur` package.
 
 ``` r
-fit <- lemur::lemur(mat, design = ~ condition, col_data = col_data, n_ambient = 10, n_embedding = 2)
-#> Fit ambient PCA
-#> Regress out global effects
-#> Find base point for differential embedding
-#> Fit differential embedding model
-#> -Iteration: 0    error: 6.5e+03
-#> ---Fit Grassmann linear model
-#> ---Update linear regression
-#> -Iteration: 1    error: 4.85e+03
-#> ---Fit Grassmann linear model
-#> ---Update linear regression
-#> -Iteration: 2    error: 4.85e+03
-#> Converged
+lemur::glioblastoma_example_data
+#> class: SingleCellExperiment 
+#> dim: 300 5000 
+#> metadata(0):
+#> assays(2): counts logcounts
+#> rownames(300): ENSG00000210082 ENSG00000118785 ... ENSG00000167468
+#>   ENSG00000139289
+#> rowData names(6): gene_id symbol ... strand. source
+#> colnames(5000): CGCCAGAGCGCA AGCTTTACTGCG ... TGAACAGTGCGT TGACCGGAATGC
+#> colData names(10): patient_id treatment_id ... sample_id id
+#> reducedDimNames(0):
+#> mainExpName: NULL
+#> altExpNames(0):
+```
+
+Initially, the data separates by the known covariates `patient_id` and
+`condition`.
+
+``` r
+orig_umap <- uwot::umap(as.matrix(t(logcounts(glioblastoma_example_data))))
+
+as_tibble(orig_umap) %>%
+  bind_cols(as_tibble(colData(glioblastoma_example_data))) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    labs(title = "UMAP of logcounts")
+#> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if
+#> `.name_repair` is omitted as of tibble 2.0.0.
+#> ℹ Using compatibility `.name_repair`.
+```
+
+<img src="man/figures/README-raw_umap-1.png" width="100%" />
+
+We fit the LEMUR model by calling `lemur()`. We provide the experimental
+design using a formula. The elements of the formula can refer to columns
+of the `colData` of the `SingleCellExperiment` object. We also set the
+number of latent dimensions which has a similar interpretation as the
+number of dimensions in PCA. Optionally, we can further align
+corresponding cells either using manually annotated cell types
+(`align_by_grouping`) or an automated alignment procedure (e.g.,
+`align_harmony`, `align_neighbors`).
+
+``` r
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
+
+# We can regularize the alignment either using ridge regression
+# or by allowing only rotations or stretching
+fit <- align_harmony(fit, stretching = FALSE)
+#> Select cells that are considered close with 'harmony'
+
 fit
 #> class: lemur_fit_obj 
-#> dim: 30 500 
+#> dim: 300 5000 
 #> metadata(12): n_ambient n_embedding ... alignment_design
 #>   alignment_design_matrix
 #> assays(1): expr
-#> rownames: NULL
-#> rowData names(0):
-#> colnames: NULL
-#> colData names(1): condition
+#> rownames(300): ENSG00000210082 ENSG00000118785 ... ENSG00000167468
+#>   ENSG00000139289
+#> rowData names(6): gene_id symbol ... strand. source
+#> colnames(5000): CGCCAGAGCGCA AGCTTTACTGCG ... TGAACAGTGCGT TGACCGGAATGC
+#> colData names(10): patient_id treatment_id ... sample_id id
 #> reducedDimNames(2): linearFit embedding
 #> mainExpName: NULL
 #> altExpNames(0):
 ```
 
-Let’s look at the coefficients
+The `lemur()` function returns an object that extends
+`SingleCellExperiment` and thus supports subsetting and all the familiar
+data acessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`). In
+addition, `lemur` overloads the `$` operator to allow easy access to
+additional fields that are produced by the LEMUR model. For example the
+low-dimensional embedding can be accessed using `fit$embedding`:
 
 ``` r
-round(fit$coefficients, 5)
-#> , , Intercept
-#> 
-#>           [,1]     [,2]
-#>  [1,] -0.00077  0.00096
-#>  [2,] -0.00308  0.00715
-#>  [3,]  0.33556  0.09131
-#>  [4,]  0.54514  0.85025
-#>  [5,] -0.44563 -0.21422
-#>  [6,]  0.34480 -0.01032
-#>  [7,] -0.12499 -0.12281
-#>  [8,]  0.00143  0.38604
-#>  [9,]  0.19342  0.17167
-#> [10,]  0.05171  0.05353
-#> 
-#> , , conditionb
-#> 
-#>           [,1]     [,2]
-#>  [1,]  0.00114  0.00056
-#>  [2,]  0.00163  0.01919
-#>  [3,] -0.58263  0.43780
-#>  [4,] -0.46199 -1.20915
-#>  [5,]  0.65308 -0.05886
-#>  [6,] -0.57180 -0.07554
-#>  [7,]  0.12282  0.23320
-#>  [8,]  0.03196 -0.58948
-#>  [9,] -0.24322  0.05567
-#> [10,]  0.05912 -0.07358
-plot(t(fit$embedding), col = as.factor(col_data$condition))
+umap <- uwot::umap(t(fit$embedding))
+
+as_tibble(umap) %>%
+  bind_cols(as_tibble(fit$colData)) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    labs(title = "UMAP of latent space from LEMUR")
 ```
 
-<img src="man/figures/README-show-fit-results-1.png" width="100%" />
+<img src="man/figures/README-lemur_umap-1.png" width="100%" />
+
+The `test_de` function takes a `lemur_fit_obj` and returns a matrix for
+all genes and cells containing the difference between two conditions
+specified in the `contrast`. Note, that you currently have to specify
+the contrast using `==`. This is because of implementation
+considerations and must only be used for `lemur::test_de` function (and
+not in `glmGamPoi::test_de`).
 
 ``` r
-de_mat <- lemur::test_de(fit, contrast = cond(condition = "a") == cond(condition = "b"))
-de_mat[1:5, 1:10]
-#>             [,1]         [,2]        [,3]        [,4]        [,5]       [,6]
-#> [1,]  0.54273594  0.227746766 -0.07380608  0.13953205 -0.40450075  0.6948219
-#> [2,] -0.28660964 -0.087217712  0.25464570  0.05567957  0.25241819 -0.2824847
-#> [3,]  0.32969179  0.118329964 -0.25143408 -0.03739997 -0.23873435  0.3204130
-#> [4,]  0.10420045  0.006754924 -0.09103860 -0.02313281 -0.18703047  0.1482544
-#> [5,]  0.04336833 -0.026404799 -0.40268196 -0.22439783 -0.04226467 -0.1287427
-#>             [,7]       [,8]        [,9]       [,10]
-#> [1,]  0.56702390 -0.2620746  0.05170869  0.01677785
-#> [2,] -0.29499019  0.2234453 -0.11071287  0.06736877
-#> [3,]  0.33823367 -0.2110121  0.14982926 -0.04656486
-#> [4,]  0.11150553 -0.1447949 -0.04367860 -0.05913853
-#> [5,]  0.03441165 -0.1361353  0.21118642 -0.11626663
+de_mat <- test_de(fit, contrast = cond(condition = "panobinostat") == cond(condition = "ctrl"))
 ```
 
-Show the gene expression changes on the latent embedding
+We can pick any gene and show the differential expression pattern on the
+UMAP plot:
 
 ``` r
-pal <- scales::col_numeric(scales::viridis_pal()(50), NULL)
-plot(t(fit$embedding), col = pal(de_mat[10,]), pch = 16, cex = 1.3)
+# EEF1A1
+gene_sel <- "ENSG00000156508"
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[gene_sel,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    labs(title = "Differential expression on UMAP plot")
 ```
 
-<img src="man/figures/README-visualize-differential-expression-1.png" width="100%" />
+<img src="man/figures/README-umap_de-1.png" width="100%" />
+
+Alternatively, we can use the matrix of differential expression values
+(`de_mat`) to guide the selection of cell neighborhoods that show
+consistent differential expression. If we provide a count matrix, the
+function uses a pseudobulked differential expression test to confirm if
+the gene expression differences on the count level.
 
 ``` r
-counts <- matrix(rpois(30 * 500, lambda = 2.4), nrow = 30, ncol = 500)
-SummarizedExperiment::colData(fit)$patient_id <- sample(c("A", "B", "C"), size = 500, replace = TRUE)
-de_regions <- lemur::find_de_neighborhoods(fit, de_mat, counts = counts, group_by = glmGamPoi::vars(patient_id, condition), 
-                             contrast = cond(condition = "a") == cond(condition = "b"))
+neighborhoods <- find_de_neighborhoods(fit, de_mat = de_mat, counts = counts(glioblastoma_example_data),
+                                      group_by = vars(patient_id, condition),
+                                      contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"),
+                                      include_complement = FALSE, verbose = FALSE)
+#> dimnames(.) <- NULL translated to
+#> dimnames(.) <- list(NULL,NULL)
 #> Aggregating assay 'masked_counts' using 'rowSums2'.
 #> Aggregating assay 'masked_size_factors' using 'rowSums2'.
-#> Make initial dispersion estimate
-#> Make initial beta estimate
-#> Estimate beta
-#> Estimate dispersion
-#> Fit dispersion trend
-#> Shrink dispersion estimates
-#> Estimate beta again
-head(de_regions)
-#>        name region      indices n_cells       mean         pval     adj_pval
-#> 1 feature_1      1 1, 6, 7,....      98  0.6973596 0.000000e+00 0.000000e+00
-#> 2 feature_2      1      52, 222       2 -0.8845059 4.174344e-31 6.591070e-31
-#> 3 feature_3      1      52, 222       2  0.9624984 4.377569e-26 5.836759e-26
-#> 4 feature_4      1 5, 11, 1....     123 -0.2583617 0.000000e+00 0.000000e+00
-#> 5 feature_5      1           21       1  0.6887578 3.496154e-23 4.034023e-23
-#> 6 feature_6      1          191       1  1.9229842 9.999814e-01 9.999814e-01
-#>    f_statistic df1       df2        lfc
-#> 1 4.799248e+03   1 485790184  -4.715161
-#> 2 1.345344e+02   1 485790184 -10.000000
-#> 3 1.115974e+02   1 485790184  -4.624491
-#> 4 6.959848e+03   1 485790184  -5.000324
-#> 5 9.835558e+01   1 485790184  -4.977280
-#> 6 5.454098e-10   1 485790184 -10.000000
+as_tibble(neighborhoods) %>%
+  arrange(pval) %>%
+  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
+#> # A tibble: 300 × 16
+#>    name        region indices n_cells   mean    pval adj_p…¹ f_sta…²   df1   df2
+#>    <chr>       <chr>  <I<lis>   <int>  <dbl>   <dbl>   <dbl>   <dbl> <int> <dbl>
+#>  1 ENSG000001… 1      <int>      3780  1.32  8.71e-6 0.00261   140.      1  6.80
+#>  2 ENSG000001… 1      <int>      3975  2.08  1.40e-4 0.0178     58.6     1  6.80
+#>  3 ENSG000001… 1      <int>      3582 -0.538 2.05e-4 0.0178     51.7     1  6.80
+#>  4 ENSG000001… 1      <int>      2267 -0.369 2.68e-4 0.0178     47.3     1  6.80
+#>  5 ENSG000001… 1      <int>      3850  0.637 3.36e-4 0.0178     43.9     1  6.80
+#>  6 ENSG000000… 1      <int>      3150 -0.290 4.16e-4 0.0178     40.9     1  6.80
+#>  7 ENSG000001… 1      <int>      2889 -1.49  4.61e-4 0.0178     39.5     1  6.80
+#>  8 ENSG000001… 1      <int>      3970  0.596 5.58e-4 0.0178     37.0     1  6.80
+#>  9 ENSG000000… 1      <int>      4040 -0.422 6.07e-4 0.0178     36.0     1  6.80
+#> 10 ENSG000001… 1      <int>       534  0.641 6.45e-4 0.0178     35.2     1  6.80
+#> # … with 290 more rows, 6 more variables: lfc <dbl>, symbol <chr>,
+#> #   chromosome <fct>, gene_length <int>, strand. <fct>, source <fct>, and
+#> #   abbreviated variable names ¹​adj_pval, ²​f_statistic
 ```
+
+We can now specifically select regions with significant differential
+expression:
+
+``` r
+# HLA-DRB1
+sel_gene <- "ENSG00000196126"
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[sel_gene,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    labs(title = "Differential expression on UMAP plot")
+```
+
+<img src="man/figures/README-umap_de2-1.png" width="100%" />
+
+To plot the boundaries of the differential expression neighborhood, we
+create a helper dataframe and use the `geom_density2d` function from
+`ggplot2`:
+
+``` r
+neighborhood_coordinates <- neighborhoods %>%
+  filter(name == sel_gene) %>%
+  mutate(cell_id = map(indices, \(idx) colnames(de_mat)[idx])) %>%
+  unnest(c(indices, cell_id)) %>%
+  left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
+  dplyr::select(name, cell_id, V1, V2)
+
+as_tibble(umap) %>%
+  mutate(expr = de_mat[sel_gene,]) %>%
+  ggplot(aes(x = V1, y = V2)) +
+    geom_point(aes(color = expr)) +
+    scale_color_gradient2() +
+    geom_density2d(data = neighborhood_coordinates, breaks = 0.1, 
+                   contour_var = "ndensity", color = "black") +
+    labs(title = "Differential expression with neighborhood boundary")
+```
+
+<img src="man/figures/README-umap_de3-1.png" width="100%" />
+
+To get a better idea of the expression differences across genes, we make
+a vulcano plot of the differential expression
+
+``` r
+neighborhoods %>%
+  ggplot(aes(x = lfc, y = -log10(pval))) +
+    geom_point(aes(color  = adj_pval < 0.1)) +
+    labs(title = "Vulcano plot of the neighborhoods")
+```
+
+<img src="man/figures/README-volcano_plot-1.png" width="100%" />
+
+``` r
+neighborhoods %>%
+  ggplot(aes(x = n_cells, y = -log10(pval))) +
+    geom_point(aes(color  = adj_pval < 0.1)) +
+    labs(title = "Neighborhood size vs neighborhood significance")
+```
+
+<img src="man/figures/README-volcano_plot-2.png" width="100%" />
 
 # Session Info
 
@@ -172,32 +281,51 @@ sessionInfo()
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 #> 
 #> attached base packages:
-#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> [1] stats4    stats     graphics  grDevices utils     datasets  methods  
+#> [8] base     
+#> 
+#> other attached packages:
+#>  [1] lemur_0.0.6                 SingleCellExperiment_1.20.0
+#>  [3] SummarizedExperiment_1.28.0 Biobase_2.58.0             
+#>  [5] GenomicRanges_1.50.2        GenomeInfoDb_1.34.9        
+#>  [7] IRanges_2.32.0              S4Vectors_0.36.2           
+#>  [9] BiocGenerics_0.44.0         MatrixGenerics_1.10.0      
+#> [11] matrixStats_0.63.0          lubridate_1.9.2            
+#> [13] forcats_1.0.0               stringr_1.5.0              
+#> [15] dplyr_1.1.0                 purrr_1.0.1                
+#> [17] readr_2.1.4                 tidyr_1.3.0                
+#> [19] tibble_3.1.8                ggplot2_3.4.1              
+#> [21] tidyverse_2.0.0            
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] Rcpp_1.0.10                 compiler_4.2.1             
-#>  [3] GenomeInfoDb_1.34.9         highr_0.10                 
-#>  [5] XVector_0.38.0              DelayedMatrixStats_1.20.0  
-#>  [7] MatrixGenerics_1.10.0       bitops_1.0-7               
-#>  [9] tools_4.2.1                 zlibbioc_1.44.0            
-#> [11] SingleCellExperiment_1.20.0 digest_0.6.31              
-#> [13] viridisLite_0.4.1           evaluate_0.20              
-#> [15] lifecycle_1.0.3             lattice_0.20-45            
-#> [17] rlang_1.0.6                 Matrix_1.5-3               
-#> [19] DelayedArray_0.24.0         cli_3.6.0                  
-#> [21] rstudioapi_0.14             yaml_2.3.7                 
-#> [23] expm_0.999-7                xfun_0.37                  
-#> [25] fastmap_1.1.1               GenomeInfoDbData_1.2.9     
-#> [27] lemur_0.0.6                 knitr_1.42                 
-#> [29] vctrs_0.5.2                 S4Vectors_0.36.2           
-#> [31] IRanges_2.32.0              stats4_4.2.1               
-#> [33] grid_4.2.1                  Biobase_2.58.0             
-#> [35] R6_2.5.1                    rmarkdown_2.20             
-#> [37] irlba_2.3.5.1               farver_2.1.1               
-#> [39] sparseMatrixStats_1.10.0    scales_1.2.1               
-#> [41] matrixStats_0.63.0          htmltools_0.5.4            
-#> [43] BiocGenerics_0.44.0         GenomicRanges_1.50.2       
-#> [45] SummarizedExperiment_1.28.0 colorspace_2.1-0           
-#> [47] glmGamPoi_1.11.6            RCurl_1.98-1.10            
-#> [49] munsell_0.5.0
+#>  [1] Rcpp_1.0.10               lattice_0.20-45          
+#>  [3] digest_0.6.31             utf8_1.2.3               
+#>  [5] R6_2.5.1                  evaluate_0.20            
+#>  [7] highr_0.10                pillar_1.8.1             
+#>  [9] sparseMatrixStats_1.10.0  zlibbioc_1.44.0          
+#> [11] rlang_1.0.6               rstudioapi_0.14          
+#> [13] irlba_2.3.5.1             Matrix_1.5-3             
+#> [15] rmarkdown_2.20            splines_4.2.1            
+#> [17] labeling_0.4.2            glmGamPoi_1.11.6         
+#> [19] RCurl_1.98-1.10           munsell_0.5.0            
+#> [21] uwot_0.1.14               DelayedArray_0.24.0      
+#> [23] compiler_4.2.1            xfun_0.37                
+#> [25] pkgconfig_2.0.3           htmltools_0.5.4          
+#> [27] tidyselect_1.2.0          expm_0.999-7             
+#> [29] GenomeInfoDbData_1.2.9    codetools_0.2-19         
+#> [31] fansi_1.0.4               tzdb_0.3.0               
+#> [33] withr_2.5.0               MASS_7.3-58.2            
+#> [35] bitops_1.0-7              grid_4.2.1               
+#> [37] gtable_0.3.1              lifecycle_1.0.3          
+#> [39] magrittr_2.0.3            scales_1.2.1             
+#> [41] cli_3.6.0                 stringi_1.7.12           
+#> [43] farver_2.1.1              XVector_0.38.0           
+#> [45] DelayedMatrixStats_1.20.0 ellipsis_0.3.2           
+#> [47] generics_0.1.3            vctrs_0.5.2              
+#> [49] cowplot_1.1.1             RcppAnnoy_0.0.20         
+#> [51] tools_4.2.1               harmony_0.1.1            
+#> [53] glue_1.6.2                hms_1.1.2                
+#> [55] fastmap_1.1.1             yaml_2.3.7               
+#> [57] timechange_0.2.0          colorspace_2.1-0         
+#> [59] isoband_0.2.7             knitr_1.42
 ```
