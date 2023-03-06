@@ -121,7 +121,7 @@ find_de_neighborhoods <- function(fit, de_mat, counts = NULL, group_by, contrast
       mask[idx,de_regions$indices[[idx]]] <- 1
     }
 
-    mask <- if(packageVersion("Matrix") >= "1.4.2"){
+    mask <- if(utils::packageVersion("Matrix") >= "1.4.2"){
       # See email from Martin Maechler from 2022-08-12
       as(as(as(mask, "dMatrix"), "generalMatrix"), "TsparseMatrix")
     }else{
