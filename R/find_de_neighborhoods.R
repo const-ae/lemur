@@ -120,7 +120,15 @@ find_de_neighborhoods <- function(fit, de_mat, counts = NULL, group_by, contrast
     for(idx in seq_len(nrow(de_regions))){
       mask[idx,de_regions$indices[[idx]]] <- 1
     }
-    mask <- as(as(as(mask, "dMatrix"), "generalMatrix"), "TsparseMatrix")
+
+    mask <- if(packageVersion("Matrix") >= "1.4.2"){
+      # See email from Martin Maechler from 2022-08-12
+      as(as(as(mask, "dMatrix"), "generalMatrix"), "TsparseMatrix")
+    }else{
+      # This approach is deprecated since 1.4.2 and triggers warnings
+      as(mask, "dgTMatrix")
+    }
+
     if(is.null(rownames(counts))){
       rownames(counts) <- paste0("feature_", seq_len(nrow(de_mat)))
     }
