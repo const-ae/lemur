@@ -256,10 +256,4 @@ which_extreme <- function(x, ignore = NULL){
   }
 }
 
-max_number_of_edges_per_vertex <- function(graph){
-  # adjacency matrix is a sparse n x n matrix with 1 for connected nodes
-  # The diff of the column pointers shows the number of non-zero elements
-  adj_mat <- t(igraph::as_adjacency_matrix(graph, sparse = TRUE))
-  max(diff(adj_mat@p))
-}
 
