@@ -33,7 +33,7 @@ to capture all relevant variation in the data}
 Needs to be smaller than \code{n_ambient}.}
 
 \item{alignment}{optional specification how or if points should be aligned. This
-can also be done in a separate step by calling \code{\link{align_embeddings}}.}
+can also be done in a separate step by calling \code{\link{align_harmony}} or \code{\link{align_by_grouping}}.}
 
 \item{base_point}{a string specifying how to find the base point for the geodesic
 regression. Alternatively, an orthogonal matrix with \code{n_ambient} \eqn{\times} \code{n_embedding}

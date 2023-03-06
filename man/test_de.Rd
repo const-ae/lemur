@@ -17,7 +17,7 @@ test_de(
 )
 }
 \arguments{
-\item{fit}{the result of \code{\link{differential_embedding}}}
+\item{fit}{the result of calling \code{\link[=lemur]{lemur()}}}
 
 \item{contrast}{Specification of the contrast. This can be either
 \itemize{

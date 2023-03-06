@@ -1,7 +1,7 @@
 
 #' Differential expression for each cell (or position in the latent emebedding)
 #'
-#' @param fit the result of [`differential_embedding`]
+#' @param fit the result of calling [`lemur()`]
 #' @param contrast Specification of the contrast. This can be either
 #'    * a numeric vector whose length matches the number of coefficients (e.g., `c(1, 0, -1, 0)`
 #'       to compare the coefficients A vs C in a model with four treatment options)
@@ -73,11 +73,11 @@ test_de <- function(fit,
 #'
 #' @export
 test_global <- function(fit,
-                                        contrast,
-                                        reduced_design = NULL,
-                                        consider = c("embedding+linear", "embedding", "linear"),
-                                        variance_est = c("analytical", "resampling", "none"), verbose = TRUE,
-                                        ...){
+                        contrast,
+                        reduced_design = NULL,
+                        consider = c("embedding+linear", "embedding", "linear"),
+                        variance_est = c("analytical", "resampling", "none"), verbose = TRUE,
+                        ...){
 
 
   variance_est <- match.arg(variance_est)

@@ -12,7 +12,7 @@
 #' @param n_embedding the dimension of the $k$-plane that is rotated through space.
 #'   Needs to be smaller than `n_ambient`.
 #' @param alignment optional specification how or if points should be aligned. This
-#'   can also be done in a separate step by calling [`align_embeddings`].
+#'   can also be done in a separate step by calling [`align_harmony`] or [`align_by_grouping`].
 #' @param base_point a string specifying how to find the base point for the geodesic
 #'   regression. Alternatively, an orthogonal matrix with `n_ambient` \eqn{\times} `n_embedding`
 #'   dimension.
@@ -65,7 +65,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 
 lemur_impl <- function(Y, design_matrix,
-                                        n_ambient = 30, n_embedding = 15,
+                                        n_ambient = Inf, n_embedding = 15,
                                         alignment = FALSE,
                                         base_point = c("global_embedding", "mean"),
                                         amb_pca = NULL,

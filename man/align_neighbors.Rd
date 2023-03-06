@@ -54,7 +54,7 @@ align_by_grouping(
 )
 }
 \arguments{
-\item{fit}{a \code{DiffEmbSeqFit} object}
+\item{fit}{a \code{lemur_fit_obj} object}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
