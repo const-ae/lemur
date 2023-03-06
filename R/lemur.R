@@ -25,7 +25,7 @@
 #'
 #' @export
 lemur <- function(data, design = ~ 1, col_data = NULL,
-                  n_ambient = 30, n_embedding = 15,
+                  n_ambient = Inf, n_embedding = 15,
                   alignment = FALSE,
                   base_point = c("global_embedding", "mean"),
                   use_assay = "logcounts",
