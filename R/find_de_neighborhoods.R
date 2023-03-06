@@ -148,3 +148,7 @@ find_de_neighborhoods <- function(fit, de_mat, counts = NULL, group_by, contrast
     cbind(de_regions, de_res[,-1])
   }
 }
+
+#' @importFrom glmGamPoi vars
+#' @export
+glmGamPoi::vars
