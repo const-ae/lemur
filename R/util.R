@@ -176,12 +176,15 @@ normalize_vec_length <- function(x){
 #' @param FUN a function with first argument named `elem` and second argument
 #'   named `accum`
 #'
+#' @keywords internal
 #'
 #' @examples
-#'   # This produces ...
-#'   fold_left(0)(1:10, \(elem, accum) accum + elem)
-#'   # ... the same as
-#'   sum(1:10)
+#'   if(FALSE){
+#'     # This produces ...
+#'     fold_left(0)(1:10, \(elem, accum) accum + elem)
+#'     # ... the same as
+#'     sum(1:10)
+#'   }
 fold_left <- function(init){
   if(missing(init)){
     init <- NULL

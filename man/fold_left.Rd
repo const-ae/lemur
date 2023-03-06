@@ -23,8 +23,11 @@ Fold left over a sequence
 Fold right over a sequence
 }
 \examples{
-  # This produces ...
-  fold_left(0)(1:10, \(elem, accum) accum + elem)
-  # ... the same as
-  sum(1:10)
+  if(FALSE){
+    # This produces ...
+    fold_left(0)(1:10, \(elem, accum) accum + elem)
+    # ... the same as
+    sum(1:10)
+  }
 }
+\keyword{internal}
