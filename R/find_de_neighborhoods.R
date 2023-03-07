@@ -145,7 +145,8 @@ find_de_neighborhoods <- function(fit, de_mat = assay(fit, "DE"), counts = NULL,
                                                              colData = SingleCellExperiment::colData(fit))
     region_psce <- glmGamPoi::pseudobulk(masked_sce, group_by = {{group_by}},
                                          aggregation_functions = list("masked_counts" = "rowSums2",
-                                                                      "masked_size_factors" = "rowSums2"))
+                                                                      "masked_size_factors" = "rowSums2"),
+                                         verbose = verbose)
 
     glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = verbose,
                                      offset = log(assay(region_psce, "masked_size_factors") + 1e-10),
