@@ -1,9 +1,28 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param fit a `lemur_fit_obj` object
-#' @param design_matrix the design matrix for the alignment
+#' @param rotating,stretching boolean flags to turn limit the flexibility of the
+#'   alignment transformation. Default: `TRUE`
+#' @param design a specification of the design (matrix or formula) that is used
+#'   for the transformation. Default: `fit$design_matrix`
+#' @param ridge_penalty specification how much the flexibility of the transformation
+#'   should be regularized. This can be a single positive scalar or named list
+#'   (`"stretching"` and `"rotation"`). Default: `0`
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters that are passed on to relevant functions
+#' @param cells_per_cluster argument specific for `align_neighbors`. Before mutual nearest neighbor
+#'   search the cells are clustered per condition. Default: `20`
+#' @param mnn argument specific for `align_neighbors`. The number of mutual nearest neighbors.
+#'   Default: `10`
+#' @param data_matrix argument specific for `align_neighbors`. The data matrix that is used for
+#'   the mutual nearest neighbor search. Default: `assay(fit)`
+#' @param min_cluster_membership argument specific for `align_harmony`. The minimum probability
+#'   from the soft clustering. Default: `0.1`
+#' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
+#' @param alignment_template argument specific for `align_by_template`. A readily integrated dataset
+#'   that is approximated using the `align_neighbors` function.
+#' @param grouping argument specific for `align_by_grouping`. A manually provided list of groups
+#'   that are considered similar.
 #'
 #'
 #' @export

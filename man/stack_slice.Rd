@@ -9,11 +9,15 @@ stack_slice(x)
 
 destack_slice(x)
 }
+\arguments{
+\item{x}{a list of vectors/matrices that are stacked}
+}
 \description{
-Make a cube from a list of matrices
+The length of the list will become the third dimension of the cube.
 }
 \section{Functions}{
 \itemize{
 \item \code{destack_slice()}: Make a list of matrices from a cube
 
 }}
+\keyword{internal}

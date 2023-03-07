@@ -56,11 +56,39 @@ align_by_grouping(
 \arguments{
 \item{fit}{a \code{lemur_fit_obj} object}
 
+\item{rotating, stretching}{boolean flags to turn limit the flexibility of the
+alignment transformation. Default: \code{TRUE}}
+
+\item{data_matrix}{argument specific for \code{align_neighbors}. The data matrix that is used for
+the mutual nearest neighbor search. Default: \code{assay(fit)}}
+
+\item{cells_per_cluster}{argument specific for \code{align_neighbors}. Before mutual nearest neighbor
+search the cells are clustered per condition. Default: \code{20}}
+
+\item{mnn}{argument specific for \code{align_neighbors}. The number of mutual nearest neighbors.
+Default: \code{10}}
+
+\item{design}{a specification of the design (matrix or formula) that is used
+for the transformation. Default: \code{fit$design_matrix}}
+
+\item{ridge_penalty}{specification how much the flexibility of the transformation
+should be regularized. This can be a single positive scalar or named list
+(\code{"stretching"} and \code{"rotation"}). Default: \code{0}}
+
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
 \item{...}{additional parameters that are passed on to relevant functions}
 
-\item{design_matrix}{the design matrix for the alignment}
+\item{min_cluster_membership}{argument specific for \code{align_harmony}. The minimum probability
+from the soft clustering. Default: \code{0.1}}
+
+\item{max_iter}{argument specific for \code{align_harmony}. The number of iterations. Default: \code{10}}
+
+\item{alignment_template}{argument specific for \code{align_by_template}. A readily integrated dataset
+that is approximated using the \code{align_neighbors} function.}
+
+\item{grouping}{argument specific for \code{align_by_grouping}. A manually provided list of groups
+that are considered similar.}
 }
 \description{
 Enforce additional alignment of cell clusters beyond the direct differential embedding

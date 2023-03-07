@@ -15,6 +15,15 @@ stack_rows(x)
 
 stack_cols(x)
 }
+\arguments{
+\item{x}{the sequence that is mapped to a matrix}
+
+\item{FUN}{the function that returns a vector of length \code{ncol}}
+
+\item{ncol}{the length of the output vector}
+
+\item{...}{additional arguments that are passed to \code{FUN}}
+}
 \description{
 The length of \code{x} determines the number of rows. The length of
 \code{FUN(x[i])} determines the number of columns. Must match \code{ncol}.

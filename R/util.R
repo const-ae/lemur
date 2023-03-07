@@ -16,6 +16,11 @@ sym <- function(M){
 #' The length of `x` determines the number of rows. The length of
 #' `FUN(x[i])` determines the number of columns. Must match `ncol`.
 #'
+#' @param x the sequence that is mapped to a matrix
+#' @param FUN the function that returns a vector of length `ncol`
+#' @param ncol the length of the output vector
+#' @param ... additional arguments that are passed to `FUN`
+#'
 #' @keywords internal
 mply_dbl <- function(x, FUN, ncol=1, ...){
   if(!is.matrix(x)){
@@ -95,7 +100,11 @@ stack_cols <- function(x){
 
 #' Make a cube from a list of matrices
 #'
+#' The length of the list will become the third dimension of the cube.
 #'
+#' @param x a list of vectors/matrices that are stacked
+#'
+#' @keywords internal
 stack_slice <- function(x){
   stopifnot(is.list(x))
   x <- lapply(x, as.matrix)
@@ -176,15 +185,16 @@ normalize_vec_length <- function(x){
 #' @param FUN a function with first argument named `elem` and second argument
 #'   named `accum`
 #'
-#' @keywords internal
 #'
 #' @examples
-#'   if(FALSE){
+#'   \dontrun{
 #'     # This produces ...
 #'     fold_left(0)(1:10, \(elem, accum) accum + elem)
 #'     # ... the same as
 #'     sum(1:10)
 #'   }
+#'
+#' @keywords internal
 fold_left <- function(init){
   if(missing(init)){
     init <- NULL

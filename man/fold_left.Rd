@@ -23,11 +23,12 @@ Fold left over a sequence
 Fold right over a sequence
 }
 \examples{
-  if(FALSE){
+  \dontrun{
     # This produces ...
     fold_left(0)(1:10, \(elem, accum) accum + elem)
     # ... the same as
     sum(1:10)
   }
+
 }
 \keyword{internal}
