@@ -23,6 +23,10 @@ the differential expression is tested. It defaults to the position of all cells 
 
 \item{consider}{specify which part of the model are considered for the differential expression test.}
 }
+\value{
+if \code{is.null(embedding)} the \code{fit} object with a new assay called \code{"DE"}. Otherwise
+return the matrix with the differential expression values
+}
 \description{
 Differential expression for each cell (or position in the latent emebedding)
 }

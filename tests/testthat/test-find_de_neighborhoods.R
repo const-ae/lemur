@@ -1,6 +1,6 @@
 dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
 fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
-DE <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+DE <- assay(test_de(fit, contrast = cond(condition = "a") - cond(condition = "b")), "DE")
 
 
 test_that("de_regions", {

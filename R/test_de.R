@@ -9,6 +9,9 @@
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #'
+#' @return if `is.null(embedding)` the `fit` object with a new assay called `"DE"`. Otherwise
+#'  return the matrix with the differential expression values
+#'
 #' @export
 test_de <- function(fit,
                     contrast,
@@ -34,7 +37,12 @@ test_de <- function(fit,
 
   colnames(diff) <- colnames(embedding)
   rownames(diff) <- rownames(fit)
-  diff
+  if(use_provided_diff_emb){
+    diff
+  }else{
+    assay(fit, "DE") <- diff
+    fit
+  }
 }
 
 

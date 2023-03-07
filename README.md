@@ -38,8 +38,8 @@ against the current version of lemur might not work in the future.
 # sce is some SingleCellExperiment object
 fit <- lemur::lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
 fit <- lemur::align_harmony(fit)
-de_mat <- lemur::test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-neigh <- lemur::find_de_neighborhoods(fit, de_mat = de_mat, counts = counts(sce),
+fit <- lemur::test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+neigh <- lemur::find_de_neighborhoods(fit, counts = counts(sce),
                                       group_by = vars(patient_id, condition),
                                       contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
 ```
@@ -160,7 +160,7 @@ expected levels and `lemur` automatically calculates the contrast
 vector.
 
 ``` r
-de_mat <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 ```
 
 We can pick any gene and show the differential expression pattern on the
@@ -171,7 +171,7 @@ UMAP plot:
 gene_sel <- "ENSG00000156508"
 
 as_tibble(umap) %>%
-  mutate(expr = de_mat[gene_sel,]) %>%
+  mutate(expr = assay(fit, "DE")[gene_sel,]) %>%
   ggplot(aes(x = V1, y = V2)) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
@@ -181,20 +181,18 @@ as_tibble(umap) %>%
 <img src="man/figures/README-umap_de-1.png" width="100%" />
 
 Alternatively, we can use the matrix of differential expression values
-(`de_mat`) to guide the selection of cell neighborhoods that show
-consistent differential expression. If we provide a count matrix, the
-function uses a pseudobulked differential expression test to confirm if
-the gene expression differences on the count level.
+(`assay(fit, "DE")`) to guide the selection of cell neighborhoods that
+show consistent differential expression. If we provide a count matrix,
+the function uses a pseudobulked differential expression test to confirm
+if the gene expression differences on the count level.
 
 ``` r
-neighborhoods <- find_de_neighborhoods(fit, de_mat = de_mat, counts = counts(glioblastoma_example_data),
+neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
                                       group_by = vars(patient_id, condition),
                                       contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"),
                                       include_complement = FALSE, verbose = FALSE)
 #> dimnames(.) <- NULL translated to
 #> dimnames(.) <- list(NULL,NULL)
-#> Aggregating assay 'masked_counts' using 'rowSums2'.
-#> Aggregating assay 'masked_size_factors' using 'rowSums2'.
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
@@ -224,7 +222,7 @@ expression:
 sel_gene <- "ENSG00000196126"
 
 as_tibble(umap) %>%
-  mutate(expr = de_mat[sel_gene,]) %>%
+  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = V1, y = V2)) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
@@ -240,13 +238,13 @@ create a helper dataframe and use the `geom_density2d` function from
 ``` r
 neighborhood_coordinates <- neighborhoods %>%
   filter(name == sel_gene) %>%
-  mutate(cell_id = map(indices, \(idx) colnames(de_mat)[idx])) %>%
+  mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
   left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
   dplyr::select(name, cell_id, V1, V2)
 
 as_tibble(umap) %>%
-  mutate(expr = de_mat[sel_gene,]) %>%
+  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = V1, y = V2)) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
@@ -298,7 +296,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] lemur_0.0.6                 SingleCellExperiment_1.20.0
+#>  [1] lemur_0.0.7                 SingleCellExperiment_1.20.0
 #>  [3] SummarizedExperiment_1.28.0 Biobase_2.58.0             
 #>  [5] GenomicRanges_1.50.2        GenomeInfoDb_1.34.9        
 #>  [7] IRanges_2.32.0              S4Vectors_0.36.2           
