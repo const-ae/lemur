@@ -6,8 +6,8 @@ test_that("test_de works", {
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
   fit <- fit[,1:10]
 
-  res <- test_de(fit, cond(condition = "b") == cond(condition = "a"))
-  res2 <- test_de(fit, conditionb)
+  res <- test_de(fit, cond(condition = "b") - cond(condition = "a"))
+  res2 <- test_de(fit, cond(condition = "b"))
 
   expect_equal(dim(res), dim(res2))
 })
@@ -35,9 +35,9 @@ test_that("test_de works with custom embedding", {
   fit <- fit[,1:10]
   test_point <- matrix(0, nrow = 3, ncol = 1)
   colnames(test_point) <- "zero"
-  res <- test_de(fit, cond(condition = "b") == cond(condition = "a"),
+  res <- test_de(fit, cond(condition = "b") - cond(condition = "a"),
                                       embedding = test_point)
-  res2 <- test_de(fit, conditionb, embedding = test_point)
+  res2 <- test_de(fit, contrast = cond() - cond(condition = "b"), embedding = test_point)
 
   expect_equal(dim(res), c(30, 1))
   expect_equal(dim(res2), c(30, 1))
@@ -52,7 +52,7 @@ test_that("test_global works", {
   res <- test_global(fit, reduced_design = ~ 1, consider = "linear", variance_est = "analytical", verbose = FALSE)
   expect_s3_class(res, "data.frame")
 
-  res3 <- test_global(fit, contrast = cond(condition = "a") == cond(condition = "b"),
+  res3 <- test_global(fit, contrast = cond(condition = "a") - cond(condition = "b"),
                       variance_est = "resampling", verbose = FALSE)
   expect_s3_class(res3, "data.frame")
 })
@@ -70,7 +70,7 @@ test_that("the angle between planes is correctly calculated", {
   # log(map(a, p), map(b, p)) instead of simply a - b
   res <- test_global(fit, contrast = cond(condition = "a") - cond(condition = "b"),
                                       variance_est = "none", verbose = FALSE)
-  res2 <- test_global(fit, contrast = cond(condition = "a") == cond(condition = "b"),
+  res2 <- test_global(fit, contrast = cond(condition = "a") - cond(condition = "b"),
                                      variance_est = "none", verbose = FALSE)
   plane_a <- pca(assay(dat)[,dat$condition == "a"], n = n_emb)$coordsystem
   plane_b <- pca(assay(dat)[,dat$condition == "b"], n = n_emb)$coordsystem

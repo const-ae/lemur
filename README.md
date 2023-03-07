@@ -32,6 +32,18 @@ feature, or any question about how LEMUR works. Consider this a *beta*
 release with the goal to gather feedback but be aware that code written
 against the current version of lemur might not work in the future.
 
+## Quickstart
+
+``` r
+# sce is some SingleCellExperiment object
+fit <- lemur::lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
+fit <- lemur::align_harmony(fit)
+de_mat <- lemur::test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+neigh <- lemur::find_de_neighborhoods(fit, de_mat = de_mat, counts = counts(sce),
+                                      group_by = vars(patient_id, condition),
+                                      contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+```
+
 ## Example
 
 We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The
@@ -141,13 +153,14 @@ as_tibble(umap) %>%
 
 The `test_de` function takes a `lemur_fit_obj` and returns a matrix for
 all genes and cells containing the difference between two conditions
-specified in the `contrast`. Note, that you currently have to specify
-the contrast using `==`. This is because of implementation
-considerations and must only be used for `lemur::test_de` function (and
-not in `glmGamPoi::test_de`).
+specified in the `contrast`. Note that `lemur` implements the notation
+for contrasts. Instead of providing a contrast vector or providing the
+design matrix column names, you provide for each *condition* the
+expected levels and `lemur` automatically calculates the contrast
+vector.
 
 ``` r
-de_mat <- test_de(fit, contrast = cond(condition = "panobinostat") == cond(condition = "ctrl"))
+de_mat <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 ```
 
 We can pick any gene and show the differential expression pattern on the

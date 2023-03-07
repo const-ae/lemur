@@ -7,11 +7,6 @@
 test_de(
   fit,
   contrast,
-  alignment_contrast = {
-     {
-         contrast
-     }
- },
   embedding = NULL,
   consider = c("embedding+linear", "embedding", "linear")
 )
@@ -19,20 +14,9 @@ test_de(
 \arguments{
 \item{fit}{the result of calling \code{\link[=lemur]{lemur()}}}
 
-\item{contrast}{Specification of the contrast. This can be either
-\itemize{
-\item a numeric vector whose length matches the number of coefficients (e.g., \code{c(1, 0, -1, 0)}
-to compare the coefficients A vs C in a model with four treatment options)
-\item the unquoted names of coefficients to compare (e.g., \code{treatmentA - treatmentC})
-\item a call to \code{cond()} specifying a full observation (e.g. \code{cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")} to
-compare treatment A vs C for male observations). Unspecified factors default to the reference level.
-\item an extension of the previous two options where instead of subtracting the
-coefficients, they are compared directly (e.g. \code{cond(treatment = "A", sex = "male") < cond(treatment = "C", sex = "male")} or
-\code{cond(treatment = "A", sex = "male") == treatmentC}). This is the recommended approach, because \code{map(V1 - V2) != map(V1) - map(V2)}.
-}}
-
-\item{alignment_contrast}{same as \code{contrast} but applied to the \code{alignment_design_matrix}. This is for advanced use cases where
-separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the \code{contrast} argument.}
+\item{contrast}{Specification of the contrast: a call to \code{cond()} specifying a full observation
+(e.g. \code{cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")} to
+compare treatment A vs C for male observations). Unspecified factors default to the reference level.}
 
 \item{embedding}{matrix of size \code{n_embedding} \eqn{\times} \code{n} that specifies where in the latent space
 the differential expression is tested. It defaults to the position of all cells from the original fit.}

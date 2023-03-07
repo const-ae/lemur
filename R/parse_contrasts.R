@@ -1,37 +1,25 @@
 
-# This function was copied from proDA
-parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
+# This function is adapted from proDA
+parse_contrast <- function(contrast, formula) {
 
   if(missing(contrast)){
     stop("No contrast argument was provided! The option is any linear combination of:\n",
          paste0(coefficient_names, collapse = ", "))
   }
+  covar <- all.vars(formula)
+
   cnt_capture <- rlang::enquo(contrast)
 
-  stopifnot(! is.null(coefficient_names))
-  if(is.factor(coefficient_names)){
-    coefficient_names <- levels(coefficient_names)
-  }else if(! is.character(coefficient_names)){
-    stop("levels must be either a character vector or a factor")
-  }
-
-  indicators <- diag(nrow=length(coefficient_names))
-  rownames(indicators) <- coefficient_names
-  colnames(indicators) <- coefficient_names
-
-  covar_indicators <- list()
-  for(lvl in coefficient_names){
-    ind <- indicators[, lvl]
-    names(ind) <- coefficient_names
-    covar_indicators[[lvl]] <- ind
-  }
   top <- rlang::new_environment(list(
     cond = function(...){
       .cond(formula, list(...))
-    }, "==" = .equal, "<" = .lt, "<=" = .lt,
+    },
+    "+" = .plus, "-" = .minus, "/" = .divide, "*" = .multiply,
+    "==" = .equal,
+    "<" = .lt, "<=" = .lt,
     ">" = .gt, ">=" = .gt
   ))
-  bottom <- rlang::new_environment(covar_indicators, parent = top)
+  bottom <- rlang::new_environment(parent = top)
   data_mask <- rlang::new_data_mask(bottom = bottom, top = top)
   data_mask$.cntrst <- rlang::as_data_pronoun(bottom)
 
@@ -47,8 +35,9 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
     # Try to extract text from error message
     match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
     if(length(match) == 2){
-      stop("Object '", match[2], "' not found. Allowed variables in contrast are:\n",
-           paste0(coefficient_names, collapse = ", "), call. = FALSE)
+      stop("Object '", match[2], "' not found. Please specify the contrast using:\n",
+           "'cond(", paste0(paste0(covar, " = ?"), collapse = ", "), ") - ",
+           "cond(", paste0(paste0(covar, " = ?"), collapse = ", "), ")'", call. = FALSE)
     }else{
       stop(e$message)
     }
@@ -101,9 +90,74 @@ parse_contrast <- function(contrast, coefficient_names, formula = NULL) {
   res <- drop(model.matrix(formula, new_dat, contrasts.arg = attr(formula, "contrasts")))
   attr(res, "assign") <- NULL
   attr(res, "contrasts") <- NULL
+  class(res) <- "model_vec"
   res
 }
 
+
+evaluate_contrast_tree <-function(c1, c2, FUN){
+  stopifnot(all(class(c2) == class(c1)))
+  if(inherits(c1, "contrast_relation")){
+    stopifnot(c1$relation == c2$relation)
+    if(c1$relation == "minus" && is.null(c1$rhs)){ # Unary minus
+      - evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN)
+    }else if(c1$relation == "minus" && is.null(c1$rhs)){ # Unary plus
+      + evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN)
+    }else if(c1$relation == "minus"){
+      evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) - evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
+    }else if(c1$relation == "plus"){
+      evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) + evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
+    }else if(c1$relation == "multiply"){
+      evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) * evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
+    }else if(c1$relation == "divide"){
+      evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) / evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
+    # }else if(c1$relation == "equal"){
+    #   evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) - evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
+    }else if(c1$relation %in% c("equal", "less_than", "greater_than")){
+      stop("(In)equalities are not allowed in contrasts")
+    }else{
+      stop("Canot handle contrast relationship of type: ", c1$relation)
+    }
+  }else if(inherits(c1, "model_vec")){
+    FUN(c1, c2)
+  }else{
+    stopifnot(all(c1 == c2))
+    c1
+  }
+}
+
+
+.divide <- function(x, y){
+  res <- list(lhs = x, rhs = y, relation =  "divide")
+  class(res) <- "contrast_relation"
+  res
+}
+
+.multiply <- function(x, y){
+  res <- list(lhs = x, rhs = y, relation =  "multiply")
+  class(res) <- "contrast_relation"
+  res
+}
+
+.plus <- function(x, y){
+  if(missing(y)){
+    # Unary plus
+    y <- NULL
+  }
+  res <- list(lhs = x, rhs = y, relation =  "plus")
+  class(res) <- "contrast_relation"
+  res
+}
+
+.minus <- function(x, y){
+  if(missing(y)){
+    # Unary minus
+    y <- NULL
+  }
+  res <- list(lhs = x, rhs = y, relation =  "minus")
+  class(res) <- "contrast_relation"
+  res
+}
 
 .equal <- function(x, y){
   res <- list(lhs = x, rhs = y, relation =  "equal")

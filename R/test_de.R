@@ -2,17 +2,9 @@
 #' Differential expression for each cell (or position in the latent emebedding)
 #'
 #' @param fit the result of calling [`lemur()`]
-#' @param contrast Specification of the contrast. This can be either
-#'    * a numeric vector whose length matches the number of coefficients (e.g., `c(1, 0, -1, 0)`
-#'       to compare the coefficients A vs C in a model with four treatment options)
-#'    * the unquoted names of coefficients to compare (e.g., `treatmentA - treatmentC`)
-#'    * a call to `cond()` specifying a full observation (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
-#'       compare treatment A vs C for male observations). Unspecified factors default to the reference level.
-#'    * an extension of the previous two options where instead of subtracting the
-#'       coefficients, they are compared directly (e.g. `cond(treatment = "A", sex = "male") < cond(treatment = "C", sex = "male")` or
-#'       `cond(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
-#' @param alignment_contrast same as `contrast` but applied to the `alignment_design_matrix`. This is for advanced use cases where
-#'   separate experimental designs are used in the multi-condition PCA and the alignment step. Defaults to the `contrast` argument.
+#' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
+#'    (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
+#'    compare treatment A vs C for male observations). Unspecified factors default to the reference level.
 #' @param embedding matrix of size `n_embedding` \eqn{\times} `n` that specifies where in the latent space
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
@@ -20,7 +12,6 @@
 #' @export
 test_de <- function(fit,
                     contrast,
-                    alignment_contrast = {{contrast}},
                     embedding = NULL,
                     consider = c("embedding+linear", "embedding", "linear")){
   if(is.null(embedding)){
@@ -35,16 +26,11 @@ test_de <- function(fit,
   with_emb <- consider == "embedding+linear" || consider == "embedding"
 
 
-  cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(fit$design_matrix), formula = fit$design)
-  al_cntrst <- parse_contrast({{alignment_contrast}}, coefficient_names = colnames(fit$alignment_design_matrix), formula = fit$alignment_design)
-  diff <- if(inherits(cntrst, "contrast_relation") && inherits(al_cntrst, "contrast_relation")){
-    predict(fit, newdesign = cntrst$lhs, alignment_design_matrix = al_cntrst$lhs, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb) -
-      predict(fit, newdesign = cntrst$rhs, alignment_design_matrix = al_cntrst$rhs, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
-  }else if(inherits(cntrst, "contrast_relation") != inherits(al_cntrst, "contrast_relation")){
-    stop("Both 'contrast' and 'alignment_contrast' must contain an equality relation ('==') or neither.")
-  }else{
-    predict(fit, newdesign = cntrst, alignment_design_matrix = al_cntrst, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
-  }
+  cntrst <- parse_contrast({{contrast}}, formula = fit$design)
+  al_cntrst <- parse_contrast({{contrast}}, formula = fit$alignment_design)
+  diff <- evaluate_contrast_tree(cntrst, al_cntrst, \(x, y){
+    predict(fit, newdesign = x, alignment_design_matrix = y, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
+  })
 
   colnames(diff) <- colnames(embedding)
   rownames(diff) <- rownames(fit)
@@ -55,15 +41,9 @@ test_de <- function(fit,
 #' Differential embedding for each condition
 #'
 #' @param fit the result of [`differential_embedding`]
-#' @param contrast Specification of the contrast. This can be either
-#'    * a numeric vector whose length matches the number of coefficients (e.g., `c(1, 0, -1, 0)`
-#'       to compare the coefficients A vs C in a model with four treatment options)
-#'    * the unquoted names of coefficients to compare (e.g., `treatmentA - treatmentC`)
-#'    * a call to `cond()` specifying a full observation (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
-#'       compare treatment A vs C for male observations). Unspecified factors default to the reference level.
-#'    * an extension of the previous two options where instead of subtracting the
-#'       coefficients, they are compared directly (e.g. `cond(treatment = "A", sex = "male") < cond(treatment = "C", sex = "male")` or
-#'       `cond(treatment = "A", sex = "male") == treatmentC`). This is the recommended approach, because `map(V1 - V2) != map(V1) - map(V2)`.
+#' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
+#'    (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
+#'    compare treatment A vs C for male observations). Unspecified factors default to the reference level.
 #' @param reduced_design an alternative specification of the null hypothesis.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #' @param variance_est How or if the variance should be estimated. `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number
@@ -90,17 +70,17 @@ test_global <- function(fit,
   if(is.null(reduced_design) == missing(contrast)){
     stop("Please provide either an alternative design (formula or matrix) or a contrast.")
   }else if(! missing(contrast)){
-    cntrst <- parse_contrast({{contrast}}, coefficient_names = colnames(full_design), formula = fit$design)
-    if(inherits(cntrst, "contrast_relation")){
-      if(cntrst$relation != "equal"){
-        stop("differential embedding test can only be two-sided.")
-      }
+    cntrst <- parse_contrast({{contrast}}, formula = fit$design)
+    if(inherits(cntrst, "contrast_relation") && cntrst$relation == "minus" &&
+        inherits(cntrst$lhs, "model_vec") && inherits(cntrst$rhs, "model_vec")){
       lfc_diffemb <- grassmann_log(grassmann_map(sum_tangent_vectors(fit$coefficients, c(cntrst$lhs)), fit$base_point),
                                    grassmann_map(sum_tangent_vectors(fit$coefficients, c(cntrst$rhs)), fit$base_point))
       cntrst <- cntrst$lhs - cntrst$rhs
     }else{
+      cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x) # Collapse tree
       lfc_diffemb <- sum_tangent_vectors(fit$coefficients, c(cntrst))
     }
+
     cntrst <- as.matrix(cntrst)
     if(nrow(cntrst) != ncol(full_design)){
       stop("The length of the contrast vector does not match the number of coefficients in the model (",
