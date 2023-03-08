@@ -3,8 +3,7 @@
 parse_contrast <- function(contrast, formula) {
 
   if(missing(contrast)){
-    stop("No contrast argument was provided! The option is any linear combination of:\n",
-         paste0(coefficient_names, collapse = ", "))
+    stop("No contrast argument was provided!")
   }
   covar <- all.vars(formula)
 
