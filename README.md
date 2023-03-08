@@ -151,13 +151,13 @@ as_tibble(umap) %>%
 
 <img src="man/figures/README-lemur_umap-1.png" width="100%" />
 
-The `test_de` function takes a `lemur_fit_obj` and returns a matrix for
-all genes and cells containing the difference between two conditions
-specified in the `contrast`. Note that `lemur` implements the notation
-for contrasts. Instead of providing a contrast vector or providing the
-design matrix column names, you provide for each *condition* the
-expected levels and `lemur` automatically calculates the contrast
-vector.
+The `test_de` function takes a `lemur_fit_obj` and returns with a new
+assay `"DE"` with the predicted difference between two conditions
+specified in the `contrast`. Note that `lemur` implements a special
+notation for contrasts. Instead of providing a contrast vector or design
+matrix column names, you provide for each *condition* the levels and
+`lemur` automatically forms the contrast vector. This makes the contrast
+more readable.
 
 ``` r
 fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
@@ -184,7 +184,7 @@ Alternatively, we can use the matrix of differential expression values
 (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that
 show consistent differential expression. If we provide a count matrix,
 the function uses a pseudobulked differential expression test to confirm
-if the gene expression differences on the count level.
+the gene expression differences on the count level.
 
 ``` r
 neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
@@ -255,8 +255,8 @@ as_tibble(umap) %>%
 
 <img src="man/figures/README-umap_de3-1.png" width="100%" />
 
-To get a better idea of the expression differences across genes, we make
-a vulcano plot of the differential expression
+To get a better idea of the expression differences across all genes, we
+make a vulcano plot of the differential expression results.
 
 ``` r
 neighborhoods %>%
@@ -317,7 +317,7 @@ sessionInfo()
 #> [11] rlang_1.0.6               rstudioapi_0.14          
 #> [13] irlba_2.3.5.1             Matrix_1.5-3             
 #> [15] rmarkdown_2.20            splines_4.2.1            
-#> [17] labeling_0.4.2            glmGamPoi_1.11.6         
+#> [17] labeling_0.4.2            glmGamPoi_1.11.7         
 #> [19] RCurl_1.98-1.10           munsell_0.5.0            
 #> [21] uwot_0.1.14               DelayedArray_0.24.0      
 #> [23] compiler_4.2.1            xfun_0.37                

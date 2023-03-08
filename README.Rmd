@@ -100,7 +100,7 @@ as_tibble(umap) %>%
     labs(title = "UMAP of latent space from LEMUR")
 ```
 
-The `test_de` function takes a `lemur_fit_obj` and returns a matrix for all genes and cells containing the difference between two conditions specified in the `contrast`. Note that `lemur` implements the notation for contrasts. Instead of providing a contrast vector or providing the design matrix column names, you provide for each *condition* the expected levels and `lemur` automatically calculates the contrast vector.
+The `test_de` function takes a `lemur_fit_obj` and returns with a new assay `"DE"` with the predicted difference between two conditions specified in the `contrast`. Note that `lemur` implements a special notation for contrasts. Instead of providing a contrast vector or design matrix column names, you provide for each *condition* the levels and `lemur` automatically forms the contrast vector. This makes the contrast more readable.
 ```{r lemur_test_de}
 fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 ```
@@ -118,7 +118,7 @@ as_tibble(umap) %>%
     labs(title = "Differential expression on UMAP plot")
 ```
 
-Alternatively, we can use the matrix of differential expression values (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that show consistent differential expression. If we provide a count matrix, the function uses a pseudobulked differential expression test to confirm if the gene expression differences on the count level.
+Alternatively, we can use the matrix of differential expression values (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that show consistent differential expression. If we provide a count matrix, the function uses a pseudobulked differential expression test to confirm the gene expression differences on the count level.
 ```{r de_neighborhoods}
 neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
                                       group_by = vars(patient_id, condition),
@@ -162,7 +162,7 @@ as_tibble(umap) %>%
 
 ```
 
-To get a better idea of the expression differences across genes, we make a vulcano plot of the differential expression 
+To get a better idea of the expression differences across all genes, we make a vulcano plot of the differential expression results.
 ```{r volcano_plot}
 neighborhoods %>%
   ggplot(aes(x = lfc, y = -log10(pval))) +
