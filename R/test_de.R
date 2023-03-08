@@ -48,7 +48,7 @@ test_de <- function(fit,
 
 #' Differential embedding for each condition
 #'
-#' @param fit the result of [`differential_embedding`]
+#' @param fit the result of [`lemur`]
 #' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
 #'    (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
 #'    compare treatment A vs C for male observations). Unspecified factors default to the reference level.

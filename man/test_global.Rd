@@ -15,7 +15,7 @@ test_global(
 )
 }
 \arguments{
-\item{fit}{the result of \code{\link{differential_embedding}}}
+\item{fit}{the result of \code{\link{lemur}}}
 
 \item{contrast}{Specification of the contrast: a call to \code{cond()} specifying a full observation
 (e.g. \code{cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")} to
