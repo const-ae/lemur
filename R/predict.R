@@ -2,6 +2,30 @@
 
 #' Predict values from `lemur_fit_obj` object
 #'
+#' @param object an `lemur_fit_obj` object
+#' @param newdata a data.frame which passed to [`model.matrix`] with
+#'   `design` to make the `newdesign` matrix
+#' @param newdesign a matrix with the covariates for which the output
+#'   is predicted. If `NULL`, the `object$design_matrix` is used. If
+#'   it is a vector it is repeated `ncol(embedding)` times to create
+#'   a design matrix with the same entry for each cell.
+#' @param embedding the low-dimensional cell position for which the
+#'   output is predicted.
+#' @param with_ambient_pca a boolean to indicate if the output is
+#'   the gene expression values or the value in the ambient PCA embedding.
+#' @param with_linear_model a boolean to indicate if the linear regression
+#'   offset is included in the prediction.
+#' @param with_embedding a boolean to indicate if the embedding contributes
+#'   to the output.
+#' @param with_alignment a boolean to indicate if the alignment effect
+#'   is removed from the output.
+#' @param ... additional parameters passed to `predict_impl`.
+#'
+#' @return a matrix with the same dimension `nrow(object) * nrow(newdesign)`.
+#'
+#'
+#' @seealso [`residuals`][residuals,lemur_fit_obj-method]
+#'
 #' @export
 predict.lemur_fit_obj <- function(object, newdata = NULL, newdesign = NULL,
                                embedding = object$embedding,
@@ -97,6 +121,9 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 
 
 #' Predict values from `lemur_fit_obj` object
+#'
+#' @inheritParams predict.lemur_fit_obj
+#' @param ... ignored.
 #'
 #' @export
 setMethod("residuals", signature = "lemur_fit_obj", function(object,

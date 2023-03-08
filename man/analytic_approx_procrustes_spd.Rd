@@ -9,3 +9,4 @@ analytic_approx_procrustes_spd(data, obs_embedding)
 \description{
 Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
 }
+\keyword{internal}

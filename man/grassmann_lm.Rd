@@ -9,3 +9,4 @@ grassmann_lm(data, design, base_point, tangent_regression = FALSE)
 \description{
 Solve ||Y - exp_p(V * x) Y ||^2_2 for V
 }
+\keyword{internal}

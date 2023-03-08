@@ -9,3 +9,4 @@ procrustes_rotation(Y, Z)
 \description{
 Solve ||Y - R Z ||^2_2 for R in SO(n) (aka. Procrustes analysis)
 }
+\keyword{internal}

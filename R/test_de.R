@@ -48,14 +48,13 @@ test_de <- function(fit,
 
 #' Differential embedding for each condition
 #'
-#' @param fit the result of [`lemur`]
-#' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
-#'    (e.g. `cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")` to
-#'    compare treatment A vs C for male observations). Unspecified factors default to the reference level.
+#' @inheritParams test_de
 #' @param reduced_design an alternative specification of the null hypothesis.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #' @param variance_est How or if the variance should be estimated. `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number
 #'   of resampling iterations, set `n_resampling_iter`. Default: `100`)
+#' @param verbose should the method print information during the fitting. Default: `TRUE`.
+#' @param ... additional arguments.
 #'
 #' @return a data.frame
 #'

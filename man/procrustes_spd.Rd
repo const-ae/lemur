@@ -9,3 +9,4 @@ procrustes_spd(data, obs_embedding, maxiter = 1000, tolerance = 1e-08)
 \description{
 Solve ||B - A X ||^2_2 for A in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
 }
+\keyword{internal}

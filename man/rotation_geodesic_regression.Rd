@@ -16,3 +16,4 @@ rotation_geodesic_regression(
 \description{
 Solve d(R, exp_p(V * x))^2 for V
 }
+\keyword{internal}

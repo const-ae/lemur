@@ -4,12 +4,18 @@
 \alias{residuals,lemur_fit_obj-method}
 \title{Predict values from \code{lemur_fit_obj} object}
 \usage{
-\S4method{residuals}{lemur_fit_obj}(
-  object,
-  with_linear_model = TRUE,
-  with_differential_embedding = TRUE,
-  ...
-)
+\S4method{residuals}{lemur_fit_obj}(object, with_linear_model = TRUE, with_embedding = TRUE, ...)
+}
+\arguments{
+\item{object}{an \code{lemur_fit_obj} object}
+
+\item{with_linear_model}{a boolean to indicate if the linear regression
+offset is included in the prediction.}
+
+\item{with_embedding}{a boolean to indicate if the embedding contributes
+to the output.}
+
+\item{...}{ignored.}
 }
 \description{
 Predict values from \code{lemur_fit_obj} object

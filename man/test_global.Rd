@@ -15,7 +15,7 @@ test_global(
 )
 }
 \arguments{
-\item{fit}{the result of \code{\link{lemur}}}
+\item{fit}{the result of calling \code{\link[=lemur]{lemur()}}}
 
 \item{contrast}{Specification of the contrast: a call to \code{cond()} specifying a full observation
 (e.g. \code{cond(treatment = "A", sex = "male") - cond(treatment = "C", sex = "male")} to
@@ -27,6 +27,10 @@ compare treatment A vs C for male observations). Unspecified factors default to 
 
 \item{variance_est}{How or if the variance should be estimated. \code{'analytical'} is only compatible with \code{consider = "linear"}. \code{'resampling'} is the most flexible (to adapt the number
 of resampling iterations, set \code{n_resampling_iter}. Default: \code{100})}
+
+\item{verbose}{should the method print information during the fitting. Default: \code{TRUE}.}
+
+\item{...}{additional arguments.}
 }
 \value{
 a data.frame

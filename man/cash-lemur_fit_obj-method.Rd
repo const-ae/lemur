@@ -5,7 +5,7 @@
 \alias{$,lemur_fit_obj-method}
 \alias{dollar_methods}
 \alias{$<-,lemur_fit_obj-method}
-\title{Fluent use of accessor methods}
+\title{Access values from a \code{lemur_fit_obj}}
 \usage{
 \method{.DollarNames}{lemur_fit_obj}(x, pattern = "")
 
@@ -13,10 +13,20 @@
 
 \S4method{$}{lemur_fit_obj}(x, name) <- value
 }
+\arguments{
+\item{x}{the \code{lemur_fit_obj}}
+
+\item{pattern}{the pattern from looking up potential values interactively}
+
+\item{name}{the name of the value behind the dollar}
+
+\item{value}{the replacement value. This only works for \code{colData} and
+\code{rowData}.}
+}
 \description{
-Fluent use of accessor methods
+Access values from a \code{lemur_fit_obj}
 }
 \seealso{
-\link{accessor_methods} for more documentation on the
+\code{\linkS4class{lemur_fit_obj}} for more documentation on the
 accessor functions.
 }

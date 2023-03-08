@@ -15,3 +15,4 @@ grassmann_geodesic_regression(
 \description{
 Solve d(P, exp_p(V * x))^2 for V
 }
+\keyword{internal}

@@ -1,4 +1,38 @@
-
+#' The `lemur_fit_obj` class
+#'
+#' The `lemur_fit_obj` class extends [`SingleCellExperiment`] and provides
+#' additional accessors to get the values of the values produced by [`lemur`].
+#'
+#' @param object the `lemur_fit_obj` object for the [`BiocGenerics::design`] generic
+#' @param x,i,j,...,drop the `lemur_fit_object` and indices for the `[` subsetting operator
+#'
+#' @details
+#'
+#' To access the values produced by [`lemur`], use the dollar notation (`$`):
+#' \describe{
+#'  \item{`fit$n_ambient`}{the number of ambient dimensions. `Inf` indicates that no dimensionality reduction was performed.}
+#'  \item{`fit$n_embedding`}{the number of embedding dimensions.}
+#'  \item{`fit$ambient_coordsystem`}{a matrix from the ambient PCA.}
+#'  \item{`fit$ambient_offset`}{a vector with the gene means.}
+#'  \item{`fit$design`}{the specification of the design in [`lemur`]. Usually this is a [`stats::formula`].}
+#'  \item{`fit$base_point`}{a matrix (`nrow(fit) * fit$n_embedding`) with the base point for the Grassmann exponential map.}
+#'  \item{`fit$coefficients`}{a three-dimensional tensor (`nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)`) with the coefficients for
+#'    the exponential map.}
+#'  \item{`fit$embedding`}{a matrix (`fit$n_embedding * ncol(fit)`) with the low dimensional position for each cell.}
+#'  \item{`fit$design_matrix`}{a matrix with covariates for each cell (`ncol(fit) * ncol(fit$design_matrix)`).}
+#'  \item{`fit$linear_coefficients`}{a matrix (`nrow(fit) * ncol(fit$design_matrix)`) with the coefficients for the linear regression.}
+#'  \item{`fit$alignment_method`}{a boolean. *Might be deleted or changed in a future version*.}
+#'  \item{`fit$alignment_rotation`}{a 3D tensor with the coefficients for the alignment rotation (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
+#'  \item{`fit$alignment_stretching`}{a 3D tensor with the coefficients for the alignment stretching (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
+#'  \item{`fit$alignment_design`}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
+#'  \item{`fit$alignment_design_matrix`}{an alternative design matrix specification for the alignment.}
+#'  \item{`fit$colData`}{the column annotation `DataFrame`.}
+#'  \item{`fit$rowData`}{the row annotation `DataFrame`.}
+#' }
+#'
+#' @seealso [`lemur`], [`predict`][predict.lemur_fit_obj], [`residuals`][residuals,lemur_fit_obj-method]
+#'
+#' @rdname lemur_fit_obj
 #' @export
 .lemur_fit_obj <- setClass("lemur_fit_obj", contains = "SingleCellExperiment")
 
@@ -120,6 +154,7 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
 
 # Subsetting
 
+#' @rdname lemur_fit_obj
 #' @export
 setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
   old <- S4Vectors:::disableValidity()
@@ -159,62 +194,8 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
                          "colData", "rowData")
 
-#' Get different features and elements of the 'lemur_fit_obj' object
-#'
-#' The following elements can all be accessed using the
-#' fluent dollar notation (ie. \code{fit$n_ambient}).
-#'
-#' @usage
-#'
-#' fit$n_ambient
-#' fit$n_embedding
-#' fit$ambient_coordsystem
-#' fit$ambient_offset
-#' fit$design
-#' fit$base_point
-#' fit$coefficients
-#' fit$embedding
-#' fit$design_matrix
-#' fit$linear_coefficients
-#' fit$alignment_method
-#' fit$alignment_rotation
-#' fit$alignment_stretching
-#' fit$alignment_design
-#' fit$alignment_design_matrix
-#' fit$colData
-#' fit$rowData
-#'
-#' @param object the 'lemur_fit_obj' object
-#'
-#' @return The return value depends on the value
-#' \describe{
-#'  \item{n_ambient}{the number of ambient dimensions. `Inf` indicates that no dimensionality reduction was performed.}
-#'  \item{n_embedding}{the number of embedding dimensions.}
-#'  \item{ambient_coordsystem}{a matrix from the ambient PCA.}
-#'  \item{ambient_offset}{a vector with the gene means.}
-#'  \item{design}{the specification of the design in [`lemur`]. Usually this is a [`stats::formula`].}
-#'  \item{base_point}{a matrix (`nrow(fit) * fit$n_embedding`) with the base point for the Grassmann exponential map.}
-#'  \item{coefficients}{a three-dimensional tensor (`nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)`) with the coefficients for
-#'    the exponential map.}
-#'  \item{embedding}{a matrix (`fit$n_embedding * ncol(fit)`) with the low dimensional position for each cell.}
-#'  \item{design_matrix}{a matrix with covariates for each cell (`ncol(fit) * ncol(fit$design_matrix)`).}
-#'  \item{linear_coefficients}{a matrix (`nrow(fit) * ncol(fit$design_matrix)`) with the coefficients for the linear regression.}
-#'  \item{alignment_method}{a boolean. *Might be deleted or changed in a future version*.}
-#'  \item{alignment_rotation}{a 3D tensor with the coefficients for the alignment rotation (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
-#'  \item{alignment_stretching}{a 3D tensor with the coefficients for the alignment stretching (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
-#'  \item{alignment_design}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
-#'  \item{alignment_design_matrix}{an alternative design matrix specification for the alignment.}
-#'  \item{colData}{the column annotation `DataFrame`.}
-#'  \item{rowData}{the row annotation `DataFrame`.}
-#' }
-#'
-#' @name accessor_methods
-NULL
 
-
-# The generic of design is in BiocGenerics
-
-#' @rdname accessor_methods
+#' @rdname lemur_fit_obj
 #' @export
 setMethod("design", signature = "lemur_fit_obj", function(object){
   metadata(object)[["design"]]
@@ -228,10 +209,15 @@ setMethod("design", signature = "lemur_fit_obj", function(object){
   grep(pattern, .methods_to_suggest, value = TRUE)
 }
 
-#' Fluent use of accessor methods
+#' Access values from a `lemur_fit_obj`
 #'
+#' @param x the `lemur_fit_obj`
+#' @param pattern the pattern from looking up potential values interactively
+#' @param name the name of the value behind the dollar
+#' @param value the replacement value. This only works for `colData` and
+#'   `rowData`.
 #'
-#' @seealso \link{accessor_methods} for more documentation on the
+#' @seealso [`lemur_fit_obj-class`] for more documentation on the
 #'   accessor functions.
 #' @aliases dollar_methods
 setMethod("$", "lemur_fit_obj",

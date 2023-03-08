@@ -17,3 +17,4 @@ rotation_lm(
 \description{
 Here data = t(grassmann_map(V * X)) Y
 }
+\keyword{internal}
