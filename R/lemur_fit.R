@@ -1,10 +1,10 @@
-#' The `lemur_fit_obj` class
+#' The `lemur_fit` class
 #'
-#' The `lemur_fit_obj` class extends [`SingleCellExperiment`] and provides
+#' The `lemur_fit` class extends [`SingleCellExperiment`] and provides
 #' additional accessors to get the values of the values produced by [`lemur`].
 #'
-#' @param object the `lemur_fit_obj` object for the [`BiocGenerics::design`] generic
-#' @param x,i,j,...,drop the `lemur_fit_object` and indices for the `[` subsetting operator
+#' @param object the `lemur_fit` object for the [`BiocGenerics::design`] generic
+#' @param x,i,j,...,drop the `lemur_fitect` and indices for the `[` subsetting operator
 #'
 #' @details
 #'
@@ -30,13 +30,13 @@
 #'  \item{`fit$rowData`}{the row annotation `DataFrame`.}
 #' }
 #'
-#' @seealso [`lemur`], [`predict`][predict.lemur_fit_obj], [`residuals`][residuals,lemur_fit_obj-method]
+#' @seealso [`lemur`], [`predict`][predict.lemur_fit], [`residuals`][residuals,lemur_fit-method]
 #'
-#' @rdname lemur_fit_obj
+#' @rdname lemur_fit
 #' @export
-.lemur_fit_obj <- setClass("lemur_fit_obj", contains = "SingleCellExperiment")
+.lemur_fit <- setClass("lemur_fit", contains = "SingleCellExperiment")
 
-lemur_fit_obj <- function(data_mat, col_data, row_data,
+lemur_fit <- function(data_mat, col_data, row_data,
                        n_ambient, n_embedding,
                        ambient_coordsystem, ambient_offset,
                        design, design_matrix, linear_coefficients,
@@ -63,11 +63,11 @@ lemur_fit_obj <- function(data_mat, col_data, row_data,
                                               base_point = base_point, coefficients = coefficients,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
                                               alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix))
-  .lemur_fit_obj(sce)
+  .lemur_fit(sce)
 }
 
 
-S4Vectors::setValidity2("lemur_fit_obj", function(obj){
+S4Vectors::setValidity2("lemur_fit", function(obj){
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
     S4Vectors:::disableValidity(TRUE)
@@ -154,9 +154,9 @@ S4Vectors::setValidity2("lemur_fit_obj", function(obj){
 
 # Subsetting
 
-#' @rdname lemur_fit_obj
+#' @rdname lemur_fit
 #' @export
-setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
+setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
     S4Vectors:::disableValidity(TRUE)
@@ -195,32 +195,32 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
                          "colData", "rowData")
 
 
-#' @rdname lemur_fit_obj
+#' @rdname lemur_fit
 #' @export
-setMethod("design", signature = "lemur_fit_obj", function(object){
+setMethod("design", signature = "lemur_fit", function(object){
   metadata(object)[["design"]]
 })
 
 
 
-#' @rdname cash-lemur_fit_obj-method
+#' @rdname cash-lemur_fit-method
 #' @export
-.DollarNames.lemur_fit_obj <- function(x, pattern = ""){
+.DollarNames.lemur_fit <- function(x, pattern = ""){
   grep(pattern, .methods_to_suggest, value = TRUE)
 }
 
-#' Access values from a `lemur_fit_obj`
+#' Access values from a `lemur_fit`
 #'
-#' @param x the `lemur_fit_obj`
+#' @param x the `lemur_fit`
 #' @param pattern the pattern from looking up potential values interactively
 #' @param name the name of the value behind the dollar
 #' @param value the replacement value. This only works for `colData` and
 #'   `rowData`.
 #'
-#' @seealso [`lemur_fit_obj-class`] for more documentation on the
+#' @seealso [`lemur_fit-class`] for more documentation on the
 #'   accessor functions.
 #' @aliases dollar_methods
-setMethod("$", "lemur_fit_obj",
+setMethod("$", "lemur_fit",
           function(x, name){
   old <- S4Vectors:::disableValidity()
   if (!isTRUE(old)) {
@@ -253,8 +253,8 @@ setMethod("$", "lemur_fit_obj",
   )
 })
 
-#' @rdname cash-lemur_fit_obj-method
-setReplaceMethod("$", "lemur_fit_obj",
+#' @rdname cash-lemur_fit-method
+setReplaceMethod("$", "lemur_fit",
                  function(x, name, value){
   if(! name %in% .methods_to_suggest){
    stop("Illegal name after '$' sign: ", name)
@@ -262,7 +262,7 @@ setReplaceMethod("$", "lemur_fit_obj",
   switch(name,
         colData = {SummarizedExperiment::colData(x) <- value},
         rowData = {SummarizedExperiment::rowData(x) <- value},
-        stop("It is illegal to modify the content of lemur_fit_obj object")
+        stop("It is illegal to modify the content of lemur_fit object")
   )
   x
 })

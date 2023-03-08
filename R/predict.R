@@ -1,8 +1,8 @@
 
 
-#' Predict values from `lemur_fit_obj` object
+#' Predict values from `lemur_fit` object
 #'
-#' @param object an `lemur_fit_obj` object
+#' @param object an `lemur_fit` object
 #' @param newdata a data.frame which passed to [`model.matrix`] with
 #'   `design` to make the `newdesign` matrix
 #' @param newdesign a matrix with the covariates for which the output
@@ -24,10 +24,10 @@
 #' @return a matrix with the same dimension `nrow(object) * nrow(newdesign)`.
 #'
 #'
-#' @seealso [`residuals`][residuals,lemur_fit_obj-method]
+#' @seealso [`residuals`][residuals,lemur_fit-method]
 #'
 #' @export
-predict.lemur_fit_obj <- function(object, newdata = NULL, newdesign = NULL,
+predict.lemur_fit <- function(object, newdata = NULL, newdesign = NULL,
                                embedding = object$embedding,
                                with_ambient_pca = TRUE,
                                with_linear_model = TRUE,
@@ -120,13 +120,13 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 }
 
 
-#' Predict values from `lemur_fit_obj` object
+#' Predict values from `lemur_fit` object
 #'
-#' @inheritParams predict.lemur_fit_obj
+#' @inheritParams predict.lemur_fit
 #' @param ... ignored.
 #'
 #' @export
-setMethod("residuals", signature = "lemur_fit_obj", function(object,
+setMethod("residuals", signature = "lemur_fit", function(object,
                                                           with_linear_model = TRUE,
                                                           with_embedding = TRUE, ...){
   residuals_impl(object, with_linear_model = with_linear_model, with_embedding = with_embedding)

@@ -23,10 +23,10 @@
 #'   the `coordsystem`, `embedding` and `offset` fields, to speed-up the fit.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
-#' @return an object of class `lemur_fit_obj` which extends [`SingleCellExperiment`]. Accordingly,
-#'   all functions that work for `sce`'s also work for `lemur_fit_obj`'s. In addition, we
+#' @return an object of class `lemur_fit` which extends [`SingleCellExperiment`]. Accordingly,
+#'   all functions that work for `sce`'s also work for `lemur_fit`'s. In addition, we
 #'   give easy access to the fitted values using the dollar notation (e.g., `fit$embedding`).
-#'   For details see the [lemur_fit_obj-class] help page.
+#'   For details see the [lemur_fit-class] help page.
 #'
 #' @references
 #'   * Ahlmann-Eltze, C. & Huber, W. (2023). Analysis of multi-condition single-cell data with latent
@@ -59,7 +59,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
     NULL
   }
 
-  lemur_fit_obj(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
+  lemur_fit(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
              n_ambient = res$n_ambient, n_embedding = res$n_embedding,
              ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,
              design = des$design_formula, design_matrix = res$design_matrix,

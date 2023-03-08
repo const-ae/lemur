@@ -1,6 +1,6 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
-#' @param fit a `lemur_fit_obj` object
+#' @param fit a `lemur_fit` object
 #' @param rotating,stretching boolean flags to turn limit the flexibility of the
 #'   alignment transformation. Default: `TRUE`
 #' @param design a specification of the design (matrix or formula) that is used

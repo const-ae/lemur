@@ -54,7 +54,7 @@ align_by_grouping(
 )
 }
 \arguments{
-\item{fit}{a \code{lemur_fit_obj} object}
+\item{fit}{a \code{lemur_fit} object}
 
 \item{rotating, stretching}{boolean flags to turn limit the flexibility of the
 alignment transformation. Default: \code{TRUE}}
