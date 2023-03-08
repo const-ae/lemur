@@ -270,14 +270,15 @@ setMethod("$", "lemur_fit_obj",
 #' @rdname cash-lemur_fit_obj-method
 setReplaceMethod("$", "lemur_fit_obj",
                  function(x, name, value){
- if(! name %in% .methods_to_suggest){
+  if(! name %in% .methods_to_suggest){
    stop("Illegal name after '$' sign: ", name)
- }
- switch(name,
-        colData = `colData<-`(x, value),
-        rowData = `rowData<-`(x, value),
+  }
+  switch(name,
+        colData = {SummarizedExperiment::colData(x) <- value},
+        rowData = {SummarizedExperiment::rowData(x) <- value},
         stop("It is illegal to modify the content of lemur_fit_obj object")
- )
+  )
+  x
 })
 
 
