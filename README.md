@@ -117,7 +117,7 @@ fit <- align_harmony(fit, stretching = FALSE)
 #> Select cells that are considered close with 'harmony'
 
 fit
-#> class: lemur_fit_obj 
+#> class: lemur_fit 
 #> dim: 300 5000 
 #> metadata(12): n_ambient n_embedding ... alignment_design
 #>   alignment_design_matrix
@@ -296,7 +296,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] lemur_0.0.7                 SingleCellExperiment_1.20.0
+#>  [1] lemur_0.0.8                 SingleCellExperiment_1.20.0
 #>  [3] SummarizedExperiment_1.28.0 Biobase_2.58.0             
 #>  [5] GenomicRanges_1.50.2        GenomeInfoDb_1.34.9        
 #>  [7] IRanges_2.32.0              S4Vectors_0.36.2           
