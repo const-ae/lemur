@@ -32,7 +32,7 @@ test_de <- function(fit,
   cntrst <- parse_contrast({{contrast}}, formula = fit$design)
   al_cntrst <- parse_contrast({{contrast}}, formula = fit$alignment_design)
   diff <- evaluate_contrast_tree(cntrst, al_cntrst, \(x, y){
-    predict(fit, newdesign = x, alignment_design_matrix = y, embedding = embedding, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    predict(fit, newdesign = x, alignment_design_matrix = y, embedding = embedding, with_linear_model = with_lm, with_embedding = with_emb)
   })
 
   colnames(diff) <- colnames(embedding)
@@ -128,8 +128,8 @@ test_global <- function(fit,
     if(with_emb){
       stop("Analytical differential embedding test is not implemented. You can set 'consider=\"linear\"")
     }else{  # only linear test
-      resid_full <- as.matrix(t(fit$ambient_coordsystem) %*% residuals(fit, with_linear_model = TRUE, with_differential_embedding = FALSE, with_ambient_pca = TRUE))
-      resid_red <- as.matrix(t(fit$ambient_coordsystem) %*% get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = TRUE, with_differential_embedding = FALSE))
+      resid_full <- as.matrix(t(fit$ambient_coordsystem) %*% residuals(fit, with_linear_model = TRUE, with_embedding = FALSE, with_ambient_pca = TRUE))
+      resid_red <- as.matrix(t(fit$ambient_coordsystem) %*% get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = TRUE, with_embedding = FALSE))
       pval <- multivar_wilks_ftest(RSS_full = resid_full %*% t(resid_full),
                                    RSS_red = resid_red %*% t(resid_red),
                                    n_features = fit$n_ambient, full_design, reduced_design_mat)
@@ -143,15 +143,15 @@ test_global <- function(fit,
     if(verbose) message("Estimating null distribution of deviance using ", n_resampling_iter, " iterations.")
     # Applying the Freedman-Lane (1983) permutation method of the residuals
     # Fit the full
-    deviance_ref <- sum(residuals(fit, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
+    deviance_ref <- sum(residuals(fit, with_linear_model = with_lm, with_embedding = with_emb)^2)
     # Fit the reduced model
-    resid_red <- get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_differential_embedding = with_emb)
+    resid_red <- get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_embedding = with_emb)
     predict_red <- assay(fit, "expr") - resid_red
     deviance_red <- sum(resid_red^2)
     deviance_delta_null <- vapply(seq_len(n_resampling_iter), \(iter){
       new_Y <- predict_red + resid_red[,sample.int(ncol(resid_red), replace = FALSE),drop=FALSE]
-      deviance_ref_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = full_design, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
-      deviance_red_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_differential_embedding = with_emb)^2)
+      deviance_ref_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = full_design, with_linear_model = with_lm, with_embedding = with_emb)^2)
+      deviance_red_new <- sum(get_residuals_for_alt_fit(fit, Y = new_Y, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_embedding = with_emb)^2)
       deviance_red_new - deviance_ref_new
     }, FUN.VALUE = numeric(1L))
     pval <- (sum((deviance_red - deviance_ref) < deviance_delta_null) + 1) / (n_resampling_iter + 1)

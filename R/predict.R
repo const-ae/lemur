@@ -7,12 +7,12 @@ predict.lemur_fit_obj <- function(object, newdata = NULL, newdesign = NULL,
                                embedding = object$embedding,
                                with_ambient_pca = TRUE,
                                with_linear_model = TRUE,
-                               with_differential_embedding = TRUE,
+                               with_embedding = TRUE,
                                with_alignment = TRUE,
                                ...){
   predict_impl(object, newdata = newdata, newdesign = newdesign, embedding = embedding,
                with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
-               with_differential_embedding = with_differential_embedding, with_alignment = with_alignment, ...)
+               with_embedding = with_embedding, with_alignment = with_alignment, ...)
 
 }
 
@@ -20,7 +20,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          embedding = object$embedding,
                          with_ambient_pca = TRUE,
                          with_linear_model = TRUE,
-                         with_differential_embedding = TRUE,
+                         with_embedding = TRUE,
                          with_alignment = TRUE,
                          n_ambient = object$n_ambient, n_embedding = object$n_embedding,
                          design_matrix = object$design_matrix, design = object$design,
@@ -61,7 +61,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     matrix(0, nrow = min(n_ambient, nrow(linear_coefficients)), ncol = nrow(newdesign))
   }
 
-  if(with_differential_embedding){
+  if(with_embedding){
     mm_groups <- get_groups(newdesign, n_groups = 100)
     mm_al_groups <- get_groups(alignment_design_matrix, n_groups = 100)
     stopifnot(length(mm_groups) == length(mm_al_groups))
@@ -101,21 +101,21 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 #' @export
 setMethod("residuals", signature = "lemur_fit_obj", function(object,
                                                           with_linear_model = TRUE,
-                                                          with_differential_embedding = TRUE, ...){
-  residuals_impl(object, with_linear_model = with_linear_model, with_differential_embedding = with_differential_embedding)
+                                                          with_embedding = TRUE, ...){
+  residuals_impl(object, with_linear_model = with_linear_model, with_embedding = with_embedding)
 })
 
 
 residuals_impl <- function(object,
                            with_linear_model = TRUE,
-                           with_differential_embedding = TRUE){
-  assay(object, "expr") - predict(object, with_linear_model = with_linear_model, with_differential_embedding = with_differential_embedding)
+                           with_embedding = TRUE){
+  assay(object, "expr") - predict(object, with_linear_model = with_linear_model, with_embedding = with_embedding)
 }
 
 
 
-get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_differential_embedding = TRUE){
-  if(with_differential_embedding){
+get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_embedding = TRUE){
+  if(with_embedding){
     fit_alt <- lemur_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
                                            n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
                                            alignment = fit$alignment_method, base_point = fit$base_point,
@@ -124,7 +124,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
     Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
-                 with_linear_model = TRUE, with_differential_embedding = TRUE,
+                 with_linear_model = TRUE, with_embedding = TRUE,
                  n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
@@ -140,7 +140,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                                                           offset = fit$ambient_offset),
                                            verbose = FALSE)
     Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
-                 with_linear_model = TRUE, with_differential_embedding = FALSE,
+                 with_linear_model = TRUE, with_embedding = FALSE,
                  n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,

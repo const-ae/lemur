@@ -88,9 +88,9 @@ test_that("predicting works", {
   fit <- lemur(dat, design = ~ condition, n_ambient = 10, n_embedding = 0, verbose = FALSE)
   fit_lm <- lm(t(assay(dat) - fit$ambient_offset) ~ condition, data = colData(dat))
   expect_equal(fit$ambient_coordsystem %*% fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
-  expect_equal(predict(fit, with_differential_embedding = FALSE),
+  expect_equal(predict(fit, with_embedding = FALSE),
                t(predict(fit_lm)) +  fit$ambient_offset, ignore_attr = "dimnames")
-  expect_equal(residuals(fit, with_differential_embedding = FALSE), t(residuals(fit_lm)))
+  expect_equal(residuals(fit, with_embedding = FALSE), t(residuals(fit_lm)))
   expect_equal(predict(fit) + residuals(fit), assay(fit))
 
 
