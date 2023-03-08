@@ -2,61 +2,56 @@
 % Please edit documentation in R/lemur_fit_obj.R
 \name{accessor_methods}
 \alias{accessor_methods}
-\alias{n_ambient,lemur_fit_obj-method}
-\alias{n_embedding,lemur_fit_obj-method}
-\alias{ambient_coordsystem,lemur_fit_obj-method}
-\alias{ambient_offset,lemur_fit_obj-method}
 \alias{design,lemur_fit_obj-method}
-\alias{base_point,lemur_fit_obj-method}
-\alias{coefficients,lemur_fit_obj-method}
-\alias{embedding,lemur_fit_obj-method}
-\alias{alignment_method,lemur_fit_obj-method}
-\alias{alignment_rotation,lemur_fit_obj-method}
-\alias{alignment_stretching,lemur_fit_obj-method}
-\alias{alignment_design,lemur_fit_obj-method}
-\alias{alignment_design_matrix,lemur_fit_obj-method}
-\alias{design_matrix,lemur_fit_obj-method}
-\alias{linear_coefficients,lemur_fit_obj-method}
 \title{Get different features and elements of the 'lemur_fit_obj' object}
 \usage{
-\S4method{n_ambient}{lemur_fit_obj}(object)
-
-\S4method{n_embedding}{lemur_fit_obj}(object)
-
-\S4method{ambient_coordsystem}{lemur_fit_obj}(object)
-
-\S4method{ambient_offset}{lemur_fit_obj}(object)
+fit$n_ambient
+fit$n_embedding
+fit$ambient_coordsystem
+fit$ambient_offset
+fit$design
+fit$base_point
+fit$coefficients
+fit$embedding
+fit$design_matrix
+fit$linear_coefficients
+fit$alignment_method
+fit$alignment_rotation
+fit$alignment_stretching
+fit$alignment_design
+fit$alignment_design_matrix
+fit$colData
+fit$rowData
 
 \S4method{design}{lemur_fit_obj}(object)
-
-\S4method{base_point}{lemur_fit_obj}(object)
-
-\S4method{coefficients}{lemur_fit_obj}(object)
-
-\S4method{embedding}{lemur_fit_obj}(object)
-
-\S4method{alignment_method}{lemur_fit_obj}(object)
-
-\S4method{alignment_rotation}{lemur_fit_obj}(object)
-
-\S4method{alignment_stretching}{lemur_fit_obj}(object)
-
-\S4method{alignment_design}{lemur_fit_obj}(object)
-
-\S4method{alignment_design_matrix}{lemur_fit_obj}(object)
-
-\S4method{design_matrix}{lemur_fit_obj}(object)
-
-\S4method{linear_coefficients}{lemur_fit_obj}(object)
 }
 \arguments{
 \item{object}{the 'lemur_fit_obj' object}
 }
 \value{
-See the documentation of the generics to find out what each method returns
+The return value depends on the value
+\describe{
+\item{n_ambient}{the number of ambient dimensions. \code{Inf} indicates that no dimensionality reduction was performed.}
+\item{n_embedding}{the number of embedding dimensions.}
+\item{ambient_coordsystem}{a matrix from the ambient PCA.}
+\item{ambient_offset}{a vector with the gene means.}
+\item{design}{the specification of the design in \code{\link{lemur}}. Usually this is a \code{\link[stats:formula]{stats::formula}}.}
+\item{base_point}{a matrix (\code{nrow(fit) * fit$n_embedding}) with the base point for the Grassmann exponential map.}
+\item{coefficients}{a three-dimensional tensor (\code{nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)}) with the coefficients for
+the exponential map.}
+\item{embedding}{a matrix (\code{fit$n_embedding * ncol(fit)}) with the low dimensional position for each cell.}
+\item{design_matrix}{a matrix with covariates for each cell (\code{ncol(fit) * ncol(fit$design_matrix)}).}
+\item{linear_coefficients}{a matrix (\code{nrow(fit) * ncol(fit$design_matrix)}) with the coefficients for the linear regression.}
+\item{alignment_method}{a boolean. \emph{Might be deleted or changed in a future version}.}
+\item{alignment_rotation}{a 3D tensor with the coefficients for the alignment rotation (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
+\item{alignment_stretching}{a 3D tensor with the coefficients for the alignment stretching (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
+\item{alignment_design}{an alternative design specification for the alignment. This is typically a \code{\link[stats:formula]{stats::formula}}.}
+\item{alignment_design_matrix}{an alternative design matrix specification for the alignment.}
+\item{colData}{the column annotation \code{DataFrame}.}
+\item{rowData}{the row annotation \code{DataFrame}.}
+}
 }
 \description{
-The functions listed below can all be accessed using the
-fluent dollar notation (ie. \code{fit$n_ambient}) without
-any additional parentheses.
+The following elements can all be accessed using the
+fluent dollar notation (ie. \code{fit$n_ambient}).
 }

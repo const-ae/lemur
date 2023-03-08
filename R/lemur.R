@@ -23,6 +23,15 @@
 #'   the `coordsystem`, `embedding` and `offset` fields, to speed-up the fit.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
+#' @return an object of class `lemur_fit_obj` which extends [`SingleCellExperiment`]. Accordingly,
+#'   all functions that work for `sce`'s also work for `lemur_fit_obj`'s. In addition, we
+#'   give easy access to the fitted values using the dollar notation (e.g., `fit$embedding`).
+#'   The help-page [accessor_methods] gives an overview about all values.
+#'
+#' @references
+#'   * Ahlmann-Eltze, C. & Huber, W. (2023). Analysis of multi-condition single-cell data with latent
+#'   embedding multivariate regression. bioRxiv [https://doi.org/10.1101/2023.03.06.531268](https://doi.org/10.1101/2023.03.06.531268)
+#'
 #' @export
 lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_ambient = Inf, n_embedding = 15,

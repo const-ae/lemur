@@ -48,6 +48,18 @@ the \code{coordsystem}, \code{embedding} and \code{offset} fields, to speed-up t
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }
+\value{
+an object of class \code{lemur_fit_obj} which extends \code{\link{SingleCellExperiment}}. Accordingly,
+all functions that work for \code{sce}'s also work for \code{lemur_fit_obj}'s. In addition, we
+give easy access to the fitted values using the dollar notation (e.g., \code{fit$embedding}).
+The help-page \link{accessor_methods} gives an overview about all values.
+}
 \description{
 Main function to fit the latent embedding multivariate regression (LEMUR) model
+}
+\references{
+\itemize{
+\item Ahlmann-Eltze, C. & Huber, W. (2023). Analysis of multi-condition single-cell data with latent
+embedding multivariate regression. bioRxiv \url{https://doi.org/10.1101/2023.03.06.531268}
+}
 }

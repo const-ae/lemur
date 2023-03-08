@@ -161,143 +161,66 @@ setMethod("[", c("lemur_fit_obj", "ANY", "ANY"), function(x, i, j, ...) {
 
 #' Get different features and elements of the 'lemur_fit_obj' object
 #'
-#' The functions listed below can all be accessed using the
-#' fluent dollar notation (ie. \code{fit$n_ambient}) without
-#' any additional parentheses.
+#' The following elements can all be accessed using the
+#' fluent dollar notation (ie. \code{fit$n_ambient}).
 #'
+#' @usage
+#'
+#' fit$n_ambient
+#' fit$n_embedding
+#' fit$ambient_coordsystem
+#' fit$ambient_offset
+#' fit$design
+#' fit$base_point
+#' fit$coefficients
+#' fit$embedding
+#' fit$design_matrix
+#' fit$linear_coefficients
+#' fit$alignment_method
+#' fit$alignment_rotation
+#' fit$alignment_stretching
+#' fit$alignment_design
+#' fit$alignment_design_matrix
+#' fit$colData
+#' fit$rowData
 #'
 #' @param object the 'lemur_fit_obj' object
 #'
-#' @return See the documentation of the generics to find out what each method returns
+#' @return The return value depends on the value
+#' \describe{
+#'  \item{n_ambient}{the number of ambient dimensions. `Inf` indicates that no dimensionality reduction was performed.}
+#'  \item{n_embedding}{the number of embedding dimensions.}
+#'  \item{ambient_coordsystem}{a matrix from the ambient PCA.}
+#'  \item{ambient_offset}{a vector with the gene means.}
+#'  \item{design}{the specification of the design in [`lemur`]. Usually this is a [`stats::formula`].}
+#'  \item{base_point}{a matrix (`nrow(fit) * fit$n_embedding`) with the base point for the Grassmann exponential map.}
+#'  \item{coefficients}{a three-dimensional tensor (`nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)`) with the coefficients for
+#'    the exponential map.}
+#'  \item{embedding}{a matrix (`fit$n_embedding * ncol(fit)`) with the low dimensional position for each cell.}
+#'  \item{design_matrix}{a matrix with covariates for each cell (`ncol(fit) * ncol(fit$design_matrix)`).}
+#'  \item{linear_coefficients}{a matrix (`nrow(fit) * ncol(fit$design_matrix)`) with the coefficients for the linear regression.}
+#'  \item{alignment_method}{a boolean. *Might be deleted or changed in a future version*.}
+#'  \item{alignment_rotation}{a 3D tensor with the coefficients for the alignment rotation (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
+#'  \item{alignment_stretching}{a 3D tensor with the coefficients for the alignment stretching (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
+#'  \item{alignment_design}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
+#'  \item{alignment_design_matrix}{an alternative design matrix specification for the alignment.}
+#'  \item{colData}{the column annotation `DataFrame`.}
+#'  \item{rowData}{the row annotation `DataFrame`.}
+#' }
 #'
 #' @name accessor_methods
 NULL
 
-
-
-setGeneric("n_ambient", function(object, ...) standardGeneric("n_ambient"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("n_ambient", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["n_ambient"]]
-})
-
-setGeneric("n_embedding", function(object, ...) standardGeneric("n_embedding"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("n_embedding", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["n_embedding"]]
-})
-
-setGeneric("ambient_coordsystem", function(object, ...) standardGeneric("ambient_coordsystem"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("ambient_coordsystem", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["ambient_coordsystem"]]
-})
-
-setGeneric("ambient_offset", function(object, ...) standardGeneric("ambient_offset"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("ambient_offset", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["ambient_offset"]]
-})
 
 # The generic of design is in BiocGenerics
 
 #' @rdname accessor_methods
 #' @export
 setMethod("design", signature = "lemur_fit_obj", function(object){
- metadata(object)[["design"]]
-})
-
-setGeneric("base_point", function(object, ...) standardGeneric("base_point"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("base_point", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["base_point"]]
-})
-
-setGeneric("coefficients", function(object, ...) standardGeneric("coefficients"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("coefficients", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["coefficients"]]
-})
-
-setGeneric("embedding", function(object, ...) standardGeneric("embedding"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("embedding", signature = "lemur_fit_obj", function(object){
-  t(reducedDim(object, "embedding"))
-})
-
-setGeneric("alignment_method", function(object, ...) standardGeneric("alignment_method"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("alignment_method", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["alignment_method"]]
+  metadata(object)[["design"]]
 })
 
 
-
-setGeneric("alignment_rotation", function(object, ...) standardGeneric("alignment_rotation"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("alignment_rotation", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["alignment_rotation"]]
-})
-
-setGeneric("alignment_stretching", function(object, ...) standardGeneric("alignment_stretching"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("alignment_stretching", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["alignment_stretching"]]
-})
-
-setGeneric("alignment_design", function(object, ...) standardGeneric("alignment_design"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("alignment_design", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["alignment_design"]]
-})
-
-
-setGeneric("alignment_design_matrix", function(object, ...) standardGeneric("alignment_design_matrix"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("alignment_design_matrix", signature = "lemur_fit_obj", function(object){
-  metadata(object)[["alignment_design_matrix"]]
-})
-
-
-setGeneric("design_matrix", function(object, ...) standardGeneric("design_matrix"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("design_matrix", signature = "lemur_fit_obj", function(object){
-  sampleFactors(reducedDim(object, "linearFit"))
-})
-
-setGeneric("linear_coefficients", function(object, ...) standardGeneric("linear_coefficients"))
-
-#' @rdname accessor_methods
-#' @export
-setMethod("linear_coefficients", signature = "lemur_fit_obj", function(object){
-  featureLoadings(reducedDim(object, "linearFit"))
-})
 
 #' @rdname cash-lemur_fit_obj-method
 #' @export
@@ -313,28 +236,49 @@ setMethod("linear_coefficients", signature = "lemur_fit_obj", function(object){
 #' @aliases dollar_methods
 setMethod("$", "lemur_fit_obj",
           function(x, name){
-            old <- S4Vectors:::disableValidity()
-            if (!isTRUE(old)) {
-              S4Vectors:::disableValidity(TRUE)
-              on.exit(S4Vectors:::disableValidity(old))
-            }
+  old <- S4Vectors:::disableValidity()
+  if (!isTRUE(old)) {
+    S4Vectors:::disableValidity(TRUE)
+    on.exit(S4Vectors:::disableValidity(old))
+  }
 
-            if(! name %in% .methods_to_suggest){
-              stop("Illegal name after '$' sign: ", name)
-            }
-            getGeneric(name)(x)
-          })
+  if(! name %in% .methods_to_suggest){
+    stop("Illegal name after '$' sign: ", name)
+  }
+  switch(name,
+    n_ambient =               metadata(x)[["n_ambient"]],
+    n_embedding =             metadata(x)[["n_embedding"]],
+    design =                  design(x),
+    base_point =              metadata(x)[["base_point"]],
+    coefficients =            metadata(x)[["coefficients"]],
+    embedding =               t(reducedDim(x, "embedding")),
+    design_matrix =           sampleFactors(reducedDim(x, "linearFit")),
+    linear_coefficients =     featureLoadings(reducedDim(x, "linearFit")),
+    alignment_design =        metadata(x)[["alignment_design"]],
+    alignment_design_matrix = metadata(x)[["alignment_design_matrix"]],
+    alignment_stretching =    metadata(x)[["alignment_stretching"]],
+    alignment_rotation =      metadata(x)[["alignment_rotation"]],
+    alignment_method =        metadata(x)[["alignment_method"]],
+    ambient_coordsystem =     metadata(x)[["ambient_coordsystem"]],
+    ambient_offset =          metadata(x)[["ambient_offset"]],
+    colData =                 colData(x),
+    rowData =                 rowData(x),
+    stop("Invalid `name` value.")
+  )
+})
 
 #' @rdname cash-lemur_fit_obj-method
 setReplaceMethod("$", "lemur_fit_obj",
                  function(x, name, value){
-                   # if(name %in% c("rowData", "feature_parameters")){
-                   #   getGeneric(paste0(name, "<-"))(x, value = value)
-                   # }else{
-                   #   stop("It is illegal to modify the content of ", name)
-                   # }
-                   stop("It is illegal to modify the content of lemur_fit_obj object")
-                 })
+ if(! name %in% .methods_to_suggest){
+   stop("Illegal name after '$' sign: ", name)
+ }
+ switch(name,
+        colData = `colData<-`(x, value),
+        rowData = `rowData<-`(x, value),
+        stop("It is illegal to modify the content of lemur_fit_obj object")
+ )
+})
 
 
 
