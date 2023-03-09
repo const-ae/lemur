@@ -17,6 +17,15 @@ designs that can be expressed using a design matrix.
 
 ## Installation
 
+Lemur depends on features from
+[`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only
+available in the development version, so please install `glmGamPoi` from
+Github before proceeding with lemur’s installation:
+
+``` r
+devtools::install_github("const-ae/glmGamPoi")
+```
+
 You can install the released version of lemur from Github
 
 ``` r

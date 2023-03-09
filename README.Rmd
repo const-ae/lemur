@@ -23,11 +23,16 @@ The goal of lemur is to enable easy analysis of multi-condition single-cell data
 
 ## Installation
 
-You can install the released version of lemur from Github
+Lemur depends on features from [`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only available in the development version, so please install `glmGamPoi` from Github before proceeding with lemur's installation:
+```r
+devtools::install_github("const-ae/glmGamPoi")
+```
 
+You can install the released version of lemur from Github
 ```r
 devtools::install_github("const-ae/lemur")
 ```
+
 
 ## A word of caution
 
