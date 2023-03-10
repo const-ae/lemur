@@ -44,13 +44,13 @@ against the current version of lemur might not work in the future.
 ## Quickstart
 
 ``` r
-# sce is some SingleCellExperiment object
-fit <- lemur::lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
-fit <- lemur::align_harmony(fit)
-fit <- lemur::test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-neigh <- lemur::find_de_neighborhoods(fit, counts = counts(sce),
-                                      group_by = vars(patient_id, condition),
-                                      contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+library(lemur)
+library(SingleCellExperiment)
+
+fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
+fit <- align_harmony(fit)   # This step is optional
+fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+nei <- find_de_neighborhoods(fit, counts = counts(sce), group_by = vars(patient_id, condition))
 ```
 
 ## Example
@@ -198,7 +198,6 @@ the gene expression differences on the count level.
 ``` r
 neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
                                       group_by = vars(patient_id, condition),
-                                      contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"),
                                       include_complement = FALSE, verbose = FALSE)
 #> dimnames(.) <- NULL translated to
 #> dimnames(.) <- list(NULL,NULL)
@@ -305,47 +304,48 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] lemur_0.0.8                 SingleCellExperiment_1.20.0
-#>  [3] SummarizedExperiment_1.28.0 Biobase_2.58.0             
-#>  [5] GenomicRanges_1.50.2        GenomeInfoDb_1.34.9        
-#>  [7] IRanges_2.32.0              S4Vectors_0.36.2           
-#>  [9] BiocGenerics_0.44.0         MatrixGenerics_1.10.0      
-#> [11] matrixStats_0.63.0          lubridate_1.9.2            
-#> [13] forcats_1.0.0               stringr_1.5.0              
-#> [15] dplyr_1.1.0                 purrr_1.0.1                
-#> [17] readr_2.1.4                 tidyr_1.3.0                
-#> [19] tibble_3.1.8                ggplot2_3.4.1              
-#> [21] tidyverse_2.0.0            
+#>  [1] lubridate_1.9.2             forcats_1.0.0              
+#>  [3] stringr_1.5.0               dplyr_1.1.0                
+#>  [5] purrr_1.0.1                 readr_2.1.4                
+#>  [7] tidyr_1.3.0                 tibble_3.1.8               
+#>  [9] ggplot2_3.4.1               tidyverse_2.0.0            
+#> [11] SingleCellExperiment_1.20.0 SummarizedExperiment_1.28.0
+#> [13] Biobase_2.58.0              GenomicRanges_1.50.2       
+#> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
+#> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
+#> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
+#> [21] lemur_0.0.8                
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] Rcpp_1.0.10               lattice_0.20-45          
-#>  [3] digest_0.6.31             utf8_1.2.3               
-#>  [5] R6_2.5.1                  evaluate_0.20            
-#>  [7] highr_0.10                pillar_1.8.1             
-#>  [9] sparseMatrixStats_1.10.0  zlibbioc_1.44.0          
-#> [11] rlang_1.0.6               rstudioapi_0.14          
-#> [13] irlba_2.3.5.1             Matrix_1.5-3             
-#> [15] rmarkdown_2.20            splines_4.2.1            
-#> [17] labeling_0.4.2            glmGamPoi_1.11.7         
-#> [19] RCurl_1.98-1.10           munsell_0.5.0            
-#> [21] uwot_0.1.14               DelayedArray_0.24.0      
-#> [23] compiler_4.2.1            xfun_0.37                
-#> [25] pkgconfig_2.0.3           htmltools_0.5.4          
-#> [27] tidyselect_1.2.0          expm_0.999-7             
-#> [29] GenomeInfoDbData_1.2.9    codetools_0.2-19         
-#> [31] fansi_1.0.4               tzdb_0.3.0               
-#> [33] withr_2.5.0               MASS_7.3-58.2            
-#> [35] bitops_1.0-7              grid_4.2.1               
-#> [37] gtable_0.3.1              lifecycle_1.0.3          
-#> [39] magrittr_2.0.3            scales_1.2.1             
-#> [41] cli_3.6.0                 stringi_1.7.12           
-#> [43] farver_2.1.1              XVector_0.38.0           
-#> [45] DelayedMatrixStats_1.20.0 ellipsis_0.3.2           
-#> [47] generics_0.1.3            vctrs_0.5.2              
-#> [49] cowplot_1.1.1             RcppAnnoy_0.0.20         
-#> [51] tools_4.2.1               harmony_0.1.1            
-#> [53] glue_1.6.2                hms_1.1.2                
-#> [55] fastmap_1.1.1             yaml_2.3.7               
-#> [57] timechange_0.2.0          colorspace_2.1-0         
-#> [59] isoband_0.2.7             knitr_1.42
+#>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0
+#>  [3] expm_0.999-7              highr_0.10               
+#>  [5] GenomeInfoDbData_1.2.9    yaml_2.3.7               
+#>  [7] pillar_1.8.1              lattice_0.20-45          
+#>  [9] glue_1.6.2                digest_0.6.31            
+#> [11] XVector_0.38.0            colorspace_2.1-0         
+#> [13] cowplot_1.1.1             htmltools_0.5.4          
+#> [15] Matrix_1.5-3              pkgconfig_2.0.3          
+#> [17] zlibbioc_1.44.0           scales_1.2.1             
+#> [19] tzdb_0.3.0                pracma_2.4.2             
+#> [21] timechange_0.2.0          generics_0.1.3           
+#> [23] farver_2.1.1              ellipsis_0.3.2           
+#> [25] withr_2.5.0               harmony_0.1.1            
+#> [27] cli_3.6.0                 magrittr_2.0.3           
+#> [29] evaluate_0.20             fansi_1.0.4              
+#> [31] MASS_7.3-58.2             tools_4.2.1              
+#> [33] hms_1.1.2                 lifecycle_1.0.3          
+#> [35] munsell_0.5.0             DelayedArray_0.24.0      
+#> [37] irlba_2.3.5.1             isoband_0.2.7            
+#> [39] compiler_4.2.1            rlang_1.0.6              
+#> [41] grid_4.2.1                RCurl_1.98-1.10          
+#> [43] rstudioapi_0.14           RcppAnnoy_0.0.20         
+#> [45] glmGamPoi_1.11.7          bitops_1.0-7             
+#> [47] labeling_0.4.2            rmarkdown_2.20           
+#> [49] gtable_0.3.1              codetools_0.2-19         
+#> [51] R6_2.5.1                  knitr_1.42               
+#> [53] fastmap_1.1.1             uwot_0.1.14              
+#> [55] utf8_1.2.3                stringi_1.7.12           
+#> [57] Rcpp_1.0.10               vctrs_0.5.2              
+#> [59] tidyselect_1.2.0          xfun_0.37                
+#> [61] sparseMatrixStats_1.10.0
 ```

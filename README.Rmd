@@ -41,14 +41,20 @@ This package is being actively developed and I am still making breaking changes.
 
 ## Quickstart
 
-```r
-# sce is some SingleCellExperiment object
-fit <- lemur::lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
-fit <- lemur::align_harmony(fit)
-fit <- lemur::test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-neigh <- lemur::find_de_neighborhoods(fit, counts = counts(sce),
-                                      group_by = vars(patient_id, condition),
-                                      contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+```{r preparation, echo=FALSE}
+set.seed(1)
+sce <- lemur::glioblastoma_example_data[1:50,sample.int(5000, size = 500)]
+```
+
+
+```{r quick_start, message=FALSE, warning=FALSE}
+library(lemur)
+library(SingleCellExperiment)
+
+fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
+fit <- align_harmony(fit)   # This step is optional
+fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
+nei <- find_de_neighborhoods(fit, counts = counts(sce), group_by = vars(patient_id, condition))
 ```
 
 
@@ -127,7 +133,6 @@ Alternatively, we can use the matrix of differential expression values (`assay(f
 ```{r de_neighborhoods}
 neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
                                       group_by = vars(patient_id, condition),
-                                      contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"),
                                       include_complement = FALSE, verbose = FALSE)
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
