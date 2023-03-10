@@ -70,3 +70,5 @@ test_that("which_extreme works", {
   ignore <- rep(c(FALSE, TRUE), each = 5)
   expect_equal(which_extreme(x, ignore), which.max(x[! ignore]))
 })
+
+

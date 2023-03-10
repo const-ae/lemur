@@ -9,7 +9,7 @@ find_de_neighborhoods(
   de_mat = assay(fit, "DE"),
   counts = NULL,
   group_by,
-  contrast,
+  contrast = fit$contrast,
   design = fit$design,
   random_projections = 50,
   include_complement = TRUE,
@@ -29,7 +29,8 @@ expression.}
 \item{group_by}{if count is provided you need to specify how the pseudobulk
 samples are formed.}
 
-\item{contrast}{a specification which contrast to fit}
+\item{contrast}{a specification which contrast to fit. This defaults to the
+\code{contrast} argument that was used for \code{test_de} and is stored in \code{fit$contrast}.}
 
 \item{design}{the design to use for the fit. Default: \code{fit$design}}
 

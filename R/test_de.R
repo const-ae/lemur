@@ -28,7 +28,6 @@ test_de <- function(fit,
   with_lm <- consider == "embedding+linear" || consider == "linear"
   with_emb <- consider == "embedding+linear" || consider == "embedding"
 
-
   cntrst <- parse_contrast({{contrast}}, formula = fit$design)
   al_cntrst <- parse_contrast({{contrast}}, formula = fit$alignment_design)
   diff <- evaluate_contrast_tree(cntrst, al_cntrst, \(x, y){
@@ -41,6 +40,8 @@ test_de <- function(fit,
     diff
   }else{
     assay(fit, "DE") <- diff
+    metadata(fit)[["contrast"]] <- cntrst
+
     fit
   }
 }

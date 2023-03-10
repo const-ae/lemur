@@ -26,6 +26,7 @@
 #'  \item{`fit$alignment_stretching`}{a 3D tensor with the coefficients for the alignment stretching (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
 #'  \item{`fit$alignment_design`}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
 #'  \item{`fit$alignment_design_matrix`}{an alternative design matrix specification for the alignment.}
+#'  \item{`fit$contrast`}{a parsed version of the contrast specification from the `test_de` function or `NULL`.}
 #'  \item{`fit$colData`}{the column annotation `DataFrame`.}
 #'  \item{`fit$rowData`}{the row annotation `DataFrame`.}
 #' }
@@ -192,7 +193,7 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
                          "design", "base_point",
                          "coefficients", "embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
-                         "colData", "rowData")
+                         "contrast", "colData", "rowData")
 
 
 #' @rdname lemur_fit
@@ -247,6 +248,7 @@ setMethod("$", "lemur_fit",
     alignment_method =        metadata(x)[["alignment_method"]],
     ambient_coordsystem =     metadata(x)[["ambient_coordsystem"]],
     ambient_offset =          metadata(x)[["ambient_offset"]],
+    contrast =                metadata(x)[["contrast"]],
     colData =                 colData(x),
     rowData =                 rowData(x),
     stop("Invalid `name` value.")

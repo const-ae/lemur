@@ -84,7 +84,8 @@ find_de_neighborhoods_with_random_projections_zscore <- function(fit, de_mat, ra
 #'   expression.
 #' @param group_by if count is provided you need to specify how the pseudobulk
 #'   samples are formed.
-#' @param contrast a specification which contrast to fit
+#' @param contrast a specification which contrast to fit. This defaults to the
+#'   `contrast` argument that was used for `test_de` and is stored in `fit$contrast`.
 #' @param design the design to use for the fit. Default: `fit$design`
 #' @param random_projections the number of random projections to use
 #' @param include_complement a boolean to specify if the complement to the identified
@@ -97,7 +98,8 @@ find_de_neighborhoods_with_random_projections_zscore <- function(fit, de_mat, ra
 #'   the output columns from `glmGamPoi::test_de()`
 #'
 #' @export
-find_de_neighborhoods <- function(fit, de_mat = assay(fit, "DE"), counts = NULL, group_by, contrast, design = fit$design,
+find_de_neighborhoods <- function(fit, de_mat = assay(fit, "DE"), counts = NULL, group_by,
+                                  contrast = fit$contrast, design = fit$design,
                                   random_projections = 50, include_complement = TRUE,
                                   verbose = TRUE){
 
@@ -117,6 +119,18 @@ find_de_neighborhoods <- function(fit, de_mat = assay(fit, "DE"), counts = NULL,
     if(any(rownames(fit) != rownames(counts))){
       stop("The rownames of fit and counts don't match.")
     }
+    if(rlang::quo_is_null(rlang::enquo(contrast))){
+      stop("The contrast argument is 'NULL'. Please specify.")
+    }
+    tryCatch({
+      if(inherits(contrast, "contrast_relation")){
+        contrast <- evaluate_contrast_tree(contrast, contrast, \(x, y) x)
+      }
+    }, error = function(e){
+      # Do nothing. The 'contrast' is probably an unquoted expression
+    })
+
+
     separator <- "-__-"
     # mask <- Matrix::sparseMatrix(i = integer(0L), j = integer(0L), x = numeric(0L), dims = c(nrow(de_regions),  ncol(fit)),
     #                      dimnames = list(paste0(de_regions$name, separator, de_regions$region), colnames(fit)),

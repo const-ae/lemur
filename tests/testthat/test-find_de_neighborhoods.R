@@ -1,10 +1,11 @@
 dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
 fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
-DE <- assay(test_de(fit, contrast = cond(condition = "a") - cond(condition = "b")), "DE")
+fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+DE <- assay(fit, "DE")
 
 
 test_that("de_regions", {
-  de_neigh <- find_de_neighborhoods(fit, DE, include_complement = FALSE, verbose = FALSE)
+  de_neigh <- find_de_neighborhoods(fit, include_complement = FALSE, verbose = FALSE)
   expect_equal(colnames(de_neigh), c("name", "region", "indices", "n_cells", "mean"))
   expect_equal(de_neigh$name, rownames(DE))
   expect_equal(de_neigh$region, rep("1", nrow(de_neigh)))
@@ -37,8 +38,14 @@ test_that("find_de_regions works with subset", {
 test_that("find_de_regions works reasonable with counts", {
   SummarizedExperiment::colData(fit)$pat <- sample(c("A", "B", "C"), size = ncol(fit), replace = TRUE)
   counts <- matrix(rpois(50 * 500, lambda = 2.4), nrow = 50, ncol = 500)
-  de_neigh <- find_de_neighborhoods(fit, DE, counts, group_by = glmGamPoi::vars(pat, condition),
+  set.seed(1)
+  de_neigh <- find_de_neighborhoods(fit, DE, counts, group_by = vars(pat, condition),
                                     contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
   expect_equal(colnames(de_neigh), c("name", "region", "indices", "n_cells", "mean", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
+  set.seed(1)
+  de_neigh2 <- find_de_neighborhoods(fit, counts = counts, group_by = vars(pat, condition), verbose = FALSE)
+  expect_equal(de_neigh, de_neigh2)
+  expect_error(find_de_neighborhoods(fit, counts = counts, contrast = NULL, group_by = vars(pat, condition), verbose = FALSE))
 })
+
 

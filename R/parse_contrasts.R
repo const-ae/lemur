@@ -8,19 +8,7 @@ parse_contrast <- function(contrast, formula) {
   covar <- all.vars(formula)
 
   cnt_capture <- rlang::enquo(contrast)
-
-  top <- rlang::new_environment(list(
-    cond = function(...){
-      .cond(formula, list(...))
-    },
-    "+" = .plus, "-" = .minus, "/" = .divide, "*" = .multiply,
-    "==" = .equal,
-    "<" = .lt, "<=" = .lt,
-    ">" = .gt, ">=" = .gt
-  ))
-  bottom <- rlang::new_environment(parent = top)
-  data_mask <- rlang::new_data_mask(bottom = bottom, top = top)
-  data_mask$.cntrst <- rlang::as_data_pronoun(bottom)
+  data_mask <- create_contrast_data_mask(formula)
 
   tryCatch({
     res <- rlang::eval_tidy(cnt_capture, data = data_mask)
@@ -44,6 +32,22 @@ parse_contrast <- function(contrast, formula) {
   res
 }
 
+
+create_contrast_data_mask <- function(formula){
+  top <- rlang::new_environment(list(
+    cond = function(...){
+      .cond(formula, list(...))
+    },
+    "+" = .plus, "-" = .minus, "/" = .divide, "*" = .multiply,
+    "==" = .equal,
+    "<" = .lt, "<=" = .lt,
+    ">" = .gt, ">=" = .gt
+  ))
+  bottom <- rlang::new_environment(parent = top)
+  data_mask <- rlang::new_data_mask(bottom = bottom, top = top)
+  data_mask$.cntrst <- rlang::as_data_pronoun(bottom)
+  data_mask
+}
 
 
 .cond <- function(formula, level_sets = list()){
