@@ -2,7 +2,7 @@
 % Please edit documentation in R/test_de.R
 \name{test_de}
 \alias{test_de}
-\title{Differential expression for each cell (or position in the latent emebedding)}
+\title{Differential expression for each cell (or position in the latent embedding)}
 \usage{
 test_de(
   fit,
@@ -28,5 +28,5 @@ if \code{is.null(embedding)} the \code{fit} object with a new assay called \code
 return the matrix with the differential expression values
 }
 \description{
-Differential expression for each cell (or position in the latent emebedding)
+Differential expression for each cell (or position in the latent embedding)
 }

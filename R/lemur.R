@@ -2,7 +2,7 @@
 
 #' Main function to fit the latent embedding multivariate regression (LEMUR) model
 #'
-#' @param data a matrix with obsevations in the columns and features in the rows.
+#' @param data a matrix with observations in the columns and features in the rows.
 #'   Or a `SummarizedExperiment` / `SingleCellExperiment` object
 #' @param design a formula referring to global objects or column in the `colData` of `data`
 #'   and `col_data` argument

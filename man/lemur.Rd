@@ -18,7 +18,7 @@ lemur(
 )
 }
 \arguments{
-\item{data}{a matrix with obsevations in the columns and features in the rows.
+\item{data}{a matrix with observations in the columns and features in the rows.
 Or a \code{SummarizedExperiment} / \code{SingleCellExperiment} object}
 
 \item{design}{a formula referring to global objects or column in the \code{colData} of \code{data}

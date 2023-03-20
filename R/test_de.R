@@ -1,5 +1,5 @@
 
-#' Differential expression for each cell (or position in the latent emebedding)
+#' Differential expression for each cell (or position in the latent embedding)
 #'
 #' @param fit the result of calling [`lemur()`]
 #' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation

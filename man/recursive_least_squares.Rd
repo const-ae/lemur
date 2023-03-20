@@ -7,7 +7,13 @@
 \usage{
 recursive_least_squares(y, X)
 
-bulked_recursive_least_squares_contrast(y, X, group, contrast)
+bulked_recursive_least_squares_contrast(
+  y,
+  X,
+  group,
+  contrast,
+  ridge_penalty = 1e-06
+)
 }
 \arguments{
 \item{y}{a vector with observations}
@@ -19,8 +25,7 @@ a matrix where column i is the
 solution to \code{y[1:i] ~ X[1:i,]}.
 }
 \description{
-Iteratively calculate the least squares solution
-
-Enable pseudobulking and directly calculate the contrast
+Both functions are for testing purposes. There is a faster implementation
+called \code{cum_brls_which_abs_max}.
 }
 \keyword{internal}
