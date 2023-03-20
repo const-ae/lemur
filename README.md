@@ -7,26 +7,29 @@
 <!-- badges: end -->
 
 The goal of lemur is to enable easy analysis of multi-condition
-single-cell data. Lemur fits latent embedding regression, which means
-that it tries to find the PCA embedding for each condition and
-parameterizes the transition from one embedding to the other. For this
-task, lemur uses geodesic regression on the Grassmann manifold, which is
-solved efficiently using tangent-space linear modelling. The result is
-an interpretable model of the gene expression for arbitrary experimental
+single-cell data. Lemur fits latent embedding regression, which means it
+tries to find the PCA embedding for each condition and parameterizes the
+transition from one embedding to another. For this task, lemur uses
+geodesic regression on the Grassmann manifold, which is solved
+efficiently using tangent-space linear modeling. The result is an
+interpretable model of the gene expression for arbitrary experimental
 designs that can be expressed using a design matrix.
+
+![Schematic of the matrix decomposition at the core of
+LEMUR](man/figures/equation_schematic.png)
 
 ## Installation
 
 Lemur depends on features from
 [`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only
 available in the development version, so please install `glmGamPoi` from
-Github before proceeding with lemur’s installation:
+GitHub before proceeding with lemur’s installation:
 
 ``` r
 devtools::install_github("const-ae/glmGamPoi")
 ```
 
-You can install the released version of lemur from Github
+You can install the released version of lemur from Github:
 
 ``` r
 devtools::install_github("const-ae/lemur")
@@ -34,12 +37,13 @@ devtools::install_github("const-ae/lemur")
 
 ## A word of caution
 
-This package is being actively developed and I am still making breaking
-changes. I am delighted if you decide to try out the package and please
-open an issue if you think you found a bug, have an idea for a cool
-feature, or any question about how LEMUR works. Consider this a *beta*
-release with the goal to gather feedback but be aware that code written
-against the current version of lemur might not work in the future.
+This package is being actively developed, and I am still making breaking
+changes. I would be delighted if you decide to try out the package, and
+please open an issue if you think you found a bug, have an idea for a
+cool feature, or have any questions about how LEMUR works. Consider this
+a *beta* release with the goal to gather feedback but be aware that code
+written against the current version of lemur might not work in the
+future.
 
 ## Quickstart
 
@@ -50,16 +54,16 @@ library(SingleCellExperiment)
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
 fit <- align_harmony(fit)   # This step is optional
 fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-nei <- find_de_neighborhoods(fit, counts = counts(sce), group_by = vars(patient_id, condition))
+nei <- find_de_neighborhoods(fit, independent_matrix = counts(sce), group_by = vars(patient_id, condition))
 ```
 
 ## Example
 
 We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The
 data consists of tumor biopsies from five glioblastomas which were
-treated using panobinostat or used as a control. Accordingly there are
-ten samples (patient-treatment combinations) which we will analyze using
-a paired experimental design.
+treated using panobinostat or used as a control. Accordingly, we will
+analyze ten samples (patient-treatment combinations) using a paired
+experimental design.
 
 We start by loading some packages which are necessary to analyze the
 data:
@@ -111,9 +115,9 @@ as_tibble(orig_umap) %>%
 We fit the LEMUR model by calling `lemur()`. We provide the experimental
 design using a formula. The elements of the formula can refer to columns
 of the `colData` of the `SingleCellExperiment` object. We also set the
-number of latent dimensions which has a similar interpretation as the
+number of latent dimensions, which has a similar interpretation as the
 number of dimensions in PCA. Optionally, we can further align
-corresponding cells either using manually annotated cell types
+corresponding cells using manually annotated cell types
 (`align_by_grouping`) or an automated alignment procedure (e.g.,
 `align_harmony`, `align_neighbors`).
 
@@ -142,10 +146,10 @@ fit
 ```
 
 The `lemur()` function returns an object that extends
-`SingleCellExperiment` and thus supports subsetting and all the familiar
-data acessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`). In
+`SingleCellExperiment` and thus supports subsetting and all the usual
+data accessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`). In
 addition, `lemur` overloads the `$` operator to allow easy access to
-additional fields that are produced by the LEMUR model. For example the
+additional fields produced by the LEMUR model. For example, the
 low-dimensional embedding can be accessed using `fit$embedding`:
 
 ``` r
@@ -164,7 +168,7 @@ The `test_de` function takes a `lemur_fit_obj` and returns with a new
 assay `"DE"` with the predicted difference between two conditions
 specified in the `contrast`. Note that `lemur` implements a special
 notation for contrasts. Instead of providing a contrast vector or design
-matrix column names, you provide for each *condition* the levels and
+matrix column names, you provide for each *condition* the levels, and
 `lemur` automatically forms the contrast vector. This makes the contrast
 more readable.
 
@@ -196,30 +200,30 @@ the function uses a pseudobulked differential expression test to confirm
 the gene expression differences on the count level.
 
 ``` r
-neighborhoods <- find_de_neighborhoods(fit, counts = counts(glioblastoma_example_data),
+neighborhoods <- find_de_neighborhoods(fit, independent_matrix = counts(glioblastoma_example_data),
                                       group_by = vars(patient_id, condition),
                                       include_complement = FALSE, verbose = FALSE)
-#> dimnames(.) <- NULL translated to
-#> dimnames(.) <- list(NULL,NULL)
+
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
 #> # A tibble: 300 × 16
-#>    name        region indices n_cells   mean    pval adj_p…¹ f_sta…²   df1   df2
-#>    <chr>       <chr>  <I<lis>   <int>  <dbl>   <dbl>   <dbl>   <dbl> <int> <dbl>
-#>  1 ENSG000001… 1      <int>      3780  1.32  8.71e-6 0.00261   140.      1  6.80
-#>  2 ENSG000001… 1      <int>      3975  2.08  1.40e-4 0.0178     58.6     1  6.80
-#>  3 ENSG000001… 1      <int>      3582 -0.538 2.05e-4 0.0178     51.7     1  6.80
-#>  4 ENSG000001… 1      <int>      2267 -0.369 2.68e-4 0.0178     47.3     1  6.80
-#>  5 ENSG000001… 1      <int>      3850  0.637 3.36e-4 0.0178     43.9     1  6.80
-#>  6 ENSG000000… 1      <int>      3150 -0.290 4.16e-4 0.0178     40.9     1  6.80
-#>  7 ENSG000001… 1      <int>      2889 -1.49  4.61e-4 0.0178     39.5     1  6.80
-#>  8 ENSG000001… 1      <int>      3970  0.596 5.58e-4 0.0178     37.0     1  6.80
-#>  9 ENSG000000… 1      <int>      4040 -0.422 6.07e-4 0.0178     36.0     1  6.80
-#> 10 ENSG000001… 1      <int>       534  0.641 6.45e-4 0.0178     35.2     1  6.80
+#>    name      selec…¹ indices n_cells sel_s…²    pval adj_p…³ f_sta…⁴   df1   df2
+#>    <chr>     <lgl>   <I<lis>   <int>   <dbl>   <dbl>   <dbl>   <dbl> <int> <dbl>
+#>  1 ENSG0000… TRUE    <int>      3781    90.9 9.12e-6 0.00274   140.      1  6.77
+#>  2 ENSG0000… TRUE    <int>      3976   234.  1.39e-4 0.0180     59.1     1  6.77
+#>  3 ENSG0000… TRUE    <int>      3583   -96.5 2.01e-4 0.0180     52.4     1  6.77
+#>  4 ENSG0000… TRUE    <int>      2268   -42.6 2.63e-4 0.0180     48.0     1  6.77
+#>  5 ENSG0000… TRUE    <int>      3851   104.  3.50e-4 0.0180     43.6     1  6.77
+#>  6 ENSG0000… TRUE    <int>      2890  -189.  4.38e-4 0.0180     40.4     1  6.77
+#>  7 ENSG0000… TRUE    <int>      3151   -70.6 4.46e-4 0.0180     40.2     1  6.77
+#>  8 ENSG0000… TRUE    <int>      3971   104.  5.67e-4 0.0180     37.0     1  6.77
+#>  9 ENSG0000… TRUE    <int>      4041  -163.  6.15e-4 0.0180     36.0     1  6.77
+#> 10 ENSG0000… TRUE    <int>       535    42.7 6.30e-4 0.0180     35.7     1  6.77
 #> # … with 290 more rows, 6 more variables: lfc <dbl>, symbol <chr>,
 #> #   chromosome <fct>, gene_length <int>, strand. <fct>, source <fct>, and
-#> #   abbreviated variable names ¹​adj_pval, ²​f_statistic
+#> #   abbreviated variable names ¹​selection, ²​sel_statistic, ³​adj_pval,
+#> #   ⁴​f_statistic
 ```
 
 We can now specifically select regions with significant differential
@@ -263,8 +267,8 @@ as_tibble(umap) %>%
 
 <img src="man/figures/README-umap_de3-1.png" width="100%" />
 
-To get a better idea of the expression differences across all genes, we
-make a vulcano plot of the differential expression results.
+We make a volcano plot of the differential expression results to better
+understand the expression differences across all genes.
 
 ``` r
 neighborhoods %>%
@@ -283,6 +287,50 @@ neighborhoods %>%
 ```
 
 <img src="man/figures/README-volcano_plot-2.png" width="100%" />
+
+# FAQ
+
+> I have already integrated my data using Harmony / MNN / Seurat. Can I
+> call `lemur` directly with the aligned data?
+
+No. You need to call `lemur` with the unaligned data so that it can
+learn how much the expression of each gene changes between conditions.
+What you can do, though, is to use the aligned data as a template for
+lemur’s alignment step (`align_template`).
+
+> Can I call lemur with
+> [sctransformed](https://github.com/satijalab/sctransform) instead of
+> log-transformed data?
+
+Yes. You can call lemur with any variance stabilized count matrix. Based
+on a [previous
+project](https://www.biorxiv.org/content/10.1101/2021.06.24.449781v4), I
+recommend to use log-transformation, but other methods will work just
+fine.
+
+> My data appears less integrated after calling `lemur()` than before.
+> What is happening?!
+
+This is a known issue and can be caused if the data has large
+compositional shifts (for example, if one cell type disappears). The
+problem is that the initial linear regression step, which centers the
+conditions relative to each other, overcorrects and introduces a
+consistent shift in the latent space. I am currently trying to develop a
+generic solution for this problem, but until this is implemented, you
+can manually fix the regression coefficients:
+
+``` r
+fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficients = 0)
+```
+
+> The conditions still separate if I plot the data using UMAP / tSNE.
+> Even after calling `align_harmony` / `align_neighbors`. What should I
+> do?
+
+You can try to increase `n_embedding`. If this still does not help,
+there is little use in inferring differential expression neighborhoods.
+But as I haven’t encountered such a dataset yet, I would like to try it
+out myself. If you can share the data publicly, please open an issue.
 
 # Session Info
 
@@ -314,7 +362,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
 #> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
 #> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.8                
+#> [21] lemur_0.0.10               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0
