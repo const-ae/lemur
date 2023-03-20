@@ -270,3 +270,41 @@ which_extreme <- function(x, ignore = NULL){
 }
 
 
+aggregate_matrix <- function(mat, group_split, aggr_fnc, ...){
+  new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
+    aggr_fnc(mat[,idx,drop=FALSE], ...)
+  }))
+  rownames(new_data_mat) <- rownames(mat)
+  new_data_mat
+}
+
+
+limma_eBayes_without_shrinkage <- function(lm_fit){
+  lm_fit$t <- lm_fit$coefficients / lm_fit$stdev.unscaled / lm_fit$sigma
+  lm_fit$p.value <- 2 * pt(-abs(lm_fit$t), df = lm_fit$df.residual)
+  lm_fit
+}
+
+
+nullspace <- function(X){
+  dim <- nrow(X)
+  n_obs <- ncol(X)
+  if(dim == 0){
+    return(matrix(nrow = dim, ncol = 0))
+  }else if(n_obs == 0){
+    diag(nrow = dim)
+  }
+
+  qrX <- qr(X)
+  rank <- qrX$rank
+  qr.Q(qrX, complete = TRUE)[,seq_excl(rank, dim),drop=FALSE]
+}
+
+is_contrast_estimable <- function(contrast, design_matrix, tol = sqrt(.Machine$double.eps)){
+  # The algorithm is inspired by 'lmerTest::is_estimable()'.
+  ns <- nullspace(t(design_matrix))
+  if(ncol(ns) == 0){
+    return(TRUE)
+  }
+  abs(sum(c(contrast) %*% ns)) < tol
+}

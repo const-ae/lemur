@@ -1,51 +1,207 @@
-dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
-fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
-fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
-DE <- assay(fit, "DE")
+test_that("select_directions_XXX works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
 
-test_that("de_regions", {
-  de_neigh <- find_de_neighborhoods(fit, include_complement = FALSE, verbose = FALSE)
-  expect_equal(colnames(de_neigh), c("name", "region", "indices", "n_cells", "mean"))
-  expect_equal(de_neigh$name, rownames(DE))
-  expect_equal(de_neigh$region, rep("1", nrow(de_neigh)))
-  expect_equal(sapply(seq_along(de_neigh$indices), \(idx) mean(DE[idx,de_neigh$indices[[idx]]])),
-               de_neigh$mean)
+  # Axes Directions
+  dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
+  expect_equal(dim(dirs), c(50, 15))
+  expect_equal(rowSums(dirs^2), rep(1, 50))
+  expect_equal(rowSums(dirs == 0), rep(14, 50))
+
+  # Random Directions
+  dirs <- select_directions_from_random_points(20, fit$embedding, assay(fit, "DE"))
+  expect_equal(dim(dirs), c(50, 15))
+  expect_equal(rowSums(dirs^2), rep(1, 50))
+
+  # Contrast Directions
+  dirs1 <- select_directions_from_contrast(fit, fit$contrast)
+  dirs2 <- select_directions_from_contrast(fit, cond(condition = "a") - cond(condition = "b"))
+  expect_equal(dim(dirs1), c(50, 15))
+  expect_equal(dirs1, dirs2)
+  expect_equal(rowSums(dirs1^2), rep(1, 50))
+  expect_equal(cor(drop(dirs1[1,,drop=FALSE] %*% fit$embedding), assay(fit, "DE")[1,]), 1)
+
+  fit2 <- align_by_grouping(fit, design = ~ condition + individual, grouping = fit$colData$cell_type, verbose = FALSE)
+  fit2 <- test_de(fit2, contrast = cond(condition = "a") - cond(condition = "b"))
+  dirs3 <- select_directions_from_contrast(fit2, fit2$contrast)
+  # Slightly below 1
+  # cor(drop(dirs3[1,,drop=FALSE] %*% fit2$embedding), assay(fit2, "DE")[1,])
 })
 
-# test_that("de_regions can identify multiple non-overlapping regions", {
-#   de_regions_simple <- find_de_regions(fit, DE)
-#   de_regions_multiple <- find_de_regions(fit, DE, regions_per_gene = 3)
-#
-#   expect_equal(de_regions_multiple$region, rep(1:3, times = 50))
-#   expect_equal(de_regions_simple, de_regions_multiple[de_regions_multiple$region == 1,], ignore_attr = "row.names")
-#   # There is no overlap between the regions
-#   expect_equal(tapply(de_regions_multiple$indices, de_regions_multiple$name, \(idx) length(Reduce(intersect, idx))),
-#                rep(0, 50), ignore_attr = c("dimnames", "dim"))
-#
-# })
 
+test_that("find_de_neighborhoods_with_z_score works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
+  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
+  expect_equal(nrow(nei), 50)
+  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
+  expect_equal(nrow(nei2), 100)
+  expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))
+  DE <- assay(fit, "DE")
+  manual_stat <- vapply(seq_len(nrow(nei2)), \(idx){
+    norm_idx <- (idx - 1) %% 50 + 1
+    sel <- nei2$indices[[idx]]
+    val <- DE[norm_idx, sel]
+    mean(val) / (sd(val) / sqrt(length(sel)))
+  }, FUN.VALUE = numeric(1L))
+
+  expect_equal(nei2$sel_statistic, manual_stat)
+})
+
+
+test_that("find_de_neighborhoods_with_z_score works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
+  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
+  expect_equal(nrow(nei), 50)
+  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
+  expect_equal(nrow(nei2), 100)
+  expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100])))
+  DE <- assay(fit, "DE")
+  manual_stat <- vapply(seq_len(nrow(nei2)), \(idx){
+    norm_idx <- (idx - 1) %% 50 + 1
+    sel <- nei2$indices[[idx]]
+    val <- DE[norm_idx, sel]
+    mean(val) / (sd(val) / sqrt(length(sel)))
+  }, FUN.VALUE = numeric(1L))
+  expect_equal(nei2$sel_statistic, manual_stat)
+})
+
+test_that("neighborhood_normal_test works", {
+  set.seed(1)
+  n_obs <- 100
+  n_genes <- 1
+  y <- matrix(rnorm(n_genes * n_obs), nrow = n_genes, ncol = n_obs)
+  dat <- data.frame(id = seq_len(n_obs),
+                    patient = sample(paste0("pat_", seq_len(6)), size = n_obs, replace = TRUE))
+  dat$condition <- ifelse(dat$patient <= "pat_3", "ctrl", "trt")
+  de_regions <- data.frame(name = paste0("feature_", n_genes),
+                           indices = I(lapply(seq_len(n_genes), \(idx){
+                             sample.int(n_obs, 8)
+                           })))
+
+  form <- handle_design_parameter(~ condition, data = y, col_data = dat)
+  test_res <- neighborhood_normal_test(de_regions, group_by = vars(patient, condition),
+                           contrast = cond(condition = "ctrl") - cond(condition = "trt"), values = y,
+                           design = form$design_formula, col_data = dat, shrink = FALSE, verbose = FALSE)
+  test_res2 <- neighborhood_normal_test(de_regions, group_by = vars(patient, condition),
+                                       contrast = cond(condition = "ctrl") - cond(condition = "trt"), values = y,
+                                       design = form$design_formula, col_data = dat, shrink = TRUE, verbose = FALSE)
+  expect_equal(test_res, test_res2)
+
+  # Manually reproduce fit
+  groups <- as.integer(as.factor(paste0(dat$patient, dat$condition)))
+  y_masked <- rep(NA, length(y))
+  y_masked[de_regions$indices[[1]]] <- y[de_regions$indices[[1]]]
+  m <- tapply(y_masked, groups, mean, na.rm = TRUE)
+  Xmod <- do.call(rbind, tapply(seq_len(nrow(form$design_matrix)), groups, \(idx) colMeans(form$design_matrix[idx,,drop=FALSE])))
+  Xmod[is.na(m), ] <- 0
+
+  lm_fit <- lm(m ~ Xmod - 1)
+  contrast <- matrix(c(0, -1), nrow = 1)
+  covar <- sum(lm_fit$residuals^2) / lm_fit$df.residual * solve(t(Xmod) %*% Xmod)
+  se <- sqrt(contrast %*% covar %*% t(contrast))
+  t_stat <- lm_fit$coefficients %*% t(contrast) / se
+  expect_equal(test_res$t_statistic, drop(t_stat))
+  expect_equal(test_res$pval, drop(2 * pt(-abs(t_stat), df = lm_fit$df.residual)))
+  expect_equal(test_res$lfc, drop(lm_fit$coefficients %*% t(contrast)))
+})
+
+test_that("find_de_neighborhoods_with_contrast works", {
+  set.seed(6)
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
+  set.seed(1)
+  nei <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
+                                             contrast = cond(condition = "a") - cond(condition = "b"),
+                                             include_complement = FALSE)
+
+
+  expect_equal(nrow(nei), 50)
+  set.seed(1)
+  nei2 <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
+                                             contrast = cond(condition = "a") - cond(condition = "b"),
+                                             include_complement = TRUE, verbose = FALSE)
+  expect_equal(nrow(nei2), 100)
+  expect_equal(nei, nei2[1:50,])
+  expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))
+  nei2$name <- rep(rownames(dat), 2)
+  manual_test <- neighborhood_normal_test(nei2, assay(dat), vars(individual, condition),
+                           contrast = cond(condition = "a") - cond(condition = "b"),
+                           design = fit$design, fit$colData, shrink = FALSE, verbose = FALSE)
+  expect_equal(nei2$sel_statistic, manual_test$t_statistic, tolerance = 1e-3)
+})
+
+test_that("find_de_neighborhoods works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+
+  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  de_neigh1 <- find_de_neighborhoods(fit, selection_procedure = "zscore", directions = "random", verbose = FALSE)
+  de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "random", verbose = FALSE)
+  # de_neigh3 <- find_de_neighborhoods(fit, selection_procedure = "likelihood", directions = "random")
+  de_neigh4 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "axis_parallel", verbose = FALSE)
+  de_neigh5 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
+
+  counts <- matrix(rpois(ncol(dat) * nrow(dat), lambda = 2.1), nrow = nrow(dat), ncol = ncol(dat))
+  de_neigh6 <- find_de_neighborhoods(fit, independent_matrix = counts,
+                                     group_by = vars(individual, condition),
+                                     selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
+  expect_equal(de_neigh5, de_neigh6[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
+
+  de_neigh7 <- find_de_neighborhoods(fit, independent_matrix = counts,
+                                     group_by = vars(individual, condition),
+                                     selection_procedure = "contrast", directions = "contrast",
+                                     independent_matrix_type = "continuous",
+                                     verbose = FALSE)
+  expect_equal(de_neigh7[,c("name", "selection", "indices", "n_cells", "sel_statistic")],
+               de_neigh6[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
+})
 
 
 test_that("find_de_regions works with subset", {
-  fit_red <- fit[,1:50]
-  expect_error(find_de_neighborhoods(fit_red, DE[,1:10], verbose = FALSE))
-  de_red <- find_de_neighborhoods(fit_red, DE[,1:50], verbose = FALSE)
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  fit_red <- fit[,1:25]
+  expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
+  de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:25], verbose = FALSE)
   expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 50), FUN.VALUE = logical(1))))
 })
 
 
-test_that("find_de_regions works reasonable with counts", {
+test_that("find_de_regions works reasonably well with counts", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   SummarizedExperiment::colData(fit)$pat <- sample(c("A", "B", "C"), size = ncol(fit), replace = TRUE)
   counts <- matrix(rpois(50 * 500, lambda = 2.4), nrow = 50, ncol = 500)
   set.seed(1)
-  de_neigh <- find_de_neighborhoods(fit, DE, counts, group_by = vars(pat, condition),
-                                    contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
-  expect_equal(colnames(de_neigh), c("name", "region", "indices", "n_cells", "mean", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
+  de_neigh <- find_de_neighborhoods(fit, independent_matrix = counts, group_by = vars(pat, condition),
+                                    de_mat = assay(fit, "DE"), contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
+  expect_equal(colnames(de_neigh), c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
   set.seed(1)
-  de_neigh2 <- find_de_neighborhoods(fit, counts = counts, group_by = vars(pat, condition), verbose = FALSE)
+  de_neigh2 <- find_de_neighborhoods(fit, independent_matrix = counts, group_by = vars(pat, condition), verbose = FALSE)
   expect_equal(de_neigh, de_neigh2)
-  expect_error(find_de_neighborhoods(fit, counts = counts, contrast = NULL, group_by = vars(pat, condition), verbose = FALSE))
+  expect_error(find_de_neighborhoods(fit, independent_matrix = counts, contrast = NULL, group_by = vars(pat, condition), verbose = FALSE))
 })
 
 

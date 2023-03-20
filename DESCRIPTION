@@ -18,6 +18,7 @@ Imports:
     SingleCellExperiment,
     SummarizedExperiment,
     rlang,
+    vctrs,
     glmGamPoi (>= 1.11.6),
     BiocGenerics,
     BiocNeighbors,
@@ -28,17 +29,18 @@ Imports:
     MatrixGenerics,
     matrixStats,
     collections,
-    Rcpp
+    Rcpp,
+    limma
 Suggests: 
     testthat (>= 3.0.0),
     MASS,
     pracma,
     harmony,
-    reticulate
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 LinkingTo: 
-    Rcpp
+    Rcpp,
+    RcppArmadillo
 Depends: 
     R (>= 2.10)

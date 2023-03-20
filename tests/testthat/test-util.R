@@ -72,3 +72,37 @@ test_that("which_extreme works", {
 })
 
 
+test_that("nullspace works", {
+  mat <- randn(30, 3)
+  # n1 <- lmerTest:::nullspace(mat, type = "left")
+  n2 <- nullspace(mat)
+  n3 <- MASS::Null(mat)
+  n4 <- pracma::nullspace(t(mat))
+  # expect_equal(grassmann_angle_from_points(n1, n2), 0)
+  expect_equal(grassmann_angle_from_points(n3, n2), 0)
+  expect_equal(grassmann_angle_from_points(n4, n2), 0)
+})
+
+
+test_that("estimability test works", {
+  n <- 40
+  dat <- data.frame(group = sample(letters[1:3], size = n, replace = TRUE),
+                    cont1 = rnorm(n),
+                    cont2 = rnorm(n))
+
+  mm <- model.matrix(~ group + cont1 + cont2, data = dat)
+
+  expect_true(is_contrast_estimable(c(0, 1, 0, 0, 0), mm))
+  expect_false(is_contrast_estimable(c(0, 1, 0, 0, 0),  mm[dat$group != "a",]))
+  expect_true( is_contrast_estimable(c(0, 0, 0, 1, 0),  mm[dat$group != "a",]))
+  expect_true( is_contrast_estimable(c(0, 0, 0, 1, -1), mm[dat$group != "a",]))
+  expect_true( is_contrast_estimable(c(0, 0, 0, 2, -1), mm[dat$group != "a",]))
+  expect_false(is_contrast_estimable(c(1, 0, 0, 2, -1), mm[dat$group != "a",]))
+  expect_true( is_contrast_estimable(c(0, 1, -1, 0, 0), mm[dat$group != "a",]))
+  expect_false(is_contrast_estimable(c(0, 2, -1, 0, 0), mm[dat$group != "a",]))
+})
+
+
+
+
+

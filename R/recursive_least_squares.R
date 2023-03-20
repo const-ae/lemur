@@ -4,6 +4,9 @@
 
 #' Iteratively calculate the least squares solution
 #'
+#' Both functions are for testing purposes. There is a faster implementation
+#' called `cum_brls_which_abs_max`.
+#'
 #' @param y a vector with observations
 #' @param X a design matrix
 #'
@@ -34,7 +37,7 @@ recursive_least_squares <- function(y, X){
 #' Enable pseudobulking and directly calculate the contrast
 #'
 #' @rdname recursive_least_squares
-bulked_recursive_least_squares_contrast <- function(y, X, group, contrast){
+bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge_penalty = 1e-6){
   stopifnot(length(y) == nrow(X))
   stopifnot(length(y) == length(group))
   if(! is.matrix(contrast)){
@@ -53,22 +56,22 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast){
 
   res <- matrix(NA, nrow = k, ncol = n)
   t_stat <- rep(NA, n)
-  gamma <- diag(1e6, nrow = k)
+  gamma <- diag(1/ridge_penalty, nrow = k)
   beta <- rep(0, k)
   rss <- 0
   n_obs <- 0
 
-  X_act[1:3,] <- X[1:3,]
-  gamma <- solve(crossprod(X[seq_len(k),]))
-  beta <- gamma %*% t(X[seq_len(k),]) %*% y[seq_len(k)]
-  rss <- sum((y[1:3] - X_act %*% beta)^2, na.rm=TRUE)
-  res[,k] <- beta
-  count[1:3] <- 1
-  m[1:3] <- y[1:3]
-  n_obs <- 3
-  covar <- rss / (n_obs - k) * gamma
+  # X_act[1:3,] <- X[1:3,]
+  # gamma <- solve(crossprod(X[seq_len(k),]))
+  # beta <- gamma %*% t(X[seq_len(k),]) %*% y[seq_len(k)]
+  # rss <- sum((y[1:3] - X_act %*% beta)^2, na.rm=TRUE)
+  # res[,k] <- beta
+  # count[1:3] <- 1
+  # m[1:3] <- y[1:3]
+  # n_obs <- 3
+  # covar <- rss / (n_obs - k) * gamma
 
-  for(idx in seq(k+1, n)){
+  for(idx in seq(1, n)){
     yi <- y[idx]
     xi <- t(X[idx,,drop=FALSE])
     gi <- group[idx]
@@ -88,9 +91,14 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast){
       beta <- beta + gamma %*% (xi * delta_m)
     }
     # I can't find a recursive way to calculate the residual sum of squares
-    rss <- sum((m - X_act %*% beta)^2)
-    covar <- rss / (n_obs - k) * gamma
-    t_stat[idx] <- sum(drop(contrast) * beta) / sqrt(contrast %*% covar %*% t(contrast))
+    rss <- max(1e-6, sum((m - X_act %*% beta)^2))
+    # Avoid zero or negative numbers
+    covar <- rss / max(1e-8, n_obs - k) * gamma
+    se_sq <- contrast %*% covar %*% t(contrast)
+    if(is.na(se_sq)) browser()
+    if(se_sq > 0){
+      t_stat[idx] <- sum(drop(contrast) * beta) / sqrt(se_sq)
+    }
     res[,idx] <- beta
   }
   list(coef = res, t_stat = t_stat)
