@@ -152,6 +152,9 @@ lemur_impl <- function(Y, design_matrix,
 
   # Initialize values
   if(linear_coef_fixed){
+    if(length(linear_coefficients) == 1){
+      linear_coefficients <- matrix(linear_coefficients, nrow = n_ambient_eff, ncol = ncol(design_matrix))
+    }
     Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
   }else{
     if(verbose) message("Regress out global effects")
