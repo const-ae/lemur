@@ -92,7 +92,7 @@ find_de_neighborhoods <- function(fit,
   if(is.null(independent_matrix)){
     de_regions
   }else{
-    if(verbose) message("Validate neighborhoods using indepent ", independent_matrix_type, " data.")
+    if(verbose) message("Validate neighborhoods using independent ", independent_matrix_type, " data.")
     stopifnot(all(dim(fit) == dim(independent_matrix)))
     if(! is.null(rownames(fit)) && is.null(rownames(independent_matrix))){
       rownames(independent_matrix) <- rownames(fit)
