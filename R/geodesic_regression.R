@@ -418,7 +418,7 @@ procrustes_spd <- function(data, obs_embedding, maxiter = 1000, tolerance = 1e-8
     alpha_i <- alpha[i]
     alpha[i+1] <- (sqrt((alpha_i^2 - qx)^2 + 4 * alpha_i^2) + (qx - alpha_i^2)) / 2
     beta[i] <- alpha_i * (1 - alpha_i) / (alpha_i^2 + alpha[i + 1])
-    A <- project_psd(Y - (Y %*% XXt - BXt) / Lx)
+    A <- project_spd(Y - (Y %*% XXt - BXt) / Lx)
     Y <- A + beta[i] * (A - Ap)
 
     eps_last_round <- eps
@@ -433,7 +433,7 @@ procrustes_spd <- function(data, obs_embedding, maxiter = 1000, tolerance = 1e-8
 init_procrustes_spd <- function(data, obs_embedding){
   n <- nrow(obs_embedding)
   # Init A (three different options)
-  A1 <- project_psd(t(pracma::mldivide(t(obs_embedding), t(data))))
+  A1 <- project_spd(t(pracma::mldivide(t(obs_embedding), t(data))))
   A2 <- matrix(0, nrow = n, ncol = n)
   for(i in seq_len(n)){
     A2[i,i] <- max(0, sum(obs_embedding[i,] * data[i,]) / (sum(obs_embedding[i,]^2) + 1e-6))
@@ -507,7 +507,7 @@ analytic_approx_procrustes_spd <- function(data, obs_embedding){
 }
 
 
-project_psd <- function(Q){
+project_spd <- function(Q){
   Q <- (Q + t(Q)) / 2
   eig <- eigen(Q)
   with(eig, vectors %*% diag(pmax(values, 1e-12), nrow = length(values)) %*% t(vectors))

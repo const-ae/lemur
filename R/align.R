@@ -268,7 +268,7 @@ polar_lm_analytic <-  function(data, design, obs_embedding, base_point){
         svd <- svd(beta)
         diag_elem <- c(rep(1, times = ncol(beta) - 1), Matrix::det(svd$u %*% t(svd$v)))
         U <- svd$u %*% diag(diag_elem, nrow = length(diag_elem))  %*% t(svd$v)
-        P <- project_psd(coef(lm.fit(U, beta)))
+        P <- project_spd(coef(lm.fit(U, beta)))
 
         list(rotation_coef = rotation_log(base_point, U), stretch_coef = spd_log(base_point, P))
       }

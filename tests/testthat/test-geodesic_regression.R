@@ -313,7 +313,7 @@ test_that("procrustes_spd works", {
   data <- randn(7, 100)
 
   p_est <- procrustes_spd(data, obs_embed)
-  eigen(project_psd(p_est))$values
+  eigen(project_spd(p_est))$values
   expect_true(all(eigen(p_est)$values > 0))
   expect_true(all(Im(expm::sqrtm(p_est)) == 0))
 
