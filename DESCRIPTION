@@ -28,7 +28,6 @@ Imports:
     HDF5Array,
     MatrixGenerics,
     matrixStats,
-    collections,
     Rcpp,
     harmony,
     limma
