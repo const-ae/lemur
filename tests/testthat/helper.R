@@ -10,7 +10,7 @@ make_synthetic_data <- function(n_genes = 30, n_cells = 500, n_centers = 4, n_la
   design_matrix <- model.matrix(~ condition)
   plane <- qr.Q(qr(randn(n_genes, n_genes)))[seq_len(n_genes), seq_len(n_lat)]
 
-  true_P <- MASS::Null(plane) %*% cbind(intercept = randn(n_genes - n_lat, 1, sd = 0),
+  true_P <- nullspace(plane) %*% cbind(intercept = randn(n_genes - n_lat, 1, sd = 0),
                                         beta1 = randn(n_genes - n_lat, 1, sd = treatment_effect),
                                         beta2 = randn(n_genes - n_lat, 1, sd = treatment_effect))
   true_P <- true_P + rnorm(prod(dim(true_P)), sd = 1e-8)

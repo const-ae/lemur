@@ -30,11 +30,10 @@ Imports:
     matrixStats,
     collections,
     Rcpp,
-    pracma,
+    harmony,
     limma
 Suggests: 
     testthat (>= 3.0.0),
-    MASS,
     harmony,
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)

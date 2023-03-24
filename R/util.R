@@ -308,3 +308,24 @@ is_contrast_estimable <- function(contrast, design_matrix, tol = sqrt(.Machine$d
   }
   abs(sum(c(contrast) %*% ns)) < tol
 }
+
+#' Moore-Penrose pseudoinverse calculated via SVD
+#'
+#' @param X a matrix X
+#'
+#' @keywords internal
+pseudoinverse <- function(X){
+  # Moore-Penrose inverse via SVD (https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse#Singular_value_decomposition_(SVD))
+  # See also MASS::ginv or pracma::pinv
+  tol <- sqrt(.Machine$double.eps)
+  svd <- svd(X)
+  not_null <- svd$d > max(tol * svd$d[1L], 0)
+  if(all(not_null)){
+    with(svd, v %*% (1/d * t(u)))
+  }else if(all(! not_null)){
+    matrix(0, nrow = ncol(X), ncol = nrow(X))
+  }else{
+    with(svd, v[,not_null,drop=FALSE] %*% (1/d[not_null] * t(u[,not_null,drop=FALSE])))
+  }
+}
+

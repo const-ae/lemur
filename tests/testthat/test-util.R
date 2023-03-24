@@ -72,16 +72,16 @@ test_that("which_extreme works", {
 })
 
 
-test_that("nullspace works", {
-  mat <- randn(30, 3)
-  # n1 <- lmerTest:::nullspace(mat, type = "left")
-  n2 <- nullspace(mat)
-  n3 <- MASS::Null(mat)
-  n4 <- pracma::nullspace(t(mat))
-  # expect_equal(grassmann_angle_from_points(n1, n2), 0)
-  expect_equal(grassmann_angle_from_points(n3, n2), 0)
-  expect_equal(grassmann_angle_from_points(n4, n2), 0)
-})
+# test_that("nullspace works", {
+#   mat <- randn(30, 3)
+#   # n1 <- lmerTest:::nullspace(mat, type = "left")
+#   n2 <- nullspace(mat)
+#   n3 <- MASS::Null(mat)
+#   n4 <- pracma::nullspace(t(mat))
+#   # expect_equal(grassmann_angle_from_points(n1, n2), 0)
+#   expect_equal(grassmann_angle_from_points(n3, n2), 0)
+#   expect_equal(grassmann_angle_from_points(n4, n2), 0)
+# })
 
 
 test_that("estimability test works", {
@@ -102,6 +102,25 @@ test_that("estimability test works", {
   expect_false(is_contrast_estimable(c(0, 2, -1, 0, 0), mm[dat$group != "a",]))
 })
 
+
+test_that("pseudoinverse works", {
+  # Works well for full rank matrices
+  mat <- randn(20, 3)
+  pmat <- pseudoinverse(mat)
+  expect_equal(mat %*% pmat %*% mat, mat)
+  expect_equal(pmat %*% mat %*% pmat, pmat)
+  expect_equal(pmat, solve(t(mat) %*% mat) %*% t(mat))
+
+
+  # Works well for non-full rank matrices
+  mat <- randn(20, 2)
+  mat <- cbind(mat, mat[,2])
+  pmat <- pseudoinverse(mat)
+  expect_equal(mat %*% pmat %*% mat, mat)
+  expect_equal(pmat %*% mat %*% pmat, pmat)
+  # expect_equal(pmat, solve(t(mat) %*% mat) %*% t(mat))
+
+})
 
 
 

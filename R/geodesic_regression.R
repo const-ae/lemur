@@ -431,9 +431,12 @@ procrustes_spd <- function(data, obs_embedding, maxiter = 1000, tolerance = 1e-8
 }
 
 init_procrustes_spd <- function(data, obs_embedding){
+  # Function adapted from https://www.dropbox.com/s/sfuidl2w2mhocd4/ProcrustesPSD-v1.0.zip?dl=0&file_subpath=%2Finit_procrustes.m
   n <- nrow(obs_embedding)
   # Init A (three different options)
-  A1 <- project_spd(t(pracma::mldivide(t(obs_embedding), t(data))))
+  # A1 <- project_spd(t(pracma::mldivide(t(obs_embedding), t(data))))
+  A1 <- data %*% t(obs_embedding) %*% pseudoinverse(obs_embedding %*% t(obs_embedding))
+  A1 <- project_spd(A1)
   A2 <- matrix(0, nrow = n, ncol = n)
   for(i in seq_len(n)){
     A2[i,i] <- max(0, sum(obs_embedding[i,] * data[i,]) / (sum(obs_embedding[i,]^2) + 1e-6))
