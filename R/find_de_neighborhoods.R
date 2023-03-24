@@ -32,6 +32,10 @@ glmGamPoi::vars
 #'   `contrast` argument that was used for `test_de` and is stored in `fit$contrast`.
 #' @param n_random_directions the number of random projections to use if `directions = "random"`.
 #'   Default: `50`.
+#' @param count_test_method if you provide a count matrix to the `independent_matrix` argument,
+#'   you can either test for differential expression on the pseudobulk using
+#'   [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/) or
+#'   [edgeR](https://bioconductor.org/packages/edgeR/).
 #' @param design the design to use for the fit. Default: `fit$design`
 #' @param include_complement a boolean to specify if the complement of the identified per gene
 #'   neighborhood is also returned. It will be marked in the output by `selection = FALSE`.
@@ -54,6 +58,7 @@ find_de_neighborhoods <- function(fit,
                                   de_mat = assay(fit, "DE"),
                                   contrast = fit$contrast,
                                   n_random_directions = 50,
+                                  count_test_method = c("glmGamPoi", "edgeR"),
                                   design = fit$design,
                                   include_complement = TRUE,
                                   verbose = TRUE, ...){
@@ -112,7 +117,7 @@ find_de_neighborhoods <- function(fit,
     })
     result <- if(independent_matrix_type == "counts"){
       neighborhood_count_test(de_regions, counts = independent_matrix, group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = fit$colData, verbose = verbose)
+                              design = design, col_data = fit$colData, method = count_test_method, verbose = verbose)
     }else{
       neighborhood_normal_test(de_regions, values = independent_matrix, group_by = group_by, contrast = {{contrast}},
                                design = design, col_data = fit$colData, shrink = TRUE,  verbose = verbose)
@@ -257,7 +262,8 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
 
 
-neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data, verbose = TRUE){
+neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data, method = c("glmGamPoi", "edgeR"), verbose = TRUE){
+  method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))
   for(idx in seq_len(nrow(de_regions))){
     mask[idx,de_regions$indices[[idx]]] <- 1
@@ -284,11 +290,36 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
                                        aggregation_functions = list("masked_counts" = "rowSums2",
                                                                     "masked_size_factors" = "rowSums2"),
                                        verbose = verbose)
-  if(verbose) message("Fit glmGamPoi model")
-  glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = verbose,
-                                   offset = log(assay(region_psce, "masked_size_factors") + 1e-10),
-                                   size_factors = FALSE, overdispersion = TRUE)
-  de_res <- glmGamPoi::test_de(glm_regions, contrast = {{contrast}})
+  if(method == "glmGamPoi"){
+    if(verbose) message("Fit glmGamPoi model on pseudobulk data")
+    glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = verbose,
+                                     offset = log(assay(region_psce, "masked_size_factors") + 1e-10),
+                                     size_factors = FALSE, overdispersion = TRUE)
+    de_res <- glmGamPoi::test_de(glm_regions, contrast = {{contrast}})
+  }else if(method == "edgeR"){
+    if(! requireNamespace("edgeR", quietly = TRUE)){
+      stop("to use 'find_de_neighborhoods' in combination with 'edgeR', you need to separately install edgeR.\n",
+           "BiocManager::install('edgeR')")
+    }
+    if(verbose) message("Fit edgeR model on pseudobulk data")
+
+    if(is.matrix(design)){
+      design_matrix <- design
+    }else{
+      design_matrix <- model.matrix(design, data = SummarizedExperiment::colData(region_psce))
+    }
+    cntrst <- parse_contrast({{contrast}}, design)
+    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
+
+    edger_y <- edgeR::DGEList(counts = assay(region_psce, "masked_counts"))
+    edger_y <- edgeR::scaleOffset(edger_y, offset = log(assay(region_psce, "masked_size_factors") + 1e-10))
+    edger_y <- edgeR::estimateDisp(edger_y, design_matrix)
+    edger_fit <- edgeR::glmQLFit(edger_y, design_matrix, abundance.trend = TRUE, robust = TRUE)
+    edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
+    edger_res <- edgeR::topTags(edger_fit, n = nrow(edger_y), sort.by = "none")$table
+    de_res <- data.frame(name = rownames(edger_res), pval = edger_res$PValue, adj_pval = edger_res$FDR,
+                         f_statistic = edger_res$F, df1 = edger_fit$df.test, df2 = edger_fit$df.total, lfc = edger_res$logFC)
+  }
   cbind(de_regions, de_res[,-1])
 }
 

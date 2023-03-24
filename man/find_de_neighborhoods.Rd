@@ -14,6 +14,7 @@ find_de_neighborhoods(
   de_mat = assay(fit, "DE"),
   contrast = fit$contrast,
   n_random_directions = 50,
+  count_test_method = c("glmGamPoi", "edgeR"),
   design = fit$design,
   include_complement = TRUE,
   verbose = TRUE,
@@ -56,6 +57,11 @@ to an assay called \code{"DE"} that is produced by \code{lemur::test_de()}.}
 
 \item{n_random_directions}{the number of random projections to use if \code{directions = "random"}.
 Default: \code{50}.}
+
+\item{count_test_method}{if you provide a count matrix to the \code{independent_matrix} argument,
+you can either test for differential expression on the pseudobulk using
+\href{https://bioconductor.org/packages/glmGamPoi/}{glmGamPoi} or
+\href{https://bioconductor.org/packages/edgeR/}{edgeR}.}
 
 \item{design}{the design to use for the fit. Default: \code{fit$design}}
 

@@ -78,6 +78,34 @@ test_that("find_de_neighborhoods_with_z_score works", {
   expect_equal(nei2$sel_statistic, manual_stat)
 })
 
+
+test_that("neighborhood_count_test works", {
+  set.seed(1)
+  n_obs <- 100
+  n_genes <- 500
+  y <- matrix(rpois(n_genes * n_obs, lambda = 1.4), nrow = n_genes, ncol = n_obs)
+  dat <- data.frame(id = seq_len(n_obs),
+                    patient = sample(paste0("pat_", seq_len(6)), size = n_obs, replace = TRUE))
+  dat$condition <- ifelse(dat$patient <= "pat_3", "ctrl", "trt")
+  de_regions <- data.frame(name = paste0("feature_", n_genes),
+                           indices = I(lapply(seq_len(n_genes), \(idx){
+                             sample.int(n_obs, 8)
+                           })))
+
+  form <- handle_design_parameter(~ condition, data = y, col_data = dat)
+  test_res1 <- neighborhood_count_test(de_regions, group_by = vars(patient, condition),
+                                      contrast = cond(condition = "ctrl") - cond(condition = "trt"), counts = y,
+                                      design = form$design_formula, col_data = dat, method = "glmGamPoi", verbose = FALSE)
+  test_res2 <- neighborhood_count_test(de_regions, group_by = vars(patient, condition),
+                                      contrast = cond(condition = "ctrl") - cond(condition = "trt"), counts = y,
+                                      design = form$design_formula, col_data = dat, method = "edgeR", verbose = FALSE)
+  # head(test_res1)
+  # head(test_res2)
+  # plot(test_res1$lfc, test_res2$lfc, ylim = c(-5, 5)); abline(0,1)
+  # plot(test_res1$pval, test_res2$pval); abline(0,1)
+  expect_equal(colnames(test_res1), colnames(test_res2))
+})
+
 test_that("neighborhood_normal_test works", {
   set.seed(1)
   n_obs <- 100
