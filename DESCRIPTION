@@ -33,7 +33,6 @@ Imports:
     limma
 Suggests: 
     testthat (>= 3.0.0),
-    harmony,
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
