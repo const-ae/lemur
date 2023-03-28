@@ -13,9 +13,6 @@
 #'   Needs to be smaller than `n_ambient`.
 #' @param alignment optional specification how or if points should be aligned. This
 #'   can also be done in a separate step by calling [`align_harmony`] or [`align_by_grouping`].
-#' @param base_point a string specifying how to find the base point for the geodesic
-#'   regression. Alternatively, an orthogonal matrix with `n_ambient` \eqn{\times} `n_embedding`
-#'   dimension.
 #' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
 #'   which assay should be used.
 #' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
@@ -38,7 +35,6 @@
 lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_ambient = Inf, n_embedding = 15,
                   alignment = FALSE,
-                  base_point = c("global_embedding", "mean"),
                   use_assay = "logcounts",
                   ...,
                   verbose = TRUE){
@@ -49,10 +45,8 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
   des <- handle_design_parameter(design, data, col_data)
 
 
-  res <- lemur_impl(data_mat, des$design_matrix,
-                                     n_ambient = n_ambient, n_embedding = n_embedding,
-                                     alignment = alignment, base_point = base_point,
-                                     verbose = verbose, ...)
+  res <- lemur_impl(data_mat, des$design_matrix, n_ambient = n_ambient, n_embedding = n_embedding,
+                    alignment = alignment, verbose = verbose, ...)
   alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
     des$design_formula
   }else{
@@ -76,19 +70,19 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 
 lemur_impl <- function(Y, design_matrix,
-                                        n_ambient = Inf, n_embedding = 15,
-                                        alignment = FALSE,
-                                        base_point = c("global_embedding", "mean"),
-                                        amb_pca = NULL,
-                                        linear_coefficients = NULL,
-                                        coefficients = NULL,
-                                        embedding = NULL,
-                                        alignment_rotation = NULL,
-                                        alignment_stretching = NULL,
-                                        alignment_design_matrix = NULL,
-                                        n_iter = 10, tol = 1e-8,
-                                        reshuffling_fraction = 0,
-                                        verbose = TRUE){
+                       n_ambient = Inf, n_embedding = 15,
+                       alignment = FALSE,
+                       base_point = c("global_embedding", "mean"),
+                       amb_pca = NULL,
+                       linear_coefficients = NULL,
+                       coefficients = NULL,
+                       embedding = NULL,
+                       alignment_rotation = NULL,
+                       alignment_stretching = NULL,
+                       alignment_design_matrix = NULL,
+                       n_iter = 10, tol = 1e-8,
+                       reshuffling_fraction = 0,
+                       verbose = TRUE){
   alignment_rot_fixed_but_embedding_fitted <- ! is.null(alignment_rotation) && is.null(embedding)
   alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(embedding)
 
