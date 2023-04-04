@@ -35,6 +35,7 @@
 lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_ambient = Inf, n_embedding = 15,
                   alignment = FALSE,
+                  linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                   use_assay = "logcounts",
                   ...,
                   verbose = TRUE){
@@ -46,7 +47,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 
   res <- lemur_impl(data_mat, des$design_matrix, n_ambient = n_ambient, n_embedding = n_embedding,
-                    alignment = alignment, verbose = verbose, ...)
+                    alignment = alignment, linear_coefficient_estimator = linear_coefficient_estimator, verbose = verbose, ...)
   alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
     des$design_formula
   }else{
@@ -74,6 +75,7 @@ lemur_impl <- function(Y, design_matrix,
                        alignment = FALSE,
                        base_point = c("global_embedding", "mean"),
                        amb_pca = NULL,
+                       linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                        linear_coefficients = NULL,
                        coefficients = NULL,
                        embedding = NULL,
@@ -149,13 +151,13 @@ lemur_impl <- function(Y, design_matrix,
     if(length(linear_coefficients) == 1){
       linear_coefficients <- matrix(linear_coefficients, nrow = n_ambient_eff, ncol = ncol(design_matrix))
     }
-    Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
+    stopifnot(nrow(linear_coefficients) == n_ambient_eff & ncol(linear_coefficients))
+
   }else{
-    if(verbose) message("Regress out global effects")
-    linear_fit <- lm.fit(design_matrix, t(amb_pca$embedding))
-    linear_coefficients <- t(linear_fit$coefficients)
-    Y_clean <- t(linear_fit$residuals)
+    if(verbose) message("Regress out global effects using ", linear_coefficient_estimator, " method.")
+    linear_coefficients <- estimate_linear_coefficient(Y = amb_pca$embedding, design_matrix = design_matrix, method = linear_coefficient_estimator)
   }
+  Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
     base_point <- find_base_point(Y_clean, base_point, n_embedding = n_embedding)
@@ -164,6 +166,13 @@ lemur_impl <- function(Y, design_matrix,
   last_round_error <- sum(amb_pca$embedding^2)
   if(verbose) message("Fit differential embedding model")
   if(verbose) message("-Iteration: ", 0, "\terror: ", sprintf("%.3g", last_round_error))
+  if(! diffemb_coef_fixed){
+    coefficients <- array(0, dim = c(n_ambient_eff, n_embedding, ncol(design_matrix)))
+  }
+  if(! embedding_fixed){
+    embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
+                                         coefficients = coefficients, base_point = base_point)
+  }
   for(iter in seq_len(n_iter)){
     if(! diffemb_coef_fixed){
       if(verbose) message("---Fit Grassmann linear model")
@@ -177,14 +186,8 @@ lemur_impl <- function(Y, design_matrix,
       if(verbose) message("---Update linear regression")
       Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix,
                                                                      coefficients = coefficients, base_point = base_point)
-      if(any(is.na(Y_clean))){
-        linear_fit <- list(coefficients = matrix(NA, nrow = ncol(design_matrix), ncol = nrow(Y_clean)),
-                           residuals = NA)
-      }else{
-        linear_fit <- lm.fit(design_matrix, t(Y_clean))
-      }
-      linear_coefficients <- t(linear_fit$coefficients)
-      residuals <- linear_fit$residuals
+      linear_coefficients <- estimate_linear_coefficient(Y = Y_clean, design_matrix = design_matrix, method = linear_coefficient_estimator)
+      residuals <- Y_clean - linear_coefficients %*% t(design_matrix)
     }else{
       residuals <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
     }
