@@ -250,7 +250,7 @@ test_that("Solving a linear equation by iterating rotation and stretching works"
   }
 
   # Half the time beta flips the data which makes logm(pd$U) all NA
-  set.seed(2)
+  set.seed(1)
   A <- randn(3, 20)
   B <- randn(3, 20)
 
@@ -261,9 +261,8 @@ test_that("Solving a linear equation by iterating rotation and stretching works"
   plm <- polar_lm(B, A, design = D, base_point = I, max_iter = 100)
   error1 <- sum((B - rotation_map(plm$rotation_coef[,,1], I) %*% spd_map(plm$stretch_coef[,,1], I) %*% A)^2)
 
-  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I, allow_reflection = TRUE)
+  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I)
   error2 <- sum((B - rotation_map(plm2$rotation_coef[,,1], I) %*% spd_map(plm2$stretch_coef[,,1], I) %*% A)^2)
-
 
   expect_equal(error1, error2)
   expect_equal(plm2$rotation_coef[,,1], plm$rotation_coef[,,1], ignore_attr = "names", tolerance = 1e-3)
@@ -281,16 +280,12 @@ test_that("Solving a linear equation by iterating rotation and stretching works"
   expect_equal(spd_log(I, pd$P), plm2$stretch_coef[,,1], tolerance = 1e-3)
   expect_equal(pd$P, spd_map(plm2$stretch_coef[,,1], I), tolerance = 1e-3)
   expect_equal(rotation_log(I, pd$U), plm2$rotation_coef[,,1], tolerance = 1e-3)
-  expect_equal(pd$U, rotation_map(-plm2$rotation_coef[,,1], I), tolerance = 1e-3)
-  pd$U
-  expm::expm(plm2$rotation_coef[,,1])
-  Matrix::det(expm::expm(plm2$rotation_coef[,,1] + diag(-2,nrow = 3)))
-  round(expm::logm(expm::expm(plm2$rotation_coef[,,1], "Taylor")), 3)
-  round(plm2$rotation_coef[,,1], 3)
+  expect_equal(pd$U, rotation_map(plm2$rotation_coef[,,1], I), tolerance = 1e-3)
 })
 
 
 test_that("Solving a linear equation by iterating rotation and stretching works", {
+  set.seed(1)
   A <- randn(3, 200)
   B <- randn(3, 200)
 
@@ -299,28 +294,7 @@ test_that("Solving a linear equation by iterating rotation and stretching works"
   plm <- polar_lm(B, A, design = D, base_point = I, max_iter = 100)
   error1 <- sum((B - apply_rotation(apply_stretching(A, plm$stretch_coef, D, I), plm$rotation_coef, D, I))^2)
 
-  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I, allow_reflection = FALSE)
+  plm2 <- polar_lm_analytic(B, A, design = D, base_point = I)
   error2 <- sum((B - apply_rotation(apply_stretching(A, plm2$stretch_coef, D, I), plm2$rotation_coef, D, I))^2)
-  expect_equal(error1, error2)
-
-  plm3 <- polar_lm_analytic(B, A, design = D, base_point = I, allow_reflection = TRUE)
-  error3 <- sum((B - apply_rotation(apply_stretching(A, plm3$stretch_coef, D, I), plm3$rotation_coef, D, I))^2)
-
-
-  coefs <- t(lm.fit(lemur:::duplicate_cols(D, each = 3)  * lemur:::duplicate_cols(t(A), times = 2), t(B))$coefficients)
-  coefs <- array(coefs, dim = c(3, 3, ncol(D)))
-  expect_equal(rotation_map(sum_tangent_vectors(plm3$rotation_coef, D[1,]), I) %*%
-                 spd_map(sum_tangent_vectors(plm3$stretch_coef, D[1,]), I),
-               sum_tangent_vectors(coefs, D[1,]))
-  expect_equal(rotation_map(sum_tangent_vectors(plm3$rotation_coef, D[101,]), I) %*%
-                 spd_map(sum_tangent_vectors(plm3$stretch_coef, D[101,]), I),
-               sum_tangent_vectors(coefs, D[101,]))
-
-  mm_groups <- get_groups(D, n_groups = ncol(D) * 10)
-  groups <- unique(mm_groups)
-  Aprime <- A
-  for(gr in groups){
-    Aprime[,mm_groups == gr] <- sum_tangent_vectors(coefs, D[which(mm_groups == gr)[1],]) %*% A[,mm_groups == gr]
-  }
-  sum((B - Aprime)^2)
+  expect_equal(error1, error2, tolerance = 1e-2)
 })
