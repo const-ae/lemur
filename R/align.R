@@ -41,7 +41,7 @@ align_neighbors <- function(fit, rotating = TRUE, stretching = TRUE,
 #' @export
 align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
                           design = fit$alignment_design_matrix,
-                          ridge_penalty = 0, min_cluster_membership = 0.1, max_iter = 10, verbose = TRUE){
+                          ridge_penalty = 0, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
@@ -52,7 +52,8 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
   harm_obj <- harmony_init(fit$embedding, design_matrix, ..., verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
-    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > min_cluster_membership))
+    threshold <- min(min_cluster_membership, max(harm_obj$R) * 0.5)
+    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > threshold))
     weights <- lapply(seq_len(harm_obj$K), \(row_idx) harm_obj$R[row_idx,matches[[row_idx]]])
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
