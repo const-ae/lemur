@@ -59,7 +59,6 @@ test_de <- function(fit,
 #'
 #' @return a data.frame
 #'
-#' @export
 test_global <- function(fit,
                         contrast,
                         reduced_design = NULL,
