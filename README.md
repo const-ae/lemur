@@ -132,8 +132,7 @@ fit <- align_harmony(fit, stretching = FALSE)
 fit
 #> class: lemur_fit 
 #> dim: 300 5000 
-#> metadata(12): n_ambient n_embedding ... alignment_design
-#>   alignment_design_matrix
+#> metadata(10): n_embedding design ... alignment_design_matrix row_mask
 #> assays(1): expr
 #> rownames(300): ENSG00000210082 ENSG00000118785 ... ENSG00000167468
 #>   ENSG00000139289
@@ -210,16 +209,16 @@ as_tibble(neighborhoods) %>%
 #> # A tibble: 300 × 16
 #>    name      selec…¹ indices n_cells sel_s…²    pval adj_p…³ f_sta…⁴   df1   df2
 #>    <chr>     <lgl>   <I<lis>   <int>   <dbl>   <dbl>   <dbl>   <dbl> <int> <dbl>
-#>  1 ENSG0000… TRUE    <int>      3781    90.9 9.12e-6 0.00274   140.      1  6.77
-#>  2 ENSG0000… TRUE    <int>      3976   234.  1.39e-4 0.0180     59.1     1  6.77
-#>  3 ENSG0000… TRUE    <int>      3583   -96.5 2.01e-4 0.0180     52.4     1  6.77
-#>  4 ENSG0000… TRUE    <int>      2268   -42.6 2.63e-4 0.0180     48.0     1  6.77
-#>  5 ENSG0000… TRUE    <int>      3851   104.  3.50e-4 0.0180     43.6     1  6.77
-#>  6 ENSG0000… TRUE    <int>      2890  -189.  4.38e-4 0.0180     40.4     1  6.77
-#>  7 ENSG0000… TRUE    <int>      3151   -70.6 4.46e-4 0.0180     40.2     1  6.77
-#>  8 ENSG0000… TRUE    <int>      3971   104.  5.67e-4 0.0180     37.0     1  6.77
-#>  9 ENSG0000… TRUE    <int>      4041  -163.  6.15e-4 0.0180     36.0     1  6.77
-#> 10 ENSG0000… TRUE    <int>       535    42.7 6.30e-4 0.0180     35.7     1  6.77
+#>  1 ENSG0000… TRUE    <int>      4769    90.6 1.16e-5 0.00348   124.      1  6.91
+#>  2 ENSG0000… TRUE    <int>      3887   202.  7.06e-5 0.0106     70.8     1  6.91
+#>  3 ENSG0000… TRUE    <int>      3918   -95.5 2.19e-4 0.0189     49.3     1  6.91
+#>  4 ENSG0000… TRUE    <int>      3560   136.  3.16e-4 0.0189     43.8     1  6.91
+#>  5 ENSG0000… TRUE    <int>      1633    69.2 3.90e-4 0.0189     40.8     1  6.91
+#>  6 ENSG0000… TRUE    <int>      3888  -150.  3.94e-4 0.0189     40.7     1  6.91
+#>  7 ENSG0000… TRUE    <int>      2900  -216.  4.42e-4 0.0189     39.2     1  6.91
+#>  8 ENSG0000… TRUE    <int>      4775   -66.3 5.37e-4 0.0201     36.7     1  6.91
+#>  9 ENSG0000… TRUE    <int>      4240    97.0 7.17e-4 0.0220     33.3     1  6.91
+#> 10 ENSG0000… TRUE    <int>      2578    53.7 7.34e-4 0.0220     33.0     1  6.91
 #> # … with 290 more rows, 6 more variables: lfc <dbl>, symbol <chr>,
 #> #   chromosome <fct>, gene_length <int>, strand. <fct>, source <fct>, and
 #> #   abbreviated variable names ¹​selection, ²​sel_statistic, ³​adj_pval,
@@ -320,7 +319,7 @@ generic solution for this problem, but until this is implemented, you
 can manually fix the regression coefficients:
 
 ``` r
-fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficients = 0)
+fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
 ```
 
 > The conditions still separate if I plot the data using UMAP / tSNE.
@@ -362,7 +361,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
 #> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
 #> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.10               
+#> [21] lemur_0.0.12               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0

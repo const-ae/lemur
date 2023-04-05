@@ -209,7 +209,7 @@ Yes. You can call lemur with any variance stabilized count matrix. Based on a [p
 This is a known issue and can be caused if the data has large compositional shifts (for example, if one cell type disappears). The problem is that the initial linear regression step, which centers the conditions relative to each other, overcorrects and introduces a consistent shift in the latent space. I am currently trying to develop a generic solution for this problem, but until this is implemented, you can manually fix the regression coefficients:
 
 ```{r fix_linear_coef, message=FALSE, warning=FALSE}
-fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficients = 0)
+fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
 ```
 
 > The conditions still separate if I plot the data using UMAP / tSNE. Even after calling `align_harmony` / `align_neighbors`. What should I do?
