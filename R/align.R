@@ -43,6 +43,10 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
                           design = fit$alignment_design_matrix,
                           ridge_penalty = 0, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
+  if(is.null(attr(design, "ignore_degeneracy"))){
+    # It doesn't matter for harmony if the design is degenerate
+    attr(design, "ignore_degeneracy") <- TRUE
+  }
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
   if(! requireNamespace("harmony", quietly = TRUE)){

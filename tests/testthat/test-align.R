@@ -41,6 +41,18 @@ test_that("alignment with Harmony work", {
 })
 
 
+test_that("harmony is fine with degenerate designs", {
+  al_design <- cbind(fit$design_matrix, rep(rnorm(2), each = 250), 0, 0, 1)
+  expect_silent(
+    fit <- align_harmony(fit, design = al_design, rotating = TRUE, stretching = TRUE, max_iter = 1, verbose = FALSE)
+  )
+  attr(al_design, "ignore_degeneracy") <- FALSE
+  expect_error(
+    fit <- align_harmony(fit, design = al_design, rotating = TRUE, stretching = TRUE, max_iter = 1, verbose = FALSE)
+  )
+
+})
+
 test_that("alignment with mututal nearest neighbors work", {
   fit_rot_stretch <- align_neighbors(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
 
