@@ -1,7 +1,7 @@
 set.seed(1)
 dat <- make_synthetic_data(n_centers = 4, n_genes = 50)
 dat$patient <- sample(paste0("p", 1:3), 500, replace = TRUE)
-fit <- lemur(dat, ~ condition + patient, n_embedding = 5, n_ambient = Inf, verbose = FALSE)
+fit <- lemur(dat, ~ condition + patient, n_embedding = 5, verbose = FALSE)
 
 
 test_that("alignment with Harmony work", {

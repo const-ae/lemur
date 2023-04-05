@@ -7,17 +7,18 @@
 #' @param design a formula referring to global objects or column in the `colData` of `data`
 #'   and `col_data` argument
 #' @param col_data an optional data frame with `ncol(data)` rows.
-#' @param n_ambient the dimension of the ambient PCA. This should be large enough
-#'   to capture all relevant variation in the data
 #' @param n_embedding the dimension of the $k$-plane that is rotated through space.
-#'   Needs to be smaller than `n_ambient`.
 #' @param alignment optional specification how or if points should be aligned. This
 #'   can also be done in a separate step by calling [`align_harmony`] or [`align_by_grouping`].
+#' @param linear_coefficient_estimator specify which estimator is used to center the conditions.
+#'   `"linear"` runs simple regression it works well in many circumstances but can produce poor
+#'   results if the composition of the cell types changes between conditions (e.g., one cell type
+#'   disappears). `"cluster_median"` works similar as `"linear"` but is robust against compositional
+#'   changes. `"zero"` skips the centering step which is also robust against compositional changes.
+#'   However, expression changes affecting all cells equally are not regressed out.
 #' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
 #'   which assay should be used.
 #' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
-#'   For example, if you have pre-calculated the ambient PCA, you can provide it as a list with
-#'   the `coordsystem`, `embedding` and `offset` fields, to speed-up the fit.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
 #' @return an object of class `lemur_fit` which extends [`SingleCellExperiment`]. Accordingly,
@@ -33,7 +34,7 @@
 #'
 #' @export
 lemur <- function(data, design = ~ 1, col_data = NULL,
-                  n_ambient = Inf, n_embedding = 15,
+                  n_embedding = 15,
                   alignment = FALSE,
                   linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                   use_assay = "logcounts",
@@ -46,7 +47,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
   des <- handle_design_parameter(design, data, col_data)
 
 
-  res <- lemur_impl(data_mat, des$design_matrix, n_ambient = n_ambient, n_embedding = n_embedding,
+  res <- lemur_impl(data_mat, des$design_matrix, n_embedding = n_embedding,
                     alignment = alignment, linear_coefficient_estimator = linear_coefficient_estimator, verbose = verbose, ...)
   alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
     des$design_formula
@@ -55,8 +56,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
   }
 
   lemur_fit(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
-             n_ambient = res$n_ambient, n_embedding = res$n_embedding,
-             ambient_coordsystem = res$ambient_coordsystem, ambient_offset = res$ambient_offset,
+             n_embedding = res$n_embedding,
              design = des$design_formula, design_matrix = res$design_matrix,
              linear_coefficients = res$linear_coefficients,
              base_point = res$base_point,
@@ -71,10 +71,9 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 
 lemur_impl <- function(Y, design_matrix,
-                       n_ambient = Inf, n_embedding = 15,
+                       n_embedding = 15,
                        alignment = FALSE,
                        base_point = c("global_embedding", "mean"),
-                       amb_pca = NULL,
                        linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                        linear_coefficients = NULL,
                        coefficients = NULL,
@@ -89,8 +88,9 @@ lemur_impl <- function(Y, design_matrix,
   alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(embedding)
 
   # Set reduced dimensions
-  stopifnot(n_ambient >= 0 && n_embedding >= 0)
-  n_embedding <- min(n_embedding, nrow(Y), n_ambient)
+  stopifnot(n_embedding >= 0)
+  n_ambient_eff <- nrow(Y)
+  n_embedding <- min(n_embedding, nrow(Y), ncol(Y))
   linear_coef_fixed <-  ! is.null(linear_coefficients)
   diffemb_coef_fixed <- ! is.null(coefficients)
   embedding_fixed <- ! is.null(embedding)
@@ -100,39 +100,6 @@ lemur_impl <- function(Y, design_matrix,
     alignment_design_matrix <- design_matrix
   }
 
-
-  # Reduce to ambient space
-  if(is.null(amb_pca)){
-    if(n_ambient > nrow(Y)){
-      if(verbose) message("Skip ambient PCA step")
-      n_ambient <- Inf
-      offset <- MatrixGenerics::rowMeans2(Y)
-      amb_pca <- list(
-        coordsystem = Matrix::Diagonal(n = nrow(Y)),
-        embedding = Y - offset,
-        offset = offset
-      )
-    }else{
-      if(verbose) message("Fit ambient PCA")
-      n_ambient <- min(n_ambient, nrow(Y), ncol(Y))
-      amb_pca <- pca(Y, n_ambient)
-    }
-    n_ambient_eff <- min(nrow(Y), n_ambient)
-  }else{
-    # Check that amb_pca is correct
-    stopifnot(all(names(amb_pca) %in% c("coordsystem", "embedding", "offset")))
-    n_ambient_eff <- min(nrow(Y), n_ambient)
-    stopifnot(ncol(amb_pca$coordsystem) == n_ambient_eff)
-    stopifnot(nrow(amb_pca$embedding) == n_ambient_eff)
-    stopifnot(length(amb_pca$offset) == nrow(Y))
-    if(ncol(Y) > 0){
-      rand_sel <- sample(seq_len(ncol(Y)), min(ncol(Y), 100))
-      pred_emb <- t(amb_pca$coordsystem) %*% (Y[,rand_sel,drop=FALSE] - amb_pca$offset)
-      if(! all(abs(pred_emb - amb_pca$embedding[,rand_sel,drop=FALSE]) < 1e-8)){
-        stop("The provided ambient PCA ('amb_pca') does not match the observed data. Does 'use_assay' match the assay that was used to calculate the PCA?")
-      }
-    }
-  }
 
   if(reshuffling_fraction != 0){
     stopifnot(reshuffling_fraction > 0 && reshuffling_fraction <= 1)
@@ -155,15 +122,15 @@ lemur_impl <- function(Y, design_matrix,
 
   }else{
     if(verbose) message("Regress out global effects using ", linear_coefficient_estimator, " method.")
-    linear_coefficients <- estimate_linear_coefficient(Y = amb_pca$embedding, design_matrix = design_matrix, method = linear_coefficient_estimator)
+    linear_coefficients <- estimate_linear_coefficient(Y = Y, design_matrix = design_matrix, method = linear_coefficient_estimator)
   }
-  Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
+  Y_clean <- Y - linear_coefficients %*% t(design_matrix)
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
     base_point <- find_base_point(Y_clean, base_point, n_embedding = n_embedding)
   }
 
-  last_round_error <- sum(amb_pca$embedding^2)
+  last_round_error <- sum(Y^2)
   if(verbose) message("Fit differential embedding model")
   if(verbose) message("-Iteration: ", 0, "\terror: ", sprintf("%.3g", last_round_error))
   if(! diffemb_coef_fixed){
@@ -184,14 +151,14 @@ lemur_impl <- function(Y, design_matrix,
     }
     if(! linear_coef_fixed){
       if(verbose) message("---Update linear regression")
-      Y_clean <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix,
+      Y_clean <- Y - project_diffemb_into_data_space(embedding, design = design_matrix,
                                                                      coefficients = coefficients, base_point = base_point)
       linear_coefficients <- estimate_linear_coefficient(Y = Y_clean, design_matrix = design_matrix, method = linear_coefficient_estimator)
       residuals <- Y_clean - linear_coefficients %*% t(design_matrix)
     }else{
-      residuals <- amb_pca$embedding - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
+      residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
     }
-    Y_clean <- amb_pca$embedding - linear_coefficients %*% t(design_matrix)
+    Y_clean <- Y - linear_coefficients %*% t(design_matrix)
     error <- sum(residuals^2)
     if(verbose) message("-Iteration: ", iter, "\terror: ", sprintf("%.3g", error))
     if(is.na(error) || abs(last_round_error - error) / (error + 0.5) < tol){
@@ -224,8 +191,7 @@ lemur_impl <- function(Y, design_matrix,
     embedding <- t(svd_emb$v) * svd_emb$d
   }
 
-  list(n_ambient = n_ambient, n_embedding = n_embedding,
-       ambient_coordsystem = amb_pca$coordsystem, ambient_offset = amb_pca$offset,
+  list(n_embedding = n_embedding,
        design_matrix = design_matrix, data = Y,
        linear_coefficients = linear_coefficients,
        base_point = base_point,
@@ -239,9 +205,9 @@ lemur_impl <- function(Y, design_matrix,
 
 
 find_base_point <- function(Y_clean, base_point, n_embedding){
-  n_ambient <- nrow(Y_clean)
+  n_genes <- nrow(Y_clean)
   if(is.matrix(base_point)){
-    stopifnot(nrow(base_point) == n_ambient)
+    stopifnot(nrow(base_point) == n_genes)
     stopifnot(ncol(base_point) == n_embedding)
 
     # Check if it is orthogonal
@@ -262,8 +228,8 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
 
 
 project_diffemb_into_data_space <- function(embedding, design, coefficients, base_point){
-  n_amb <- nrow(base_point)
-  res <- matrix(NA, nrow = n_amb, ncol = ncol(embedding))
+  n_genes <- nrow(base_point)
+  res <- matrix(NA, nrow = n_genes, ncol = ncol(embedding))
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]

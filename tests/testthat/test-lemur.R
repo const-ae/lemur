@@ -2,18 +2,15 @@ test_that("making data works", {
 
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 40, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
   expect_equal(dim(fit), dim(dat))
-  expect_equal(fit$n_ambient, 40)
   expect_equal(fit$n_embedding, 5)
-  expect_equal(dim(fit$ambient_coordsystem), c(nrow(dat), 40))
   expect_equal(format(fit$design), "~condition")
-  expect_equal(dim(fit$base_point), c(40, 5))
-  expect_equal(dim(fit$coefficients), c(40, 5, 3))
+  expect_equal(dim(fit$base_point), c(50, 5))
+  expect_equal(dim(fit$coefficients), c(50, 5, 3))
   expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
-  expect_equal(dim(fit$linear_coefficients), c(40, 3))
+  expect_equal(dim(fit$linear_coefficients), c(50, 3))
   expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
   expect_equal(fit$alignment_stretching, array(0, dim = c(5, 5, 3)))
   expect_equal(format(fit$alignment_design), "~condition")
@@ -22,13 +19,10 @@ test_that("making data works", {
 
 test_that("the fit is valid", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 30, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
 
   expect_equal(dim(fit), dim(dat))
-  expect_equal(fit$n_ambient, 30)
   expect_equal(fit$n_embedding, 5)
-  expect_equal(dim(fit$ambient_coordsystem), c(nrow(dat), 30))
   expect_equal(format(fit$design), "~condition")
   expect_equal(dim(fit$base_point), c(30, 5))
   expect_equal(dim(fit$coefficients), c(30, 5, 3))
@@ -46,8 +40,7 @@ test_that("the fit is valid", {
 test_that("subsetting works", {
   set.seed(1)
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
-  fit <- lemur(dat, design = ~ condition,
-                                n_embedding = 5, n_ambient = 30, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
   fit2 <- fit[1:10, 101:120]
   expect_true(validObject(fit2))
 
@@ -59,13 +52,12 @@ test_that("subsetting works", {
   expect_true(validObject(fit3))
 
   expect_equal(dim(fit3), c(2, 20))
-  expect_equal(fit3$n_ambient, 30)
   expect_equal(fit3$n_embedding, 5)
-  expect_equal(dim(fit3$base_point), c(30, 5))
-  expect_equal(dim(fit3$coefficients), c(30, 5, 3))
+  expect_equal(dim(fit3$base_point), c(40, 5))
+  expect_equal(dim(fit3$coefficients), c(40, 5, 3))
   expect_equal(dim(fit3$embedding), c(5, 20))
   expect_equal(dim(fit3$design_matrix), c(20, 3))
-  expect_equal(dim(fit3$linear_coefficients), c(30, 3))
+  expect_equal(dim(fit3$linear_coefficients), c(40, 3))
   # expect_equal(length(fit3$alignment_method), 20)
   expect_equal(rownames(fit3), c("gene_1", "gene_3"))
   expect_equal(colnames(fit3), paste0("cell_", 101:120))
@@ -74,8 +66,7 @@ test_that("subsetting works", {
   expect_equal(nrow(fit4), 1)
 
   # No ambient PCA
-  fit5 <- lemur(dat[,1:20], design = ~ condition,
-                                 n_embedding = 2, n_ambient = 30, verbose = FALSE)
+  fit5 <- lemur(dat[,1:20], design = ~ condition, n_embedding = 2, verbose = FALSE)
   expect_true(validObject(fit5))
   fit6 <- fit5[1,]
   expect_true(validObject(fit6))
@@ -83,27 +74,26 @@ test_that("subsetting works", {
 
 
 test_that("predicting works", {
-  # Cpmpare with linear model fit
+  # Compare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
-  fit <- lemur(dat, design = ~ condition, n_ambient = 10, n_embedding = 0, verbose = FALSE)
-  fit_lm <- lm(t(assay(dat) - fit$ambient_offset) ~ condition, data = colData(dat))
-  expect_equal(fit$ambient_coordsystem %*% fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
-  expect_equal(predict(fit, with_embedding = FALSE),
-               t(predict(fit_lm)) +  fit$ambient_offset, ignore_attr = "dimnames")
+  fit <- lemur(dat, design = ~ condition, n_embedding = 0, verbose = FALSE)
+  fit_lm <- lm(t(assay(dat)) ~ condition, data = colData(dat))
+  expect_equal(fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
+  expect_equal(predict(fit, with_embedding = FALSE), t(predict(fit_lm)), ignore_attr = "dimnames")
   expect_equal(residuals(fit, with_embedding = FALSE), t(residuals(fit_lm)))
   expect_equal(predict(fit) + residuals(fit), assay(fit))
 
-
+  # Predict works with subsetting
+  pred_full <- predict(fit)
+  pred_red <- predict(fit[1:3,])
+  expect_equal(pred_red, pred_full[1:3,])
 
   # Alignment does not disturb prediction
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
   fit2 <- align_by_grouping(fit, grouping = sample(letters[1:3], ncol(fit), replace = TRUE), verbose = FALSE)
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
   red_fit <- fit[1:3, 1:5]
   expect_equal(dim(predict(red_fit)), c(3, 5))
-
-
 })
 
 
@@ -111,9 +101,9 @@ test_that("Adding predictors improves predictions", {
   dat <- make_synthetic_data(n_lat = 5)
   dat$random <- sample(c("a", "b"), size = ncol(dat), replace = TRUE)
 
-  fit1 <- lemur(dat, design = ~ condition, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
-  fit2 <- lemur(dat, design = ~ condition + random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
-  fit3 <- lemur(dat, design = ~ condition * random, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  fit1 <- lemur(dat, design = ~ condition, n_embedding = 2, verbose = FALSE)
+  fit2 <- lemur(dat, design = ~ condition + random, n_embedding = 2, verbose = FALSE)
+  fit3 <- lemur(dat, design = ~ condition * random, n_embedding = 2, verbose = FALSE)
 
   error1 <- mean((logcounts(dat) - predict(fit1))^2)
   error2 <- mean((logcounts(dat) - predict(fit2))^2)
@@ -127,59 +117,13 @@ test_that("Adding predictors improves predictions", {
 })
 
 
-
-
-
-test_that("providing a pre-calculated PCA works", {
-  dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
-  pca <- pca(assay(dat), n = 20)
-  fit <- lemur(dat, design = ~ condition, n_ambient = 20,
-                                n_embedding = 5, verbose = FALSE,
-                                amb_pca = pca)
-
-  expect_error(lemur(dat, design = ~ condition, n_ambient = 10,
-                                       n_embedding = 5, verbose = FALSE, amb_pca = pca))
-
-  assay(dat, "sin") <- sin(assay(dat, "logcounts"))
-  expect_error(lemur(dat, design = ~ condition, n_ambient = 20,
-                                      n_embedding = 5, verbose = FALSE,
-                                      use_assay = "sin", amb_pca = pca))
-
-
-})
-
-
-test_that("Skipping ambient PCA works", {
-  dat <- make_synthetic_data(n_genes = 30)
-  # Using n_ambient > nrow(dat)
-  fit <- lemur(dat, n_ambient = 50, n_embedding = 5, verbose = FALSE)
-  expect_s4_class(fit$ambient_coordsystem, "ddiMatrix")
-  expect_s4_class(fit$ambient_coordsystem[1:2,], "dgCMatrix")
-  expect_equal(as.matrix(fit$ambient_coordsystem), diag(nrow = 30))
-  expect_true(is.matrix(predict(fit)))
-
-  fit_alt <- lemur(dat, n_ambient = 30, n_embedding = 5, verbose = FALSE)
-  expect_equal(dim(fit), dim(fit_alt))
-  expect_equal(fit$n_ambient, Inf)
-  expect_equal(fit$n_embedding, fit_alt$n_embedding)
-  expect_equal(fit$linear_coefficients, fit_alt$linear_coefficients, ignore_attr = "dimnames")
-  expect_equal(fit$ambient_offset, fit_alt$ambient_offset)
-  expect_equal(fit$coefficients, fit_alt$coefficients)
-
-  # The latent things are equal up to the sign
-  expect_equal(abs(fit_alt$ambient_coordsystem %*% fit_alt$base_point), abs(fit$base_point))
-  expect_equal(abs(fit$embedding), abs(fit_alt$embedding))
-})
-
-
 test_that("n_embedding = 0 works", {
 
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
-  fit <- lemur(dat, design = ~ condition, n_ambient = 5,
-                                n_embedding = 0, verbose = FALSE)
-  zero_dim_mat <- matrix(nrow = 5, ncol = 0)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 0, verbose = FALSE)
+  zero_dim_mat <- matrix(nrow = 30, ncol = 0)
   expect_equal(fit$base_point, zero_dim_mat)
-  expect_equal(fit$coefficients, array(dim = c(5, 0, 3)), ignore_attr = "dimnames")
+  expect_equal(fit$coefficients, array(dim = c(30, 0, 3)), ignore_attr = "dimnames")
   expect_equal(fit$embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
   expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
@@ -204,9 +148,9 @@ test_that("n_embedding = 0 works", {
 
 
 test_that("align_by_grouping works", {
+  set.seed(1)
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
@@ -218,8 +162,7 @@ test_that("align_by_grouping works", {
 
 test_that("align_neighbors works", {
   dat <- make_synthetic_data(n_genes = 15)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = Inf, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
 
   al_rot <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, cells_per_cluster = 1, verbose = FALSE)
@@ -233,15 +176,14 @@ test_that("align_neighbors works", {
 
 test_that("align_harmony works", {
   dat <- make_synthetic_data(n_genes = 15)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = Inf, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   al_harm <- align_harmony(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
   al_nei <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
 })
 
 test_that("aligning works with alternative design matrices", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ 1, n_ambient = 10, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ 1, n_embedding = 5, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
@@ -301,8 +243,7 @@ test_that("Under-determined fits run successfully", {
   dat <- make_synthetic_data()
   dat$condition <- as.factor(dat$condition)
   dat <- dat[,dat$condition != "c"]
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 10, n_embedding = 2, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 2, verbose = FALSE)
 
   expect_silent(test_de(fit, cond(condition = "b")))
 })
@@ -314,8 +255,8 @@ test_that("fixing linear coefficients works", {
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   coef <- t(lm.fit(design, t(mat))$coefficients)
-  res1 <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
-  res2 <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  res1 <- lemur(mat, design = design, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
+  res2 <- lemur(mat, design = design, n_embedding = 2, verbose = FALSE)
   expect_equal(res1, res2)
 })
 
@@ -324,7 +265,7 @@ test_that("Columns/rows of the results are orthogonal", {
   mat <- matrix(rnorm(5 * 20), nrow = 5, ncol = 20)
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
-  res <- lemur(mat, design = design, n_ambient = Inf, n_embedding = 2, verbose = FALSE)
+  res <- lemur(mat, design = design, n_embedding = 2, verbose = FALSE)
   expect_equal(sum(res$embedding[1,] * res$embedding[2,]), 0)
   V1 <- grassmann_map(res$coefficients[,,1], res$base_point)
   V2 <- grassmann_map(res$coefficients[,,2], res$base_point)

@@ -8,9 +8,9 @@ lemur(
   data,
   design = ~1,
   col_data = NULL,
-  n_ambient = Inf,
   n_embedding = 15,
   alignment = FALSE,
+  linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
   use_assay = "logcounts",
   ...,
   verbose = TRUE
@@ -25,21 +25,22 @@ and \code{col_data} argument}
 
 \item{col_data}{an optional data frame with \code{ncol(data)} rows.}
 
-\item{n_ambient}{the dimension of the ambient PCA. This should be large enough
-to capture all relevant variation in the data}
-
-\item{n_embedding}{the dimension of the $k$-plane that is rotated through space.
-Needs to be smaller than \code{n_ambient}.}
+\item{n_embedding}{the dimension of the $k$-plane that is rotated through space.}
 
 \item{alignment}{optional specification how or if points should be aligned. This
 can also be done in a separate step by calling \code{\link{align_harmony}} or \code{\link{align_by_grouping}}.}
 
+\item{linear_coefficient_estimator}{specify which estimator is used to center the conditions.
+\code{"linear"} runs simple regression it works well in many circumstances but can produce poor
+results if the composition of the cell types changes between conditions (e.g., one cell type
+disappears). \code{"cluster_median"} works similar as \code{"linear"} but is robust against compositional
+changes. \code{"zero"} skips the centering step which is also robust against compositional changes.
+However, expression changes affecting all cells equally are not regressed out.}
+
 \item{use_assay}{if \code{data} is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
 which assay should be used.}
 
-\item{...}{additional parameters that are passed on to the internal function \code{lemur_impl}.
-For example, if you have pre-calculated the ambient PCA, you can provide it as a list with
-the \code{coordsystem}, \code{embedding} and \code{offset} fields, to speed-up the fit.}
+\item{...}{additional parameters that are passed on to the internal function \code{lemur_impl}.}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }

@@ -179,7 +179,7 @@ test_that("find_de_neighborhoods works", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
-  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   de_neigh1 <- find_de_neighborhoods(fit, selection_procedure = "zscore", directions = "random", verbose = FALSE)
   de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "random", verbose = FALSE)
@@ -206,7 +206,7 @@ test_that("find_de_neighborhoods works", {
 test_that("find_de_regions works with subset", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
-  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   fit_red <- fit[,1:25]
   expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
@@ -218,7 +218,7 @@ test_that("find_de_regions works with subset", {
 test_that("find_de_regions works reasonably well with counts", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
-  fit <- lemur(dat, ~ condition, n_embedding = 15, n_ambient = Inf, verbose = FALSE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   SummarizedExperiment::colData(fit)$pat <- sample(c("A", "B", "C"), size = ncol(fit), replace = TRUE)
   counts <- matrix(rpois(50 * 500, lambda = 2.4), nrow = 50, ncol = 500)

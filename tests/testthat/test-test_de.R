@@ -1,8 +1,7 @@
 
 test_that("test_de works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 5, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
   fit <- fit[,1:10]
 
@@ -29,8 +28,7 @@ test_that("my implementation of Welford's algorithm works", {
 
 test_that("test_de works with custom embedding", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 5, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
   fit <- fit[,1:10]
   test_point <- matrix(0, nrow = 3, ncol = 1)
@@ -46,7 +44,7 @@ test_that("test_de works with custom embedding", {
 
 test_that("test_global works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
-  fit <- lemur(dat, design = ~ condition, n_ambient = 5, n_embedding = 3, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
 
   res <- test_global(fit, reduced_design = ~ 1, consider = "linear", variance_est = "analytical", verbose = FALSE)
@@ -62,9 +60,8 @@ test_that("the angle between planes is correctly calculated", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 5000, n_lat = 5, n_centers = 3)
   fitlm <- lm(t(assay(dat)) ~ dat$condition)
   assay(dat) <- t(fitlm$residuals)
-  fit <- lemur(dat, design = ~ condition,
-                                n_ambient = 8, n_embedding = n_emb, verbose = FALSE)
-  expect_equal(fit$linear_coefficients, matrix(0, nrow = fit$n_ambient, ncol = 3), ignore_attr = "dimnames")
+  fit <- lemur(dat, design = ~ condition, n_embedding = n_emb, verbose = FALSE)
+  expect_equal(fit$linear_coefficients, matrix(0, nrow = nrow(fit), ncol = 3), ignore_attr = "dimnames")
   # The angle and delta_diffemb for a left-right contrast are slightly different than the results
   # for a one-sided contrast. The left-right contrast is slighly more accurate because it calculate
   # log(map(a, p), map(b, p)) instead of simply a - b
@@ -86,8 +83,7 @@ test_that("test_global's analytical test produces uniform p-values", {
     dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5,
                                treatment_effect = 0.8)
     dat$rand_cond <- sample(LETTERS[1:3], ncol(dat), replace = TRUE)
-    fit <- lemur(dat, design = ~ rand_cond,
-                                  n_ambient = 5, n_embedding = 3, verbose = FALSE)
+    fit <- lemur(dat, design = ~ rand_cond, n_embedding = 3, verbose = FALSE)
     test_global(fit, reduced_design = ~ 1, variance_est = "analytical",
                                 consider = "linear", verbose = FALSE)
   }))
@@ -99,8 +95,7 @@ test_that("test_global's analytical test produces uniform p-values", {
     print(paste0("Round: ", idx))
     dat <- randn(8, 500)
     rand_cond <- sample(LETTERS[1:2], ncol(dat), replace = TRUE)
-    fit <- lemur(dat, design = ~ rand_cond,
-                                  n_ambient = 3, n_embedding = 2, verbose = FALSE)
+    fit <- lemur(dat, design = ~ rand_cond, n_embedding = 2, verbose = FALSE)
     test_global(fit, contrast = rand_condB, verbose = FALSE)
   }))
   hist(res$pval, breaks = 40)
@@ -113,8 +108,7 @@ test_that("test_global's analytical test produces uniform p-values", {
                                treatment_effect = 0.8)
     dat$rand_cond <- sample(LETTERS[1:3], ncol(dat), replace = TRUE)
     dat$num <- round(runif(ncol(dat), min = -0.7, max = 0.7))
-    fit <- lemur(dat, design = ~ rand_cond + num,
-                                  n_ambient = 4, n_embedding = 2, verbose = FALSE)
+    fit <- lemur(dat, design = ~ rand_cond + num, n_embedding = 2, verbose = FALSE)
     test_global(fit, contrast = rand_condB,
                                 variance_est = "resampling", verbose = FALSE)
   }))
@@ -128,8 +122,7 @@ test_that("test_global's analytical test produces uniform p-values", {
                                treatment_effect = 0.8)
     dat$rand_cond <- sample(LETTERS[1:3], ncol(dat), replace = TRUE)
     dat$num <- round(runif(ncol(dat), min = -0.7, max = 0.7))
-    fit <- lemur(dat, design = ~ rand_cond + num,
-                                  n_ambient = 4, n_embedding = 0, verbose = FALSE)
+    fit <- lemur(dat, design = ~ rand_cond + num, n_embedding = 0, verbose = FALSE)
     res1 <- test_global(fit, contrast = rand_condB, variance_est = "resampling", verbose = FALSE)
 
     res3 <- test_global(fit, contrast = rand_condB,

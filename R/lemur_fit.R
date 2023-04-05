@@ -10,10 +10,7 @@
 #'
 #' To access the values produced by [`lemur`], use the dollar notation (`$`):
 #' \describe{
-#'  \item{`fit$n_ambient`}{the number of ambient dimensions. `Inf` indicates that no dimensionality reduction was performed.}
 #'  \item{`fit$n_embedding`}{the number of embedding dimensions.}
-#'  \item{`fit$ambient_coordsystem`}{a matrix from the ambient PCA.}
-#'  \item{`fit$ambient_offset`}{a vector with the gene means.}
 #'  \item{`fit$design`}{the specification of the design in [`lemur`]. Usually this is a [`stats::formula`].}
 #'  \item{`fit$base_point`}{a matrix (`nrow(fit) * fit$n_embedding`) with the base point for the Grassmann exponential map.}
 #'  \item{`fit$coefficients`}{a three-dimensional tensor (`nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)`) with the coefficients for
@@ -38,8 +35,7 @@
 .lemur_fit <- setClass("lemur_fit", contains = "SingleCellExperiment")
 
 lemur_fit <- function(data_mat, col_data, row_data,
-                       n_ambient, n_embedding,
-                       ambient_coordsystem, ambient_offset,
+                      n_embedding,
                        design, design_matrix, linear_coefficients,
                        base_point, coefficients, embedding,
                        alignment_method, alignment_rotation, alignment_stretching,
@@ -58,12 +54,12 @@ lemur_fit <- function(data_mat, col_data, row_data,
   sce <- SingleCellExperiment(assays, colData = col_data, rowData = row_data,
                               reducedDims = list(linearFit = linearFit,
                                                  embedding = t(embedding)),
-                              metadata = list(n_ambient = n_ambient, n_embedding = n_embedding,
-                                              ambient_coordsystem = ambient_coordsystem, ambient_offset = ambient_offset,
+                              metadata = list(n_embedding = n_embedding,
                                               design = design,
                                               base_point = base_point, coefficients = coefficients,
                                               alignment_method = alignment_method, alignment_rotation = alignment_rotation, alignment_stretching = alignment_stretching,
-                                              alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix))
+                                              alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
+                                              row_mask = rep(TRUE, n_features)))
   .lemur_fit(sce)
 }
 
@@ -80,24 +76,13 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(length(assayNames(obj)) > 0 && assayNames(obj)[1] != "expr"){
     msg <- c(msg, "'expr' must be the first assay")
   }
-
+  n_features_original <- length(metadata(obj)$row_mask)
   # n_features <- sum(int_metadata(obj)$row_mask)
   n_features <- nrow(obj)
   n_obs <- ncol(obj)
 
-  n_ambient <-  obj$n_ambient
-  eff_n_ambient <- if(is.infinite(n_ambient)){
-    n_features
-  }else{
-    n_ambient
-  }
-  if(is.null(n_ambient)) msg <- c(msg, "'n_ambient' must not be NULL")
   n_embedding <-  obj$n_embedding
   if(is.null(n_embedding)) msg <- c(msg, "'n_embedding' must not be NULL")
-  ambient_coordsystem <- obj$ambient_coordsystem
-  if(is.null(ambient_coordsystem)) msg <- c(msg, "'ambient_coordsystem' must not be NULL")
-  ambient_offset <- obj$ambient_offset
-  if(is.null(ambient_offset)) msg <- c(msg, "'ambient_offset' must not be NULL")
   base_point <- obj$base_point
   if(is.null(base_point)) msg <- c(msg, "'base_point' must not be NULL")
   coefficients <- obj$coefficients
@@ -118,16 +103,13 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   linear_coefficients <- featureLoadings(reducedDim(obj, "linearFit"))
   if(is.null(linear_coefficients)) msg <- c(msg, "'linear_coefficients' must not be NULL")
 
-  if(! is.null(ambient_coordsystem) && nrow(ambient_coordsystem) != n_features) msg <- c(msg, "`nrow(ambient_coordsystem)` does not match the number of features")
-  if(! is.null(ambient_coordsystem) && ncol(ambient_coordsystem) != eff_n_ambient) msg <- c(msg, "`ncol(ambient_coordsystem)` does not match `n_ambient`")
-  if(! is.null(ambient_offset) && length(ambient_offset) != n_features) msg <- c(msg, "`length(ambient_offset)` does not match number of features")
   if(! is.null(design_matrix) && nrow(design_matrix) != n_obs) msg <- c(msg, "`nrow(design_matrix)` does not match number of observations")
-  if(! is.null(linear_coefficients) && nrow(linear_coefficients) != eff_n_ambient) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_ambient`")
+  if(! is.null(linear_coefficients) && nrow(linear_coefficients) != n_features_original) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_features_original`")
   if(! is.null(linear_coefficients) && ncol(linear_coefficients) != ncol(design_matrix)) msg <- c(msg, "`ncol(linear_coefficients)` does not match `ncol(design_matrix)`")
-  if(! is.null(base_point) && nrow(base_point) != eff_n_ambient) msg <- c(msg, "`nrow(base_point)` does not match `n_ambient`")
+  if(! is.null(base_point) && nrow(base_point) != n_features_original) msg <- c(msg, "`nrow(base_point)` does not match `n_features_original`")
   if(! is.null(base_point) && ncol(base_point) != n_embedding) msg <- c(msg, "`ncol(base_point)` does not match `n_embedding`")
   if(! is.null(coefficients) && ! is.array(coefficients) || length(dim(coefficients)) != 3) msg <- c(msg, "`coefficients` must be a three dimensional array")
-  if(! is.null(coefficients) && dim(coefficients)[1] != eff_n_ambient) msg <- c(msg, "`dim(coefficients)[1]` does not match `n_ambient`")
+  if(! is.null(coefficients) && dim(coefficients)[1] != n_features_original) msg <- c(msg, "`dim(coefficients)[1]` does not match `n_features_original`")
   if(! is.null(coefficients) && dim(coefficients)[2] != n_embedding) msg <- c(msg, "`dim(coefficients)[2]` does not match `n_embedding`")
   if(! is.null(coefficients) && dim(coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(coefficients)[3]` does not match `ncol(design_matrix)`")
   if(! is.null(embedding) && nrow(embedding) != n_embedding) msg <- c(msg, "`nrow(embedding)` does not match `n_embedding`")
@@ -164,17 +146,17 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
     on.exit(S4Vectors:::disableValidity(old))
   }
 
-
   i_missing <- missing(i)
   j_missing <- missing(j)
 
-  if (!missing(i)) {
+  if (! i_missing) {
     # Update metadata
     ii <- SingleCellExperiment:::.convert_subset_index(i, rownames(x))
-    metadata(x)[["ambient_offset"]] <- metadata(x)[["ambient_offset"]][ii]
-    metadata(x)[["ambient_coordsystem"]] <- metadata(x)[["ambient_coordsystem"]][ii,,drop=FALSE]
+    old_mask <- metadata(x)$row_mask
+    metadata(x)$row_mask[] <- FALSE
+    metadata(x)$row_mask[old_mask][ii] <- TRUE
   }
-  if(! missing(j)){
+  if(! j_missing){
     jj <- SingleCellExperiment:::.convert_subset_index(j, rownames(x))
     metadata(x)[["alignment_design_matrix"]] <- metadata(x)[["alignment_design_matrix"]][jj,,drop=FALSE]
     am <- metadata(x)[["alignment_method"]]
@@ -188,8 +170,7 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
 
 
 
-.methods_to_suggest <- c("n_ambient", "n_embedding",
-                         "ambient_coordsystem", "ambient_offset",
+.methods_to_suggest <- c("n_embedding",
                          "design", "base_point",
                          "coefficients", "embedding", "design_matrix", "linear_coefficients",
                          "alignment_method", "alignment_rotation", "alignment_stretching", "alignment_design", "alignment_design_matrix",
@@ -233,7 +214,6 @@ setMethod("$", "lemur_fit",
     stop("Illegal name after '$' sign: ", name)
   }
   switch(name,
-    n_ambient =               metadata(x)[["n_ambient"]],
     n_embedding =             metadata(x)[["n_embedding"]],
     design =                  design(x),
     base_point =              metadata(x)[["base_point"]],
@@ -246,8 +226,6 @@ setMethod("$", "lemur_fit",
     alignment_stretching =    metadata(x)[["alignment_stretching"]],
     alignment_rotation =      metadata(x)[["alignment_rotation"]],
     alignment_method =        metadata(x)[["alignment_method"]],
-    ambient_coordsystem =     metadata(x)[["ambient_coordsystem"]],
-    ambient_offset =          metadata(x)[["ambient_offset"]],
     contrast =                metadata(x)[["contrast"]],
     colData =                 colData(x),
     rowData =                 rowData(x),

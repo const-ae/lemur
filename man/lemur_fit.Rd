@@ -24,10 +24,7 @@ additional accessors to get the values of the values produced by \code{\link{lem
 \details{
 To access the values produced by \code{\link{lemur}}, use the dollar notation (\code{$}):
 \describe{
-\item{\code{fit$n_ambient}}{the number of ambient dimensions. \code{Inf} indicates that no dimensionality reduction was performed.}
 \item{\code{fit$n_embedding}}{the number of embedding dimensions.}
-\item{\code{fit$ambient_coordsystem}}{a matrix from the ambient PCA.}
-\item{\code{fit$ambient_offset}}{a vector with the gene means.}
 \item{\code{fit$design}}{the specification of the design in \code{\link{lemur}}. Usually this is a \code{\link[stats:formula]{stats::formula}}.}
 \item{\code{fit$base_point}}{a matrix (\code{nrow(fit) * fit$n_embedding}) with the base point for the Grassmann exponential map.}
 \item{\code{fit$coefficients}}{a three-dimensional tensor (\code{nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)}) with the coefficients for

@@ -128,11 +128,11 @@ test_global <- function(fit,
     if(with_emb){
       stop("Analytical differential embedding test is not implemented. You can set 'consider=\"linear\"")
     }else{  # only linear test
-      resid_full <- as.matrix(t(fit$ambient_coordsystem) %*% residuals(fit, with_linear_model = TRUE, with_embedding = FALSE, with_ambient_pca = TRUE))
-      resid_red <- as.matrix(t(fit$ambient_coordsystem) %*% get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = TRUE, with_embedding = FALSE))
+      resid_full <- as.matrix(residuals(fit, with_linear_model = TRUE, with_embedding = FALSE))
+      resid_red <- as.matrix(get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = TRUE, with_embedding = FALSE))
       pval <- multivar_wilks_ftest(RSS_full = resid_full %*% t(resid_full),
                                    RSS_red = resid_red %*% t(resid_red),
-                                   n_features = fit$n_ambient, full_design, reduced_design_mat)
+                                   n_features = nrow(fit), full_design, reduced_design_mat)
     }
   }else if(variance_est == "resampling"){
     if("n_resampling_iter" %in% ...names()){

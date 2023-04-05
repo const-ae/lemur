@@ -9,7 +9,6 @@
   newdata = NULL,
   newdesign = NULL,
   embedding = object$embedding,
-  with_ambient_pca = TRUE,
   with_linear_model = TRUE,
   with_embedding = TRUE,
   with_alignment = TRUE,
@@ -29,9 +28,6 @@ a design matrix with the same entry for each cell.}
 
 \item{embedding}{the low-dimensional cell position for which the
 output is predicted.}
-
-\item{with_ambient_pca}{a boolean to indicate if the output is
-the gene expression values or the value in the ambient PCA embedding.}
 
 \item{with_linear_model}{a boolean to indicate if the linear regression
 offset is included in the prediction.}

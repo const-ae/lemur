@@ -11,8 +11,6 @@
 #'   a design matrix with the same entry for each cell.
 #' @param embedding the low-dimensional cell position for which the
 #'   output is predicted.
-#' @param with_ambient_pca a boolean to indicate if the output is
-#'   the gene expression values or the value in the ambient PCA embedding.
 #' @param with_linear_model a boolean to indicate if the linear regression
 #'   offset is included in the prediction.
 #' @param with_embedding a boolean to indicate if the embedding contributes
@@ -29,32 +27,30 @@
 #' @export
 predict.lemur_fit <- function(object, newdata = NULL, newdesign = NULL,
                                embedding = object$embedding,
-                               with_ambient_pca = TRUE,
                                with_linear_model = TRUE,
                                with_embedding = TRUE,
                                with_alignment = TRUE,
                                ...){
   predict_impl(object, newdata = newdata, newdesign = newdesign, embedding = embedding,
-               with_ambient_pca = with_ambient_pca, with_linear_model = with_linear_model,
+               with_linear_model = with_linear_model,
                with_embedding = with_embedding, with_alignment = with_alignment, ...)
 
 }
 
 predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          embedding = object$embedding,
-                         with_ambient_pca = TRUE,
                          with_linear_model = TRUE,
                          with_embedding = TRUE,
                          with_alignment = TRUE,
-                         n_ambient = object$n_ambient, n_embedding = object$n_embedding,
+                         n_embedding = object$n_embedding,
                          design_matrix = object$design_matrix, design = object$design,
-                         ambient_coordsystem = object$ambient_coordsystem, ambient_offset = object$ambient_offset,
                          linear_coefficients = object$linear_coefficients,
                          coefficients = object$coefficients,
                          base_point = object$base_point,
                          alignment_rotation = object$alignment_rotation,
                          alignment_stretching = object$alignment_stretching,
                          alignment_design_matrix = object$alignment_design_matrix,
+                         row_mask = metadata(object)$row_mask,
                          ...){
   if(is.null(newdesign) && is.null(newdata)){
     newdesign <- design_matrix
@@ -82,7 +78,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   approx <- if(with_linear_model){
     linear_coefficients %*% t(newdesign)
   }else{
-    matrix(0, nrow = min(n_ambient, nrow(linear_coefficients)), ncol = nrow(newdesign))
+    matrix(0, nrow = min(nrow(linear_coefficients)), ncol = nrow(newdesign))
   }
 
   if(with_embedding){
@@ -107,16 +103,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     }
   }
 
-  if(with_ambient_pca){
-    res <- as.matrix(ambient_coordsystem %*% approx + ambient_offset)
-    colnames(res) <- rownames(newdesign)
-    rownames(res) <- rownames(object)
-    res
-  }else{
-    colnames(approx) <- rownames(newdesign)
-    rownames(approx) <- paste0("latent_", seq_len(nrow(approx)))
-    approx
-  }
+  approx <- approx[row_mask,,drop=FALSE]
+  colnames(approx) <- rownames(newdesign)
+  rownames(approx) <- rownames(object)
+  approx
 }
 
 
@@ -143,37 +133,29 @@ residuals_impl <- function(object,
 
 get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_embedding = TRUE){
   if(with_embedding){
-    fit_alt <- lemur_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
-                                           n_ambient = fit$n_ambient, n_embedding = fit$n_embedding,
-                                           alignment = fit$alignment_method, base_point = fit$base_point,
-                                           amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                          embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
-                                                          offset = fit$ambient_offset),
-                                           verbose = FALSE)
-    Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
+    fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,  n_embedding = fit$n_embedding,
+                          alignment = fit$alignment_method, base_point = fit$base_point,  verbose = FALSE)
+    Y - predict_impl(object = fit_alt, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_embedding = TRUE,
-                 n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
+                 n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
-                 ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, coefficients = fit_alt$coefficients,
                  base_point = fit_alt$base_point, alignment_design_matrix = fit_alt$alignment_design_matrix,
-                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
+                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching,
+                 row_mask = rep(TRUE, nrow(Y)))
   }else{
-    fit_alt <- lemur_impl(matrix(nrow = nrow(fit), ncol = 0), design_matrix = reduced_design_mat,
-                                           n_ambient = fit$n_ambient, n_embedding = 0,
-                                           alignment = fit$alignment_method, base_point = matrix(nrow = fit$n_ambient, ncol = 0),
-                                           amb_pca = list(coordsystem = fit$ambient_coordsystem,
-                                                          embedding = as.matrix(t(fit$ambient_coordsystem) %*% (Y - fit$ambient_offset)),
-                                                          offset = fit$ambient_offset),
+    fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,
+                                           n_embedding = 0,
+                                           alignment = fit$alignment_method, base_point = matrix(nrow = nrow(fit), ncol = 0),
                                            verbose = FALSE)
-    Y - predict_impl(object = NULL, embedding = fit_alt$embedding,
+    Y - predict_impl(object = fit_alt, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_embedding = FALSE,
-                 n_ambient = fit_alt$n_ambient, n_embedding = fit_alt$n_embedding,
+                 n_embedding = fit_alt$n_embedding,
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
-                 ambient_coordsystem = fit_alt$ambient_coordsystem, ambient_offset = fit_alt$ambient_offset,
                  linear_coefficients = fit_alt$linear_coefficients, coefficients = fit_alt$coefficients,
                  base_point = fit_alt$base_point, alignment_design_matrix = fit$alignment_design_matrix,
-                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching)
+                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching,
+                 row_mask = rep(TRUE, nrow(Y)))
   }
 }
 
