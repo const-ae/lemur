@@ -1,5 +1,14 @@
-# lemur devel
+# lemur devel (v0.0.13) (5 of April 2023)
 
+* Remove ambient PCA step. This was originally conceived as an performance optimization, however
+it had detrimental effects on the inference. Since a few version it was skipped per default, so removing
+it should not change the inference.
+* Add `linear_coefficient_estimator` to give more flexibility how or if the conditions are centered.
+* Reduce the `minimum_cluster_membership` default to `0.001` in `align_harmony` to make it more sensitive.
+* Make `test_global` an internal function again until further more extensive testing.
+* Remove `base_point` argument from `lemur()`. It wasn't used anyways.
+
+# pre v0.0.13
 * Refactor `find_de_neighborhoods`: the function can now combine the results of
 different directions, selection criteria, and pseudobulk test (on counts or 
 continuous values). To implement this, I changed the names of the arguments and
