@@ -1,4 +1,9 @@
-# lemur devel (v0.0.13) (5 of April 2023)
+# v0.0.14
+
+* Set `center = FALSE` in `find_base_point`. Centering the data before fitting the base point caused
+problems and made the data look less integrated in some cases.
+
+# v0.0.13 (5 of April 2023)
 
 * Remove ambient PCA step. This was originally conceived as an performance optimization, however
 it had detrimental effects on the inference. Since a few version it was skipped per default, so removing
