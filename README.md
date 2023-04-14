@@ -361,7 +361,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
 #> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
 #> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.12               
+#> [21] lemur_0.0.14               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0
