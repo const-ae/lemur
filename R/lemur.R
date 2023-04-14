@@ -219,7 +219,7 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
   }else{
     base_point_meth <- match.arg(base_point, c("global_embedding", "mean"))
     if(base_point_meth == "global_embedding"){
-      pca(Y_clean, n = n_embedding)$coordsystem
+      pca(Y_clean, n = n_embedding, center = FALSE)$coordsystem
     }else if(base_point_meth == "mean"){
       stop("'base_point = \"mean\"' is not implemented. Please use 'global_embedding'.")
     }
