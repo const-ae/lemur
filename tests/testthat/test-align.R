@@ -86,7 +86,7 @@ test_that("alignment with custom alignment_design works", {
   expect_true(all(fit_rot3$alignment_rotation[,,1][lower.tri(fit_rot3$alignment_rotation[,,1])] != 0))
   expect_equal(sum(fit_rot3$alignment_rotation), 0) # Tangent space is skew symmetric
 
-  expect_equal(fit_rot2$alignment_design_matrix, fit_rot3$alignment_design_matrix, ignore_attr = "dimnames")
+  expect_equal(fit_rot2$alignment_design_matrix, fit_rot3$alignment_design_matrix, ignore_attr = c("dimnames", "ignore_degeneracy"))
   expect_equal(fit_rot2$alignment_rotation, fit_rot3$alignment_rotation, ignore_attr = "dimnames")
 
   n_coef <- ncol(fit_rot2$alignment_design_matrix)
