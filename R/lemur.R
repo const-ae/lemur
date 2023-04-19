@@ -86,6 +86,7 @@ lemur_impl <- function(Y, design_matrix,
                        verbose = TRUE){
   alignment_rot_fixed_but_embedding_fitted <- ! is.null(alignment_rotation) && is.null(embedding)
   alignment_stretch_fixed_but_embedding_fitted <- ! is.null(alignment_stretching) && is.null(embedding)
+  linear_coefficient_estimator <- match.arg(linear_coefficient_estimator)
 
   # Set reduced dimensions
   stopifnot(n_embedding >= 0)
@@ -124,15 +125,19 @@ lemur_impl <- function(Y, design_matrix,
     if(verbose) message("Regress out global effects using ", linear_coefficient_estimator, " method.")
     linear_coefficients <- estimate_linear_coefficient(Y = Y, design_matrix = design_matrix, method = linear_coefficient_estimator)
   }
-  Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+  if(linear_coefficient_estimator == "zero"){
+    Y_clean <- Y
+  }else{
+    Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+  }
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
     base_point <- find_base_point(Y_clean, base_point, n_embedding = n_embedding)
   }
 
-  last_round_error <- sum(Y^2)
+  initial_error <- sum(Y_clean^2)
   if(verbose) message("Fit differential embedding model")
-  if(verbose) message("-Iteration: ", 0, "\terror: ", sprintf("%.3g", last_round_error))
+  if(verbose) message("Initial error: ", sprintf("%.3g", initial_error))
   if(! diffemb_coef_fixed){
     coefficients <- array(0, dim = c(n_ambient_eff, n_embedding, ncol(design_matrix)))
   }
@@ -140,34 +145,21 @@ lemur_impl <- function(Y, design_matrix,
     embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
                                          coefficients = coefficients, base_point = base_point)
   }
-  for(iter in seq_len(n_iter)){
-    if(! diffemb_coef_fixed){
-      if(verbose) message("---Fit Grassmann linear model")
-      coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
-    }
-    if(! embedding_fixed){
-      embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
-                                                   coefficients = coefficients, base_point = base_point)
-    }
-    if(! linear_coef_fixed){
-      if(verbose) message("---Update linear regression")
-      Y_clean <- Y - project_diffemb_into_data_space(embedding, design = design_matrix,
-                                                                     coefficients = coefficients, base_point = base_point)
-      linear_coefficients <- estimate_linear_coefficient(Y = Y_clean, design_matrix = design_matrix, method = linear_coefficient_estimator)
-      residuals <- Y_clean - linear_coefficients %*% t(design_matrix)
-    }else{
-      residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
-    }
-    Y_clean <- Y - linear_coefficients %*% t(design_matrix)
-    error <- sum(residuals^2)
-    if(verbose) message("-Iteration: ", iter, "\terror: ", sprintf("%.3g", error))
-    if(is.na(error) || abs(last_round_error - error) / (error + 0.5) < tol){
-      if(verbose) message("Converged")
-      break
-    }else{
-      last_round_error <- error
-    }
+
+  if(! diffemb_coef_fixed){
+    if(verbose) message("---Fit Grassmann linear model")
+    coefficients <- grassmann_lm(Y_clean, design = design_matrix, base_point = base_point)
   }
+  if(! embedding_fixed){
+    embedding <- project_data_on_diffemb(Y_clean, design = design_matrix,
+                                                 coefficients = coefficients, base_point = base_point)
+  }
+  if(verbose){
+    residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
+    error <- sum(residuals^2)
+    message("Final error: ", sprintf("%.3g", error))
+  }
+
 
   if(alignment_rot_fixed_but_embedding_fitted || alignment_stretch_fixed_but_embedding_fitted){
     # Rotate the embedding if it wasn't provided
