@@ -153,7 +153,7 @@ lemur_impl <- function(Y, design_matrix,
       if(verbose) message("---Update linear regression")
       Y_clean <- Y - project_diffemb_into_data_space(embedding, design = design_matrix,
                                                                      coefficients = coefficients, base_point = base_point)
-      linear_coefficients <- estimate_linear_coefficient(Y = Y_clean, design_matrix = design_matrix, method = linear_coefficient_estimator)
+      linear_coefficients <- estimate_linear_coefficient(Y = Y_clean, design_matrix = design_matrix, method = "linear")
       residuals <- Y_clean - linear_coefficients %*% t(design_matrix)
     }else{
       residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
