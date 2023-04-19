@@ -69,7 +69,7 @@ We start by loading some packages which are necessary to analyze the data:
 library(tidyverse)
 library(SingleCellExperiment)
 library(lemur)
-set.seed(1)
+set.seed(42)
 ```
 
 We use a reduced-size version of the glioblastoma data that ships with the `lemur` package.
@@ -124,10 +124,10 @@ We can pick any gene and show the differential expression pattern on the UMAP pl
 
 ```{r umap_de}
 # EEF1A1
-gene_sel <- "ENSG00000156508"
+sel_gene <- "ENSG00000156508"
 
 as_tibble(umap) %>%
-  mutate(expr = assay(fit, "DE")[gene_sel,]) %>%
+  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = V1, y = V2)) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
@@ -143,7 +143,8 @@ neighborhoods <- find_de_neighborhoods(fit, independent_matrix = counts(glioblas
 
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
-  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
+  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
+  dplyr::select(name, symbol, n_cells, pval, adj_pval)
 ```
 
 We can now specifically select regions with significant differential expression:
@@ -164,7 +165,7 @@ To plot the boundaries of the differential expression neighborhood, we create a 
 
 ```{r umap_de3}
 neighborhood_coordinates <- neighborhoods %>%
-  filter(name == sel_gene) %>%
+  dplyr::filter(name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
   left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%

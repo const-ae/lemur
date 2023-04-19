@@ -72,7 +72,7 @@ data:
 library(tidyverse)
 library(SingleCellExperiment)
 library(lemur)
-set.seed(1)
+set.seed(42)
 ```
 
 We use a reduced-size version of the glioblastoma data that ships with
@@ -180,10 +180,10 @@ UMAP plot:
 
 ``` r
 # EEF1A1
-gene_sel <- "ENSG00000156508"
+sel_gene <- "ENSG00000156508"
 
 as_tibble(umap) %>%
-  mutate(expr = assay(fit, "DE")[gene_sel,]) %>%
+  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = V1, y = V2)) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
@@ -205,24 +205,22 @@ neighborhoods <- find_de_neighborhoods(fit, independent_matrix = counts(glioblas
 
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
-  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id"))
-#> # A tibble: 300 × 16
-#>    name      selec…¹ indices n_cells sel_s…²    pval adj_p…³ f_sta…⁴   df1   df2
-#>    <chr>     <lgl>   <I<lis>   <int>   <dbl>   <dbl>   <dbl>   <dbl> <int> <dbl>
-#>  1 ENSG0000… TRUE    <int>      4769    90.6 1.16e-5 0.00348   124.      1  6.91
-#>  2 ENSG0000… TRUE    <int>      3887   202.  7.06e-5 0.0106     70.8     1  6.91
-#>  3 ENSG0000… TRUE    <int>      3918   -95.5 2.19e-4 0.0189     49.3     1  6.91
-#>  4 ENSG0000… TRUE    <int>      3560   136.  3.16e-4 0.0189     43.8     1  6.91
-#>  5 ENSG0000… TRUE    <int>      1633    69.2 3.90e-4 0.0189     40.8     1  6.91
-#>  6 ENSG0000… TRUE    <int>      3888  -150.  3.94e-4 0.0189     40.7     1  6.91
-#>  7 ENSG0000… TRUE    <int>      2900  -216.  4.42e-4 0.0189     39.2     1  6.91
-#>  8 ENSG0000… TRUE    <int>      4775   -66.3 5.37e-4 0.0201     36.7     1  6.91
-#>  9 ENSG0000… TRUE    <int>      4240    97.0 7.17e-4 0.0220     33.3     1  6.91
-#> 10 ENSG0000… TRUE    <int>      2578    53.7 7.34e-4 0.0220     33.0     1  6.91
-#> # … with 290 more rows, 6 more variables: lfc <dbl>, symbol <chr>,
-#> #   chromosome <fct>, gene_length <int>, strand. <fct>, source <fct>, and
-#> #   abbreviated variable names ¹​selection, ²​sel_statistic, ³​adj_pval,
-#> #   ⁴​f_statistic
+  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
+  dplyr::select(name, symbol, n_cells, pval, adj_pval)
+#> # A tibble: 300 × 5
+#>    name            symbol   n_cells       pval adj_pval
+#>    <chr>           <chr>      <int>      <dbl>    <dbl>
+#>  1 ENSG00000187193 MT1X        3323 0.00000788  0.00236
+#>  2 ENSG00000125144 MT1G        2034 0.0000196   0.00294
+#>  3 ENSG00000177700 POLR2L      4110 0.0000973   0.00915
+#>  4 ENSG00000147588 PMP2        3961 0.000124    0.00915
+#>  5 ENSG00000125148 MT2A        3554 0.000152    0.00915
+#>  6 ENSG00000245532 NEAT1       3587 0.000338    0.0153 
+#>  7 ENSG00000196126 HLA-DRB1     586 0.000356    0.0153 
+#>  8 ENSG00000069275 NUCKS1      4169 0.000578    0.0185 
+#>  9 ENSG00000156508 EEF1A1      2193 0.000592    0.0185 
+#> 10 ENSG00000169715 MT1E        3277 0.000664    0.0185 
+#> # … with 290 more rows
 ```
 
 We can now specifically select regions with significant differential
@@ -248,7 +246,7 @@ create a helper dataframe and use the `geom_density2d` function from
 
 ``` r
 neighborhood_coordinates <- neighborhoods %>%
-  filter(name == sel_gene) %>%
+  dplyr::filter(name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
   left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
@@ -361,7 +359,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
 #> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
 #> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.14               
+#> [21] lemur_0.0.15               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0
