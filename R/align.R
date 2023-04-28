@@ -1,13 +1,11 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param fit a `lemur_fit` object
-#' @param rotating,stretching boolean flags to turn limit the flexibility of the
-#'   alignment transformation. Default: `TRUE`
 #' @param design a specification of the design (matrix or formula) that is used
 #'   for the transformation. Default: `fit$design_matrix`
 #' @param ridge_penalty specification how much the flexibility of the transformation
 #'   should be regularized. This can be a single positive scalar or named list
-#'   (`"stretching"` and `"rotation"`). Default: `0`
+#'   (`"stretching"` and `"rotation"`). Default: `0.01`
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters that are passed on to relevant functions
 #' @param cells_per_cluster argument specific for `align_neighbors`. Before mutual nearest neighbor
@@ -26,22 +24,22 @@
 #'
 #'
 #' @export
-align_neighbors <- function(fit, rotating = TRUE, stretching = TRUE,
+align_neighbors <- function(fit,
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
-                            design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
+                            design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
   if(verbose) message("Find mutual nearest neighbors")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
   # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
-  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
+  correction <- correct_design_matrix_groups(fit, mnn_groups, fit$embedding, design, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
 #' @rdname align_neighbors
 #' @export
-align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
+align_harmony <- function(fit, ...,
                           design = fit$alignment_design_matrix,
-                          ridge_penalty = 0, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
+                          ridge_penalty = 0.01, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
@@ -62,7 +60,7 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
     index_groups <- lapply(matches, \(idx) mm_groups[idx])
     # if(verbose) message("Adjust latent positions using a '", method, "' transformation")
     correction <- correct_design_matrix_groups(fit, list(matches = matches, index_groups = index_groups, weights = weights),
-                                               harm_obj$Z_orig, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
+                                               harm_obj$Z_orig, design, ridge_penalty = ridge_penalty)
     harm_obj$Z_corr <- correction$embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
@@ -77,21 +75,21 @@ align_harmony <- function(fit, rotating = TRUE, stretching = TRUE, ...,
 
 #' @rdname align_neighbors
 #' @export
-align_by_template <- function(fit, rotating = TRUE, stretching = TRUE,
+align_by_template <- function(fit,
                               alignment_template, cells_per_cluster = 20, mnn = 10,
-                              design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
+                              design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
-  align_neighbors(fit, rotating = rotating, stretching = stretching, data_matrix = alignment_template,
+  align_neighbors(fit, data_matrix = alignment_template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
                   design = design, ridge_penalty = ridge_penalty, verbose = verbose)
 }
 
 #' @rdname align_neighbors
 #' @export
-align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
-                              grouping, design = fit$alignment_design_matrix, ridge_penalty = 0, verbose = TRUE){
+align_by_grouping <- function(fit,
+                              grouping, design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
     # Check that it conforms to the expectation of the mnn_grouping
@@ -121,7 +119,7 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
     grouping$index_groups <- lapply(grouping$matches, \(idx) mm_groups[idx])
   }
 
-  correction <- correct_design_matrix_groups(fit, grouping, fit$embedding, design, rotating = rotating, stretching = stretching, ridge_penalty = ridge_penalty)
+  correction <- correct_design_matrix_groups(fit, grouping, fit$embedding, design, ridge_penalty = ridge_penalty)
   correct_fit(fit, correction)
 }
 
@@ -138,11 +136,9 @@ align_by_grouping <- function(fit, rotating = TRUE, stretching = TRUE,
 #'   }
 #'
 #' @keywords internal
-correct_design_matrix_groups <- function(fit, matching_groups, embedding, design, rotating = TRUE, stretching = TRUE,
-                                         ridge_penalty = 0, verbose = TRUE){
+correct_design_matrix_groups <- function(fit, matching_groups, embedding, design, ridge_penalty = 0.01, verbose = TRUE){
 
   n_embedding <- nrow(embedding)
-  base_point <- diag(nrow = n_embedding)
   ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
 
   des <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))
@@ -194,126 +190,38 @@ correct_design_matrix_groups <- function(fit, matching_groups, embedding, design
     }, FUN.VALUE = 0.0)))
   }
 
+  interact_design_matrix <- duplicate_cols(D, each = n_embedding)  * duplicate_cols(t(Y), times = ncol(D))
+  alignment_coefs <- ridge_regression(M - Y, X = interact_design_matrix, ridge_penalty = ridge_penalty)
+  alignment_coefs <- array(alignment_coefs, dim = c(n_embedding, n_embedding, ncol(D)))
 
-  if(rotating && ! stretching){
-    rotation_coef <- rotation_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-    stretch_coef <- array(0, dim(rotation_coef))
-  }else if(stretching && ! rotating){
-    stretch_coef <- spd_lm(M, design = D, obs_embedding = Y, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
-    rotation_coef <- array(0, dim(stretch_coef))
-  }else if(stretching && rotating){
-    plm <- polar_lm(M, D, Y, base_point = base_point, ridge_penalty = ridge_penalty, weights = weights)
-    stretch_coef <- plm$stretch_coef
-    rotation_coef <- plm$rotation_coef
-  }else{
-    stretch_coef <- array(0, c(nrow(Y), nrow(Y), ncol(D)))
-    rotation_coef <- array(0, dim(stretch_coef))
-  }
-
-  embedding <- apply_stretching(embedding, stretch_coef, design_matrix, base_point)
-  embedding <- apply_rotation(embedding, rotation_coef, design_matrix, base_point)
+  embedding <- apply_linear_transformation(embedding, alignment_coefs, design_matrix)
 
 
-  list(rotation_coefficients = -rotation_coef, stretch_coefficients = -stretch_coef,
-       embedding = embedding, design_matrix = design_matrix, design_formula = design_formula)
+  list(alignment_coefs = alignment_coefs, embedding = embedding, design_matrix = design_matrix, design_formula = design_formula)
 }
 
 
-polar_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, max_iter = 10, tolerance = 1e-8){
-  ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
-
-  if(length(unique(get_groups(design, n_groups = ncol(design) * 10))) == ncol(design)){
-    # Clever initialization
-    tryCatch({
-      pla <- polar_lm_analytic(data, design, obs_embedding, base_point)
-      rotation_coef <- pla$rotation_coef
-      stretch_coef <- pla$stretch_coef
-    }, error = function(e){
-      # Error might occur if some group has too few observations
-      rotation_coef <<- rotation_lm(data, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-      stretch_coef <<- array(0, dim(rotation_coef))
-    })
-  }else{
-    # Naive initialization
-    rotation_coef <- rotation_lm(data, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-    stretch_coef <- array(0, dim(rotation_coef))
-  }
-
-  error <- error_last_round <- mean((apply_rotation(apply_stretching(obs_embedding, stretch_coef, design, base_point), rotation_coef, design, base_point) - data)^2)
-  for(idx in seq_len(max_iter)){
-    # Apply **inverse** of rotation to means before fitting stretching
-    Mprime <- apply_rotation(data, -rotation_coef, design, base_point)
-    stretch_coef <- spd_lm(Mprime, design = design, obs_embedding = obs_embedding, base_point = base_point, ridge_penalty = ridge_penalty$stretching, weights = weights)
-    # Stretch the observations before fitting the rotation
-    Yprime <- apply_stretching(obs_embedding, stretch_coef, design, base_point)
-    rotation_coef <- rotation_lm(data, design = design, obs_embedding = Yprime, base_point = base_point, ridge_penalty = ridge_penalty$rotation, weights = weights)
-    # Calculate error
-    error <- mean((apply_rotation(apply_stretching(obs_embedding, stretch_coef, design, base_point), rotation_coef, design, base_point) - data)^2)
-    if((is.na(error) || is.na(error_last_round)) || abs(error_last_round - error) / (error + 0.5) < tolerance){
-      # Error can be NaN if nrow(embedding) == 0
-      break
-    }
-    error_last_round <- error
-  }
-  list(rotation_coef = rotation_coef, stretch_coef = stretch_coef)
+forward_linear_transformation <- function(alignment_coefficients, design_vector){
+  diag(nrow = dim(alignment_coefficients)[1]) + sum_tangent_vectors(alignment_coefficients, design_vector)
 }
 
-polar_lm_analytic <-  function(data, design, obs_embedding, base_point){
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
-  groups <- unique(mm_groups)
-
-  if(length(groups) == ncol(design)){
-    coefs <- lapply(groups, \(gr){
-      # Simple linear regression
-      beta <- t(coef(lm.fit(t(obs_embedding[,mm_groups == gr,drop=FALSE]), t(data[,mm_groups == gr,drop=FALSE]))))
-      if(any(is.na(beta))){
-        stop("Group ", gr, " contains too few observations")
-      }else{
-        # Polar decomposition where I force U to be a rotation
-        svd <- svd(beta)
-        diag_elem <- c(rep(1, times = ncol(beta) - 1), Matrix::det(svd$u %*% t(svd$v)))
-        U <- svd$u %*% diag(diag_elem, nrow = length(diag_elem))  %*% t(svd$v)
-        P <- project_spd(coef(lm.fit(U, beta)))
-
-        list(rotation_coef = rotation_log(base_point, U), stretch_coef = spd_log(base_point, P))
-      }
-    })
-    rot_coefs_matrix <- do.call(cbind, lapply(coefs, \(e) c(e$rotation_coef)))
-    stretch_coefs_matrix <- do.call(cbind, lapply(coefs, \(e) c(e$stretch_coef)))
-    artificial_design <- as.matrix(Matrix::sparseMatrix(i = seq_along(mm_groups), j = mm_groups, x = rep(1, length(mm_groups))))
-    change_mat <- t(coef(lm.fit(design, artificial_design)))
-    rot_coefs_matrix <- rot_coefs_matrix %*% change_mat
-    stretch_coefs_matrix <- stretch_coefs_matrix %*% change_mat
-
-    dims <- c(nrow(data), nrow(data), ncol(design))
-    dimnames <- list(NULL, NULL, colnames(design))
-    list(rotation_coef = array(rot_coefs_matrix, dims, dimnames), stretch_coef = array(stretch_coefs_matrix, dims, dimnames))
+reverse_linear_transformation <- function(alignment_coefficients, design_vector){
+  n_embedding <- dim(alignment_coefficients)[1]
+  if(n_embedding == 0){
+    matrix(nrow = 0, ncol = 0)
   }else{
-    stop("More groups than design columns")
+    solve(diag(nrow = n_embedding) + sum_tangent_vectors(alignment_coefficients, design_vector))
   }
 }
 
-
-apply_rotation <- function(A, rotation_coef, design, base_point){
+apply_linear_transformation <- function(A, alignment_coefs, design){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   groups <- unique(mm_groups)
   for(gr in groups){
-    A[,mm_groups == gr] <- rotation_map(sum_tangent_vectors(rotation_coef, design[which(mm_groups == gr)[1],]),
-                                        base_point) %*% A[,mm_groups == gr]
+    A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% A[,mm_groups == gr]
   }
   A
 }
-
-apply_stretching <- function(A, stretch_coef, design, base_point){
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
-  groups <- unique(mm_groups)
-  for(gr in groups){
-    A[,mm_groups == gr] <- spd_map(sum_tangent_vectors(stretch_coef, design[which(mm_groups == gr)[1],]),
-                                   base_point) %*% A[,mm_groups == gr]
-  }
-  A
-}
-
 
 get_mutual_neighbors <- function(data, design_matrix, cells_per_cluster = 20, mnn = 10){
   mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
@@ -385,39 +293,18 @@ correct_fit <- function(fit, correction){
   if(! matrix_equals(correction$design_matrix, fit$alignment_design_matrix) ||
      is.null(correction$design_formula) != is.null(fit$alignment_design) ||
      correction$design_formula != fit$alignment_design){
-    metadata(fit)[["alignment_rotation"]] <- correction$rotation_coefficients
-    metadata(fit)[["alignment_stretching"]] <- correction$stretch_coefficients
+    metadata(fit)[["alignment_coefficients"]] <- correction$alignment_coefs
     metadata(fit)[["alignment_design_matrix"]] <- correction$design_matrix
     metadata(fit)[["alignment_design"]] <- correction$design_formula
   }else{
-    metadata(fit)[["alignment_rotation"]] <-  metadata(fit)[["alignment_rotation"]] + correction$rotation_coefficients
-    metadata(fit)[["alignment_stretching"]] <-  metadata(fit)[["alignment_stretching"]] + correction$stretch_coefficients
+    metadata(fit)[["alignment_coefficients"]] <- correction$alignment_coefs
   }
   fit
 }
 
 handle_ridge_penalty_parameter <- function(ridge_penalty){
-  ridge_penalty <- lapply(ridge_penalty, \(x) x * 1.0)
-  if(length(ridge_penalty) == 2){
-    if(is.null(names(ridge_penalty))){
-      names(ridge_penalty) <- c("rotation", "stretching")
-    }else if(! all(names(ridge_penalty) %in% c("rotation", "stretching"))){
-      stop("Names of ridge penalty must be 'rotation' and 'stretching'. They are: ", paste0(names(ridge_penalty), collapse = ", "))
-    }
-  }else if(length(ridge_penalty) == 1){
-    if(is.null(names(ridge_penalty))){
-      ridge_penalty <- list(rotation = ridge_penalty[[1]], stretching = ridge_penalty[[1]])
-    }else{
-      if(names(ridge_penalty) == "rotation"){
-        ridge_penalty <- c(ridge_penalty, list(stretching = 0))
-      }else if(names(ridge_penalty) == "stretching"){
-        ridge_penalty <- c(ridge_penalty, list(rotation = 0))
-      }else{
-        stop("Cannot handle name of ridge penalty: ", names(ridge_penalty))
-      }
-    }
-  }else{
-    stop("Cannot handle ridge penalty of length: ", length(ridge_penalty))
+  if(any(names(ridge_penalty) %in% c("rotation", "stretching"))){
+    stop("The alignment function has changed and the rotation and stretching specification is now defunct")
   }
   ridge_penalty
 }

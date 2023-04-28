@@ -33,8 +33,7 @@ the exponential map.}
 \item{\code{fit$design_matrix}}{a matrix with covariates for each cell (\code{ncol(fit) * ncol(fit$design_matrix)}).}
 \item{\code{fit$linear_coefficients}}{a matrix (\code{nrow(fit) * ncol(fit$design_matrix)}) with the coefficients for the linear regression.}
 \item{\code{fit$alignment_method}}{a boolean. \emph{Might be deleted or changed in a future version}.}
-\item{\code{fit$alignment_rotation}}{a 3D tensor with the coefficients for the alignment rotation (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
-\item{\code{fit$alignment_stretching}}{a 3D tensor with the coefficients for the alignment stretching (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
+\item{\code{fit$alignment_coefficients}}{a 3D tensor with the coefficients for the alignment (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
 \item{\code{fit$alignment_design}}{an alternative design specification for the alignment. This is typically a \code{\link[stats:formula]{stats::formula}}.}
 \item{\code{fit$alignment_design_matrix}}{an alternative design matrix specification for the alignment.}
 \item{\code{fit$contrast}}{a parsed version of the contrast specification from the \code{test_de} function or \code{NULL}.}

@@ -9,55 +9,44 @@
 \usage{
 align_neighbors(
   fit,
-  rotating = TRUE,
-  stretching = TRUE,
   data_matrix = assay(fit),
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0,
+  ridge_penalty = 0.01,
   verbose = TRUE
 )
 
 align_harmony(
   fit,
-  rotating = TRUE,
-  stretching = TRUE,
   ...,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0,
-  min_cluster_membership = 0.1,
+  ridge_penalty = 0.01,
+  min_cluster_membership = 0.001,
   max_iter = 10,
   verbose = TRUE
 )
 
 align_by_template(
   fit,
-  rotating = TRUE,
-  stretching = TRUE,
   alignment_template,
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0,
+  ridge_penalty = 0.01,
   verbose = TRUE
 )
 
 align_by_grouping(
   fit,
-  rotating = TRUE,
-  stretching = TRUE,
   grouping,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0,
+  ridge_penalty = 0.01,
   verbose = TRUE
 )
 }
 \arguments{
 \item{fit}{a \code{lemur_fit} object}
-
-\item{rotating, stretching}{boolean flags to turn limit the flexibility of the
-alignment transformation. Default: \code{TRUE}}
 
 \item{data_matrix}{argument specific for \code{align_neighbors}. The data matrix that is used for
 the mutual nearest neighbor search. Default: \code{assay(fit)}}
@@ -73,7 +62,7 @@ for the transformation. Default: \code{fit$design_matrix}}
 
 \item{ridge_penalty}{specification how much the flexibility of the transformation
 should be regularized. This can be a single positive scalar or named list
-(\code{"stretching"} and \code{"rotation"}). Default: \code{0}}
+(\code{"stretching"} and \code{"rotation"}). Default: \code{0.01}}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 

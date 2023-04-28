@@ -47,8 +47,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
                          linear_coefficients = object$linear_coefficients,
                          coefficients = object$coefficients,
                          base_point = object$base_point,
-                         alignment_rotation = object$alignment_rotation,
-                         alignment_stretching = object$alignment_stretching,
+                         alignment_coefficients = object$alignment_coefficients,
                          alignment_design_matrix = object$alignment_design_matrix,
                          row_mask = metadata(object)$row_mask,
                          ...){
@@ -93,8 +92,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
       diffemb <- grassmann_map(sum_tangent_vectors(coefficients, covar1), base_point)
       alignment <- if(with_alignment){
         covar2 <- alignment_design_matrix[which(mm_al_groups == gr2)[1],]
-        spd_map(sum_tangent_vectors(alignment_stretching, covar2), diag(nrow = n_embedding)) %*%
-          rotation_map(sum_tangent_vectors(alignment_rotation, covar2), diag(nrow = n_embedding))
+        reverse_linear_transformation(alignment_coefficients, covar2)
       }else{
         diag(nrow = n_embedding)
       }
@@ -141,7 +139,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  linear_coefficients = fit_alt$linear_coefficients, coefficients = fit_alt$coefficients,
                  base_point = fit_alt$base_point, alignment_design_matrix = fit_alt$alignment_design_matrix,
-                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching,
+                 alignment_coefficients = fit_alt$alignment_coefficients,
                  row_mask = rep(TRUE, nrow(Y)))
   }else{
     fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,
@@ -154,7 +152,7 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  design_matrix = fit_alt$design_matrix, design = fit_alt$design,
                  linear_coefficients = fit_alt$linear_coefficients, coefficients = fit_alt$coefficients,
                  base_point = fit_alt$base_point, alignment_design_matrix = fit$alignment_design_matrix,
-                 alignment_rotation = fit_alt$alignment_rotation, alignment_stretching = fit_alt$alignment_stretching,
+                 alignment_coefficients = fit_alt$alignment_coefficients,
                  row_mask = rep(TRUE, nrow(Y)))
   }
 }

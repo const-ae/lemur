@@ -1,5 +1,4 @@
 test_that("making data works", {
-
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat
   fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
@@ -11,8 +10,7 @@ test_that("making data works", {
   expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
   expect_equal(dim(fit$linear_coefficients), c(50, 3))
-  expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
-  expect_equal(fit$alignment_stretching, array(0, dim = c(5, 5, 3)))
+  expect_equal(fit$alignment_coefficients, array(0, dim = c(5, 5, 3)))
   expect_equal(format(fit$alignment_design), "~condition")
   expect_equal(fit$alignment_design_matrix, fit$design_matrix)
 })
@@ -29,8 +27,7 @@ test_that("the fit is valid", {
   expect_equal(dim(fit$embedding), c(5, ncol(dat)))
   expect_equal(dim(fit$design_matrix), c(ncol(dat), 3))
   expect_equal(dim(fit$linear_coefficients), c(30, 3))
-  expect_equal(fit$alignment_rotation, array(0, dim = c(5, 5, 3)))
-  expect_equal(fit$alignment_stretching, array(0, dim = c(5, 5, 3)))
+  expect_equal(fit$alignment_coefficients, array(0, dim = c(5, 5, 3)))
   expect_equal(format(fit$alignment_design), "~condition")
   expect_equal(fit$alignment_design_matrix, fit$design_matrix)
 })
@@ -118,20 +115,17 @@ test_that("Adding predictors improves predictions", {
 
 
 test_that("n_embedding = 0 works", {
-
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
   fit <- lemur(dat, design = ~ condition, n_embedding = 0, verbose = FALSE)
   zero_dim_mat <- matrix(nrow = 30, ncol = 0)
   expect_equal(fit$base_point, zero_dim_mat)
   expect_equal(fit$coefficients, array(dim = c(30, 0, 3)), ignore_attr = "dimnames")
   expect_equal(fit$embedding, matrix(NA_real_, nrow = 0, ncol = 500), ignore_attr = "dimnames")
-  expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
-  expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
+  expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
 
   fit <- align_by_grouping(fit, grouping = sample(LETTERS[1:2], 500, replace = TRUE),
-                           verbose = FALSE, rotating = TRUE, stretching = TRUE)
-  expect_equal(fit$alignment_rotation, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
-  expect_equal(fit$alignment_stretching, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
+                           verbose = FALSE)
+  expect_equal(fit$alignment_coefficients, array(NA_real_, c(0,0,3)), ignore_attr = "dimnames")
   res1 <- test_de(fit, contrast = cond())
   res2 <- test_de(fit, contrast = cond(), consider = "linear")
   expect_equal(res1, res2)
@@ -165,20 +159,18 @@ test_that("align_neighbors works", {
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   expect_equal(fit$alignment_method, FALSE)
 
-  al_rot <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, cells_per_cluster = 1, verbose = FALSE)
-  al_stretch <- align_neighbors(fit, rotating = FALSE, stretching = TRUE, cells_per_cluster = 1, verbose = FALSE)
-  al_rot_stretch <- align_neighbors(fit, rotating = TRUE, stretching = TRUE, cells_per_cluster = 1, verbose = FALSE)
+  fit_al <- align_neighbors(fit, cells_per_cluster = 1, verbose = FALSE)
 
-  expect_equal(predict(fit), predict(al_rot))
-  expect_equal(predict(fit), predict(al_stretch), tolerance = 1e-4)
-  expect_equal(predict(fit), predict(al_rot_stretch), tolerance = 1e-4)
+  expect_equal(predict(fit), predict(fit_al))
 })
 
 test_that("align_harmony works", {
   dat <- make_synthetic_data(n_genes = 15)
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
-  al_harm <- align_harmony(fit, rotating = TRUE, stretching = TRUE, verbose = FALSE)
-  al_nei <- align_neighbors(fit, rotating = TRUE, stretching = FALSE, verbose = FALSE)
+  al_harm <- align_harmony(fit, verbose = FALSE)
+  al_nei <- align_neighbors(fit, verbose = FALSE)
+  expect_equal(predict(fit), predict(al_harm))
+  expect_equal(predict(fit), predict(al_nei))
 })
 
 test_that("aligning works with alternative design matrices", {
@@ -196,46 +188,6 @@ test_that("aligning works with alternative design matrices", {
                   alignment_design_matrix = duplicate_rows(c(1, 0, 1), 5),
                   embedding  = randn(5, 5))
   expect_equal(dim(pred), c(30, 5))
-})
-
-
-test_that("apply_rotation works", {
-  A <- randn(5, 30)
-  base_point <- diag(nrow = 5)
-  rot_vec1 <- random_rotation_tangent(base_point, sd = 0.1)
-  rot_vec2 <- random_rotation_tangent(base_point, sd = 0.1)
-  cond <- sample(c("A", "B"), size = ncol(A), replace = TRUE)
-  Amod <- array(NA, dim(A))
-  Amod[,cond == "A"] <- rotation_map(rot_vec1, base_point) %*% A[,cond == "A"]
-  Amod[,cond == "B"] <- rotation_map(rot_vec1 + rot_vec2, base_point) %*% A[,cond == "B"]
-
-  rot_coef <- array(c(rot_vec1, rot_vec2), dim = c(5, 5, 2))
-  design <- model.matrix(~ cond)
-  Ahat <- apply_rotation(A, rot_coef, design, base_point)
-  expect_equal(Ahat, Amod)
-
-  # Applying the inverse is trivial
-  Amod2 <- array(NA, dim(A))
-  Amod2[,cond == "A"] <- solve(rotation_map(rot_vec1, base_point)) %*% A[,cond == "A"]
-  Amod2[,cond == "B"] <- solve(rotation_map(rot_vec1 + rot_vec2, base_point)) %*% A[,cond == "B"]
-  Ahat2 <- apply_rotation(A, -rot_coef, design, base_point)
-  expect_equal(Ahat2, Amod2)
-})
-
-test_that("apply_stretching works", {
-  A <- randn(5, 30)
-  base_point <- diag(nrow = 5)
-  spd_vec1 <- random_spd_tangent(base_point, sd = 0.1)
-  spd_vec2 <- random_spd_tangent(base_point, sd = 0.1)
-  cond <- sample(c("A", "B"), size = ncol(A), replace = TRUE)
-  Amod <- array(NA, dim(A))
-  Amod[,cond == "A"] <- spd_map(spd_vec1, base_point) %*% A[,cond == "A"]
-  Amod[,cond == "B"] <- spd_map(spd_vec1 + spd_vec2, base_point) %*% A[,cond == "B"]
-
-  stretch_coef <- array(c(spd_vec1, spd_vec2), dim = c(5, 5, 2))
-  design <- model.matrix(~ cond)
-  Ahat <- apply_stretching(A, stretch_coef, design, base_point)
-  expect_equal(Ahat, Amod)
 })
 
 
@@ -366,45 +318,4 @@ test_that("regularization helps", {
   # segments3d(x = contr[1,], y = contr[2,], z = contr[3,], col = "green")
 
 })
-
-
-# fit_new <- lemur(dat, design = ~ condition,
-#                               n_ambient = 3, n_embedding = 2, verbose = FALSE, reshuffling_fraction = 0.2)
-# coef_new <- t(dat_pca$coordsystem) %*% fit_new$ambient_coordsystem %*% fit_new$linear_coefficients
-# intercept_vec_new <- t(dat_pca$coordsystem) %*%
-#   fit_new$ambient_coordsystem %*%
-#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,0)), fit_new$base_point)
-#
-# b_vec_new <- t(dat_pca$coordsystem) %*%
-#   fit_new$ambient_coordsystem %*%
-#   grassmann_map(sum_tangent_vectors(fit_new$coefficients, c(1,1)), fit_new$base_point)
-#
-# expect_equal(intercept_vec, intercept_vec_new)
-# expect_equal(b_vec, b_vec_new)
-#
-#
-# rotation_point1 <- t(dat_pca$coordsystem) %*% fit_new$ambient_offset + coef_new[,1]
-# rotation_point2 <- t(dat_pca$coordsystem) %*% fit_new$ambient_offset + coef_new[,1] + coef_new[,2]
-# spheres3d(c(rotation_point1), radius = 0.1, col = "purple")
-# spheres3d(c(rotation_point2), radius = 0.1, col = "purple")
-#
-# planes3d(a = c(MASS::Null(intercept_vec_new)),
-#          d = -t(MASS::Null(intercept_vec_new)) %*% rotation_point1,
-#          alpha = 0.1, col = "red")
-# planes3d(a = c(MASS::Null(b_vec_new)),
-#          d = -t(MASS::Null(b_vec_new)) %*% rotation_point2,
-#          alpha = 0.1, col = "red")
-#
-# spheres3d(t(tmp2[,sel]), radius = 0.11, col ="red")
-#
-#
-#
-# as_tibble(t(dat_pca$embedding)) %>%
-#   bind_cols(as_tibble(colData(dat))) %>%
-#   mutate(resid = colSums(residuals(fit_new))) %>%
-#   ggplot(aes(x = V1, y = V2)) +
-#   geom_point(aes(color = resid, shape = condition)) +
-#   # coord_fixed() +
-#   scale_color_gradient2() +
-#   NULL
 

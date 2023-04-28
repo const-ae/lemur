@@ -9,9 +9,7 @@ correct_design_matrix_groups(
   matching_groups,
   embedding,
   design,
-  rotating = TRUE,
-  stretching = TRUE,
-  ridge_penalty = 0,
+  ridge_penalty = 0.01,
   verbose = TRUE
 )
 }

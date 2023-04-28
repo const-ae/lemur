@@ -10,9 +10,9 @@ estimate_linear_coefficient <- function(Y, design_matrix, method = c("linear", "
     matrix(0, nrow = nrow(Y), ncol = ncol(design_matrix))
   }else if(method == "cluster_median"){
     min_cluster_membership <- 0.01
-    pca <- lemur:::pca(Y, n = 20)
-    harm_obj <- lemur:::harmony_init(pca$embedding, design_matrix, nclust = 30, verbose = FALSE)
-    harm_obj <- lemur:::harmony_max_div_clustering(harm_obj)
+    pca <- pca(Y, n = 20)
+    harm_obj <- harmony_init(pca$embedding, design_matrix, nclust = 30, verbose = FALSE)
+    harm_obj <- harmony_max_div_clustering(harm_obj)
     Yt <- as.matrix(t(Y))
     coef <- do.call(cbind, lapply(seq_len(nrow(harm_obj$R)), \(cl){
       threshold <- min(min_cluster_membership, max(harm_obj$R) * 0.5)
