@@ -1,10 +1,15 @@
-# v0.0.15
+# v0.0.16
+
+* Change in the alignment model. Previously, the method tried to align cells using
+rotations and / or stretching, however, the method could not represent reflections! 
+To fix this, I now allow arbitrary linear transformations where $R(x) = (I + sum_k x_k V_k)^{-1}$. The
+new alignment is more flexible and easier to infer. The downside is the term inside the parantheses can be 
+singular which would lead to an error.
+
+# v0.0.13-v0.0.15 (28th of April 2023)
 
 * Skip iteration step: first infer centering and then infer latent space. Previously, I iterated between these steps 
 but that either didn't add anything or actually degraded the results.
-
-# v0.0.13-v0.0.14 (19 of April 2023)
-
 * Set `center = FALSE` in `find_base_point`. Centering the data before fitting the base point caused
 problems and made the data look less integrated in some cases.
 * Remove ambient PCA step. This was originally conceived as an performance optimization, however
