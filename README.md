@@ -108,6 +108,9 @@ as_tibble(orig_umap) %>%
 #> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if
 #> `.name_repair` is omitted as of tibble 2.0.0.
 #> ℹ Using compatibility `.name_repair`.
+#> This warning is displayed once every 8 hours.
+#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+#> generated.
 ```
 
 <img src="man/figures/README-raw_umap-1.png" width="100%" />
@@ -124,15 +127,14 @@ corresponding cells using manually annotated cell types
 ``` r
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
 
-# We can regularize the alignment either using ridge regression
-# or by allowing only rotations or stretching
-fit <- align_harmony(fit, stretching = FALSE)
+# We can regularize the alignment using ridge penalty
+fit <- align_harmony(fit, ridge_penalty = 0.5)
 #> Select cells that are considered close with 'harmony'
 
 fit
 #> class: lemur_fit 
 #> dim: 300 5000 
-#> metadata(10): n_embedding design ... alignment_design_matrix row_mask
+#> metadata(9): n_embedding design ... alignment_design_matrix row_mask
 #> assays(1): expr
 #> rownames(300): ENSG00000210082 ENSG00000118785 ... ENSG00000167468
 #>   ENSG00000139289
@@ -208,19 +210,19 @@ as_tibble(neighborhoods) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
   dplyr::select(name, symbol, n_cells, pval, adj_pval)
 #> # A tibble: 300 × 5
-#>    name            symbol   n_cells       pval adj_pval
-#>    <chr>           <chr>      <int>      <dbl>    <dbl>
-#>  1 ENSG00000187193 MT1X        3323 0.00000788  0.00236
-#>  2 ENSG00000125144 MT1G        2034 0.0000196   0.00294
-#>  3 ENSG00000177700 POLR2L      4110 0.0000973   0.00915
-#>  4 ENSG00000147588 PMP2        3961 0.000124    0.00915
-#>  5 ENSG00000125148 MT2A        3554 0.000152    0.00915
-#>  6 ENSG00000245532 NEAT1       3587 0.000338    0.0153 
-#>  7 ENSG00000196126 HLA-DRB1     586 0.000356    0.0153 
-#>  8 ENSG00000069275 NUCKS1      4169 0.000578    0.0185 
-#>  9 ENSG00000156508 EEF1A1      2193 0.000592    0.0185 
-#> 10 ENSG00000169715 MT1E        3277 0.000664    0.0185 
-#> # … with 290 more rows
+#>    name            symbol n_cells      pval adj_pval
+#>    <chr>           <chr>    <int>     <dbl>    <dbl>
+#>  1 ENSG00000245532 NEAT1     3831 0.0000152  0.00244
+#>  2 ENSG00000187193 MT1X      4032 0.0000163  0.00244
+#>  3 ENSG00000125148 MT2A      3293 0.0000675  0.00586
+#>  4 ENSG00000147588 PMP2      3683 0.0000782  0.00586
+#>  5 ENSG00000169715 MT1E      3479 0.000287   0.0142 
+#>  6 ENSG00000156508 EEF1A1    2604 0.000327   0.0142 
+#>  7 ENSG00000177700 POLR2L    3466 0.000334   0.0142 
+#>  8 ENSG00000198668 CALM1     4087 0.000379   0.0142 
+#>  9 ENSG00000175899 A2M       3613 0.000563   0.0186 
+#> 10 ENSG00000069275 NUCKS1    3851 0.000672   0.0186 
+#> # ℹ 290 more rows
 ```
 
 We can now specifically select regions with significant differential
@@ -333,16 +335,19 @@ out myself. If you can share the data publicly, please open an issue.
 
 ``` r
 sessionInfo()
-#> R version 4.2.1 RC (2022-06-17 r82503)
-#> Platform: x86_64-apple-darwin17.0 (64-bit)
-#> Running under: macOS Big Sur ... 10.16
+#> R version 4.3.0 (2023-04-21)
+#> Platform: x86_64-apple-darwin20 (64-bit)
+#> Running under: macOS Big Sur 11.7
 #> 
 #> Matrix products: default
-#> BLAS:   /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRblas.0.dylib
-#> LAPACK: /Library/Frameworks/R.framework/Versions/4.2/Resources/lib/libRlapack.dylib
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/lib/libRblas.0.dylib 
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
 #> 
 #> locale:
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> 
+#> time zone: Europe/Berlin
+#> tzcode source: internal
 #> 
 #> attached base packages:
 #> [1] stats4    stats     graphics  grDevices utils     datasets  methods  
@@ -350,46 +355,46 @@ sessionInfo()
 #> 
 #> other attached packages:
 #>  [1] lubridate_1.9.2             forcats_1.0.0              
-#>  [3] stringr_1.5.0               dplyr_1.1.0                
+#>  [3] stringr_1.5.0               dplyr_1.1.2                
 #>  [5] purrr_1.0.1                 readr_2.1.4                
-#>  [7] tidyr_1.3.0                 tibble_3.1.8               
-#>  [9] ggplot2_3.4.1               tidyverse_2.0.0            
-#> [11] SingleCellExperiment_1.20.0 SummarizedExperiment_1.28.0
-#> [13] Biobase_2.58.0              GenomicRanges_1.50.2       
-#> [15] GenomeInfoDb_1.34.9         IRanges_2.32.0             
-#> [17] S4Vectors_0.36.2            BiocGenerics_0.44.0        
-#> [19] MatrixGenerics_1.10.0       matrixStats_0.63.0         
+#>  [7] tidyr_1.3.0                 tibble_3.2.1               
+#>  [9] ggplot2_3.4.2               tidyverse_2.0.0            
+#> [11] SingleCellExperiment_1.22.0 SummarizedExperiment_1.30.0
+#> [13] Biobase_2.60.0              GenomicRanges_1.52.0       
+#> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
+#> [17] S4Vectors_0.38.0            BiocGenerics_0.46.0        
+#> [19] MatrixGenerics_1.12.0       matrixStats_0.63.0         
 #> [21] lemur_0.0.15               
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] splines_4.2.1             DelayedMatrixStats_1.20.0
-#>  [3] expm_0.999-7              highr_0.10               
-#>  [5] GenomeInfoDbData_1.2.9    yaml_2.3.7               
-#>  [7] pillar_1.8.1              lattice_0.20-45          
-#>  [9] glue_1.6.2                digest_0.6.31            
-#> [11] XVector_0.38.0            colorspace_2.1-0         
-#> [13] cowplot_1.1.1             htmltools_0.5.4          
-#> [15] Matrix_1.5-3              pkgconfig_2.0.3          
-#> [17] zlibbioc_1.44.0           scales_1.2.1             
-#> [19] tzdb_0.3.0                timechange_0.2.0         
-#> [21] generics_0.1.3            farver_2.1.1             
-#> [23] ellipsis_0.3.2            withr_2.5.0              
-#> [25] harmony_0.1.1             cli_3.6.0                
-#> [27] magrittr_2.0.3            evaluate_0.20            
-#> [29] fansi_1.0.4               MASS_7.3-58.2            
-#> [31] tools_4.2.1               hms_1.1.2                
-#> [33] lifecycle_1.0.3           munsell_0.5.0            
-#> [35] DelayedArray_0.24.0       irlba_2.3.5.1            
-#> [37] isoband_0.2.7             compiler_4.2.1           
-#> [39] rlang_1.0.6               grid_4.2.1               
-#> [41] RCurl_1.98-1.10           rstudioapi_0.14          
-#> [43] RcppAnnoy_0.0.20          glmGamPoi_1.11.7         
-#> [45] bitops_1.0-7              labeling_0.4.2           
-#> [47] rmarkdown_2.20            gtable_0.3.1             
-#> [49] codetools_0.2-19          R6_2.5.1                 
-#> [51] knitr_1.42                fastmap_1.1.1            
-#> [53] uwot_0.1.14               utf8_1.2.3               
-#> [55] stringi_1.7.12            Rcpp_1.0.10              
-#> [57] vctrs_0.5.2               tidyselect_1.2.0         
-#> [59] xfun_0.37                 sparseMatrixStats_1.10.0
+#>  [1] gtable_0.3.3              xfun_0.39                
+#>  [3] lattice_0.21-8            tzdb_0.3.0               
+#>  [5] vctrs_0.6.2               tools_4.3.0              
+#>  [7] bitops_1.0-7              generics_0.1.3           
+#>  [9] fansi_1.0.4               highr_0.10               
+#> [11] pkgconfig_2.0.3           Matrix_1.5-4             
+#> [13] sparseMatrixStats_1.12.0  lifecycle_1.0.3          
+#> [15] GenomeInfoDbData_1.2.10   farver_2.1.1             
+#> [17] compiler_4.3.0            munsell_0.5.0            
+#> [19] codetools_0.2-19          glmGamPoi_1.12.0         
+#> [21] htmltools_0.5.5           RCurl_1.98-1.12          
+#> [23] yaml_2.3.7                crayon_1.5.2             
+#> [25] pillar_1.9.0              MASS_7.3-59              
+#> [27] uwot_0.1.14               DelayedArray_0.25.0      
+#> [29] tidyselect_1.2.0          digest_0.6.31            
+#> [31] stringi_1.7.12            labeling_0.4.2           
+#> [33] splines_4.3.0             cowplot_1.1.1            
+#> [35] fastmap_1.1.1             grid_4.3.0               
+#> [37] colorspace_2.1-0          cli_3.6.1                
+#> [39] harmony_0.1.1             magrittr_2.0.3           
+#> [41] utf8_1.2.3                withr_2.5.0              
+#> [43] DelayedMatrixStats_1.22.0 scales_1.2.1             
+#> [45] timechange_0.2.0          rmarkdown_2.21           
+#> [47] XVector_0.40.0            hms_1.1.3                
+#> [49] evaluate_0.20             knitr_1.42               
+#> [51] RcppAnnoy_0.0.20          irlba_2.3.5.1            
+#> [53] rlang_1.1.0               isoband_0.2.7            
+#> [55] Rcpp_1.0.10               glue_1.6.2               
+#> [57] rstudioapi_0.14           R6_2.5.1                 
+#> [59] zlibbioc_1.46.0
 ```
