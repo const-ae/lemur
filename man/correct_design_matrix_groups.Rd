@@ -9,7 +9,7 @@ correct_design_matrix_groups(
   matching_groups,
   embedding,
   design,
-  ridge_penalty = 0.01,
+  ridge_penalty = 0.5,
   verbose = TRUE
 )
 }

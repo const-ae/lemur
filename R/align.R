@@ -5,7 +5,7 @@
 #'   for the transformation. Default: `fit$design_matrix`
 #' @param ridge_penalty specification how much the flexibility of the transformation
 #'   should be regularized. This can be a single positive scalar or named list
-#'   (`"stretching"` and `"rotation"`). Default: `0.01`
+#'   (`"stretching"` and `"rotation"`). Default: `0.5`
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters that are passed on to relevant functions
 #' @param cells_per_cluster argument specific for `align_neighbors`. Before mutual nearest neighbor
@@ -26,7 +26,7 @@
 #' @export
 align_neighbors <- function(fit,
                             data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
-                            design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
+                            design = fit$alignment_design_matrix, ridge_penalty = 0.5, verbose = TRUE){
   if(verbose) message("Find mutual nearest neighbors")
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   mnn_groups <- get_mutual_neighbors(data_matrix, design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
@@ -39,7 +39,7 @@ align_neighbors <- function(fit,
 #' @export
 align_harmony <- function(fit, ...,
                           design = fit$alignment_design_matrix,
-                          ridge_penalty = 0.01, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
+                          ridge_penalty = 0.5, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
@@ -77,7 +77,7 @@ align_harmony <- function(fit, ...,
 #' @export
 align_by_template <- function(fit, template,
                               cells_per_cluster = 20, mnn = 10,
-                              design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
+                              design = fit$alignment_design_matrix, ridge_penalty = 0.5, verbose = TRUE){
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
@@ -136,7 +136,7 @@ align_by_grouping <- function(fit,
 #'   }
 #'
 #' @keywords internal
-correct_design_matrix_groups <- function(fit, matching_groups, embedding, design, ridge_penalty = 0.01, verbose = TRUE){
+correct_design_matrix_groups <- function(fit, matching_groups, embedding, design, ridge_penalty = 0.5, verbose = TRUE){
 
   n_embedding <- nrow(embedding)
   ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)

@@ -13,7 +13,7 @@ align_neighbors(
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0.01,
+  ridge_penalty = 0.5,
   verbose = TRUE
 )
 
@@ -21,7 +21,7 @@ align_harmony(
   fit,
   ...,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0.01,
+  ridge_penalty = 0.5,
   min_cluster_membership = 0.001,
   max_iter = 10,
   verbose = TRUE
@@ -33,7 +33,7 @@ align_by_template(
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0.01,
+  ridge_penalty = 0.5,
   verbose = TRUE
 )
 
@@ -41,7 +41,7 @@ align_by_grouping(
   fit,
   grouping,
   design = fit$alignment_design_matrix,
-  ridge_penalty = 0.01,
+  ridge_penalty = 0.5,
   verbose = TRUE
 )
 }
@@ -62,7 +62,7 @@ for the transformation. Default: \code{fit$design_matrix}}
 
 \item{ridge_penalty}{specification how much the flexibility of the transformation
 should be regularized. This can be a single positive scalar or named list
-(\code{"stretching"} and \code{"rotation"}). Default: \code{0.01}}
+(\code{"stretching"} and \code{"rotation"}). Default: \code{0.5}}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
