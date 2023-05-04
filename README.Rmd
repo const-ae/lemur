@@ -95,8 +95,12 @@ We fit the LEMUR model by calling `lemur()`. We provide the experimental design 
 ```{r fit_lemur}
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
 
-# We can regularize the alignment using ridge penalty
-fit <- align_harmony(fit, ridge_penalty = 0.5)
+# The alignment step is optional and there are several approaches to choose the alignment.
+# The ridge_penalty regularizes the alignment
+## fit <- align_by_grouping(fit, grouping = fit$colData$cell_type) # Use existing annotations (doesn't exist for this data)
+## fit <- align_by_template(fit, template = aligned_data) # Use existing alignment (doesn't exist for this data)
+## fit <- align_neighbors(fit) # Put mutual nearest neighbors close
+fit <- align_harmony(fit, ridge_penalty = 0.5) # Use maximum-diversity clustering
 
 fit
 ```

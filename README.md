@@ -127,8 +127,12 @@ corresponding cells using manually annotated cell types
 ``` r
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
 
-# We can regularize the alignment using ridge penalty
-fit <- align_harmony(fit, ridge_penalty = 0.5)
+# The alignment step is optional and there are several approaches to choose the alignment.
+# The ridge_penalty regularizes the alignment
+## fit <- align_by_grouping(fit, grouping = fit$colData$cell_type) # Use existing annotations (doesn't exist for this data)
+## fit <- align_by_template(fit, template = aligned_data) # Use existing alignment (doesn't exist for this data)
+## fit <- align_neighbors(fit) # Put mutual nearest neighbors close
+fit <- align_harmony(fit, ridge_penalty = 0.5) # Use maximum-diversity clustering
 #> Select cells that are considered close with 'harmony'
 
 fit
@@ -212,16 +216,16 @@ as_tibble(neighborhoods) %>%
 #> # A tibble: 300 × 5
 #>    name            symbol n_cells      pval adj_pval
 #>    <chr>           <chr>    <int>     <dbl>    <dbl>
-#>  1 ENSG00000245532 NEAT1     3831 0.0000152  0.00244
-#>  2 ENSG00000187193 MT1X      4032 0.0000163  0.00244
-#>  3 ENSG00000125148 MT2A      3293 0.0000675  0.00586
-#>  4 ENSG00000147588 PMP2      3683 0.0000782  0.00586
-#>  5 ENSG00000169715 MT1E      3479 0.000287   0.0142 
-#>  6 ENSG00000156508 EEF1A1    2604 0.000327   0.0142 
-#>  7 ENSG00000177700 POLR2L    3466 0.000334   0.0142 
-#>  8 ENSG00000198668 CALM1     4087 0.000379   0.0142 
-#>  9 ENSG00000175899 A2M       3613 0.000563   0.0186 
-#> 10 ENSG00000069275 NUCKS1    3851 0.000672   0.0186 
+#>  1 ENSG00000187193 MT1X      4462 0.0000242  0.00726
+#>  2 ENSG00000147588 PMP2      3783 0.0000622  0.00933
+#>  3 ENSG00000245532 NEAT1     3527 0.000101   0.00992
+#>  4 ENSG00000177700 POLR2L    4374 0.000142   0.00992
+#>  5 ENSG00000125148 MT2A      4088 0.000183   0.00992
+#>  6 ENSG00000130208 APOC1     3055 0.000224   0.00992
+#>  7 ENSG00000198668 CALM1     3938 0.000293   0.00992
+#>  8 ENSG00000156508 EEF1A1    2885 0.000306   0.00992
+#>  9 ENSG00000169715 MT1E      4194 0.000312   0.00992
+#> 10 ENSG00000175899 A2M       3428 0.000331   0.00992
 #> # ℹ 290 more rows
 ```
 
@@ -364,7 +368,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.0            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.15               
+#> [21] lemur_0.0.16               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
