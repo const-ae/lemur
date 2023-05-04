@@ -1,13 +1,15 @@
-# v0.0.16
+# v0.0.17
+
+* Rename argument name for `align_by_template` from `alignment_template` to `template`
+* Tweak algorithm for alignment to take cluster sizes into account during optimization
+
+# v0.0.13-v0.0.16
 
 * Change in the alignment model. Previously, the method tried to align cells using
 rotations and / or stretching, however, the method could not represent reflections! 
 To fix this, I now allow arbitrary linear transformations where $R(x) = (I + sum_k x_k V_k)^{-1}$. The
 new alignment is more flexible and easier to infer. The downside is the term inside the parantheses can be 
 singular which would lead to an error.
-
-# v0.0.13-v0.0.15 (28th of April 2023)
-
 * Skip iteration step: first infer centering and then infer latent space. Previously, I iterated between these steps 
 but that either didn't add anything or actually degraded the results.
 * Set `center = FALSE` in `find_base_point`. Centering the data before fitting the base point caused
