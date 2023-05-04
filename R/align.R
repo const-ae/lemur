@@ -189,9 +189,10 @@ correct_design_matrix_groups <- function(fit, matching_groups, embedding, design
       sum(matching_groups$weights[[idx]][matching_groups$index_groups[[idx]] == igr])
     }, FUN.VALUE = 0.0)))
   }
+  weights <- weights / sum(weights)
 
   interact_design_matrix <- duplicate_cols(D, each = n_embedding)  * duplicate_cols(t(Y), times = ncol(D))
-  alignment_coefs <- ridge_regression(M - Y, X = interact_design_matrix, ridge_penalty = ridge_penalty)
+  alignment_coefs <- ridge_regression(M - Y, X = interact_design_matrix, ridge_penalty = ridge_penalty, weights = weights)
   alignment_coefs <- array(alignment_coefs, dim = c(n_embedding, n_embedding, ncol(D)))
 
   embedding <- apply_linear_transformation(embedding, alignment_coefs, design_matrix)
