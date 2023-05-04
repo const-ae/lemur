@@ -78,10 +78,10 @@ align_harmony <- function(fit, ...,
 align_by_template <- function(fit, template,
                               cells_per_cluster = 20, mnn = 10,
                               design = fit$alignment_design_matrix, ridge_penalty = 0.5, verbose = TRUE){
-  stopifnot(is.matrix(alignment_template))
-  stopifnot(ncol(alignment_template) == ncol(fit))
+  stopifnot(is.matrix(template))
+  stopifnot(ncol(template) == ncol(fit))
   if(verbose) message("Received template that puts similar cells close to each other")
-  align_neighbors(fit, data_matrix = alignment_template,
+  align_neighbors(fit, data_matrix = template,
                   cells_per_cluster = cells_per_cluster, mnn = mnn,
                   design = design, ridge_penalty = ridge_penalty, verbose = verbose)
 }
@@ -89,7 +89,7 @@ align_by_template <- function(fit, template,
 #' @rdname align_neighbors
 #' @export
 align_by_grouping <- function(fit,
-                              grouping, design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
+                              grouping, design = fit$alignment_design_matrix, ridge_penalty = 0.5, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
   if(is.list(grouping)){
     # Check that it conforms to the expectation of the mnn_grouping

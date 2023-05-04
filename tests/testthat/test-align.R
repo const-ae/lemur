@@ -175,25 +175,22 @@ test_that("check that harmony alignment works as expected", {
 
 test_that("correct_design_matrix-groups function accounts for weights", {
   # See line 194 in align.R (call to ridge_regression!!!)
-  n_genes <- 10
-  n_emb <- 2
-  df <- data.frame(tmp = rep(c("a", "b"), times = c(3, 100)),
-                   tmp2 =)
-  design_matrix <- model.matrix(~ tmp, data = df)
-  n_points <- nrow(design_matrix)
-  mat <- randn(n_emb, 2) %*% t(design_matrix) + randn(n_emb, n_points, sd = 0.1)
-
-  plot(t(mat), asp = 1, col = as.factor(df$tmp))
-
-  fit <- lemur_fit(randn(n_genes, n_points), col_data = df, row_data = NULL,
-                   n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
-                   linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
-                   base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
-                   embedding = mat,
-                   alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
-                   alignment_design = NULL, alignment_design_matrix = design_matrix)
-  gr <- rep(1, n_points)
-  fit_al <- align_by_grouping(fit, grouping = gr)
+  # n_genes <- 10
+  # n_emb <- 2
+  # df <- data.frame(tmp = rep(c("a", "b"), times = c(3, 100)))
+  # design_matrix <- model.matrix(~ tmp, data = df)
+  # n_points <- nrow(design_matrix)
+  # mat <- randn(n_emb, 2) %*% t(design_matrix) + randn(n_emb, n_points, sd = 0.1)
+  #
+  # fit <- lemur_fit(randn(n_genes, n_points), col_data = df, row_data = NULL,
+  #                  n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
+  #                  linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
+  #                  base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
+  #                  embedding = mat,
+  #                  alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+  #                  alignment_design = NULL, alignment_design_matrix = design_matrix)
+  # gr <- rep(1, n_points)
+  # fit_al <- align_by_grouping(fit, grouping = gr)
   skip("I cannot come up with a good unit test if the weighting is effective")
 })
 
