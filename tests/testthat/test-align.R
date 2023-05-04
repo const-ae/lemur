@@ -109,3 +109,69 @@ test_that("handle_ridge_penalty_parameter works", {
   expect_error(handle_ridge_penalty_parameter(list(rotation = diag(nrow = 5))))
 })
 
+
+
+test_that("check that aligning points works perfectly for low number of points", {
+  n_genes <- 10
+  n_emb <- 8
+  n_points <- n_emb
+  df <- data.frame(tmp = rep(c("a", "b"), each = n_points))
+  design_matrix <- model.matrix(~ tmp, data = df)
+  mat <- randn(n_emb, n_points * 2)
+
+  fit <- lemur_fit(randn(n_genes, n_points * 2), col_data = df, row_data = NULL,
+            n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
+            linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
+            base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
+            embedding = mat,
+            alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+            alignment_design = NULL, alignment_design_matrix = design_matrix)
+  gr <- rep(seq_len(n_points), times = 2)
+  fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
+  expect_equal(fit_al$embedding[,df$tmp == "a"], fit_al$embedding[,df$tmp == "b"], tolerance = 1e-8)
+})
+
+
+
+test_that("check that harmony alignment works as expected", {
+  set.seed(1)
+  n_genes <- 10
+  n_emb <- 2
+  n_points <- n_emb
+  df <- data.frame(tmp = rep(c("a", "b"), each = n_points))
+  design_matrix <- model.matrix(~ tmp, data = df)
+  mat <- randn(n_emb, n_points)
+  mat <- cbind(mat, diag(1.1, nrow = n_emb) %*% mat)
+
+  fit <- lemur_fit(randn(n_genes, n_points * 2), col_data = df, row_data = NULL,
+                   n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
+                   linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
+                   base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
+                   embedding = mat,
+                   alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+                   alignment_design = NULL, alignment_design_matrix = design_matrix)
+  gr <- rep(seq_len(n_points), times = 2)
+  fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
+  expect_equal(fit_al$embedding[,df$tmp == "a"], fit_al$embedding[,df$tmp == "b"], tolerance = 1e-8)
+
+  fit_al2 <- align_harmony(fit, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
+  set.seed(1)
+  harm <- harmony::HarmonyMatrix(mat, meta_data = df, vars_use = "tmp", do_pca = FALSE, nclust = n_points, lambda = 1e-8, verbose = FALSE)
+
+  expect_equal(fit_al2$embedding[,df$tmp == "a"], fit_al2$embedding[,df$tmp == "b"], tolerance = 1e-3)
+  expect_equal(harm[,df$tmp == "a"], harm[,df$tmp == "b"], tolerance = 1e-3)
+
+  # Reimplement harmony correction
+  set.seed(1)
+  harm_obj <- harmony_init(mat, design_matrix, nclust = n_points, lambda = 1e-8, verbose = FALSE)
+  harm_obj <- harmony_max_div_clustering(harm_obj)
+  Z_corr <- harm_obj$Z_orig
+  for(k in seq_len(harm_obj$K)){
+    Phi_Rk <- harm_obj$Phi_moe %*% diag(harm_obj$R[k,])
+    W <- solve(Phi_Rk %*% t(harm_obj$Phi_moe) + harm_obj$lambda) %*% Phi_Rk %*% t(harm_obj$Z_orig)
+    W[1,] <- 0
+    Z_corr <- Z_corr - t(W) %*% Phi_Rk
+  }
+  expect_equal(Z_corr, harm)
+})
+
