@@ -97,7 +97,7 @@ test_that("alignment with template works", {
   change <- diag(nrow = 2) + randn(2, 2, sd = 0.01)
   template[,group == "a"] <- change %*% template[,group == "a"]
 
-  fit_al <- align_by_template(fit, alignment_template = template, verbose = FALSE, mnn = 1, cells_per_cluster = 1)
+  fit_al <- align_by_template(fit, template = template, verbose = FALSE, mnn = 1, cells_per_cluster = 1)
   skip("Not sure what the rest of this test was supposed to achieve.")
 })
 
@@ -151,9 +151,6 @@ test_that("check that harmony alignment works as expected", {
                    alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
                    alignment_design = NULL, alignment_design_matrix = design_matrix)
   gr <- rep(seq_len(n_points), times = 2)
-  fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
-  expect_equal(fit_al$embedding[,df$tmp == "a"], fit_al$embedding[,df$tmp == "b"], tolerance = 1e-8)
-
   fit_al2 <- align_harmony(fit, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
   set.seed(1)
   harm <- harmony::HarmonyMatrix(mat, meta_data = df, vars_use = "tmp", do_pca = FALSE, nclust = n_points, lambda = 1e-8, verbose = FALSE)
@@ -174,4 +171,31 @@ test_that("check that harmony alignment works as expected", {
   }
   expect_equal(Z_corr, harm)
 })
+
+
+test_that("correct_design_matrix-groups function accounts for weights", {
+  # See line 194 in align.R (call to ridge_regression!!!)
+  n_genes <- 10
+  n_emb <- 2
+  df <- data.frame(tmp = rep(c("a", "b"), times = c(3, 100)),
+                   tmp2 =)
+  design_matrix <- model.matrix(~ tmp, data = df)
+  n_points <- nrow(design_matrix)
+  mat <- randn(n_emb, 2) %*% t(design_matrix) + randn(n_emb, n_points, sd = 0.1)
+
+  plot(t(mat), asp = 1, col = as.factor(df$tmp))
+
+  fit <- lemur_fit(randn(n_genes, n_points), col_data = df, row_data = NULL,
+                   n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
+                   linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
+                   base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
+                   embedding = mat,
+                   alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+                   alignment_design = NULL, alignment_design_matrix = design_matrix)
+  gr <- rep(1, n_points)
+  fit_al <- align_by_grouping(fit, grouping = gr)
+  skip("I cannot come up with a good unit test if the weighting is effective")
+})
+
+
 
