@@ -29,7 +29,7 @@ align_harmony(
 
 align_by_template(
   fit,
-  alignment_template,
+  template,
   cells_per_cluster = 20,
   mnn = 10,
   design = fit$alignment_design_matrix,
@@ -73,7 +73,7 @@ from the soft clustering. Default: \code{0.1}}
 
 \item{max_iter}{argument specific for \code{align_harmony}. The number of iterations. Default: \code{10}}
 
-\item{alignment_template}{argument specific for \code{align_by_template}. A readily integrated dataset
+\item{template}{argument specific for \code{align_by_template}. A readily integrated dataset
 that is approximated using the \code{align_neighbors} function.}
 
 \item{grouping}{argument specific for \code{align_by_grouping}. A manually provided list of groups

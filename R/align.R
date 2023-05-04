@@ -17,7 +17,7 @@
 #' @param min_cluster_membership argument specific for `align_harmony`. The minimum probability
 #'   from the soft clustering. Default: `0.1`
 #' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
-#' @param alignment_template argument specific for `align_by_template`. A readily integrated dataset
+#' @param template argument specific for `align_by_template`. A readily integrated dataset
 #'   that is approximated using the `align_neighbors` function.
 #' @param grouping argument specific for `align_by_grouping`. A manually provided list of groups
 #'   that are considered similar.
@@ -75,8 +75,8 @@ align_harmony <- function(fit, ...,
 
 #' @rdname align_neighbors
 #' @export
-align_by_template <- function(fit,
-                              alignment_template, cells_per_cluster = 20, mnn = 10,
+align_by_template <- function(fit, template,
+                              cells_per_cluster = 20, mnn = 10,
                               design = fit$alignment_design_matrix, ridge_penalty = 0.01, verbose = TRUE){
   stopifnot(is.matrix(alignment_template))
   stopifnot(ncol(alignment_template) == ncol(fit))
