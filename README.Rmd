@@ -20,13 +20,13 @@ knitr::opts_chunk$set(
 
 <!-- badges: end -->
 
-The goal of lemur is to enable easy analysis of multi-condition single-cell data. Lemur fits latent embedding regression, which means it tries to find the PCA embedding for each condition and parameterizes the transition from one embedding to another. For this task, lemur uses geodesic regression on the Grassmann manifold, which is solved efficiently using tangent-space linear modeling. The result is an interpretable model of the gene expression for arbitrary experimental designs that can be expressed using a design matrix.
+The goal of `lemur` is to enable easy analysis of multi-condition single-cell data. `lemur` fits a latent embedding regression model, which means it tries to find a PCA-like embedding for each condition and parameterizes the transition from one embedding to another. For this task, `lemur` uses geodesic regression on a Grassmann manifold, which is solved efficiently using tangent-space linear modeling. `lemur` works with arbitrary experimental designs that can be expressed using a design matrix. The result is an interpretable model of the gene expression patterns.
 
 ![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png)
 
 ## Installation
 
-Lemur depends on features from [`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only available in the development version, so please install `glmGamPoi` from GitHub before proceeding with lemur's installation:
+`lemur` depends on features from [`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only available in the development version, so please install `glmGamPoi` from GitHub before proceeding with lemur's installation:
 
 ``` r
 devtools::install_github("const-ae/glmGamPoi")
@@ -40,9 +40,9 @@ devtools::install_github("const-ae/lemur")
 
 ## A word of caution
 
-This package is being actively developed, and I am still making breaking changes. I would be delighted if you decide to try out the package, and please open an issue if you think you found a bug, have an idea for a cool feature, or have any questions about how LEMUR works. Consider this a *beta* release with the goal to gather feedback but be aware that code written against the current version of lemur might not work in the future.
+This package is being actively developed, and I am still making breaking changes. I would be delighted if you decide to try out the package. Please do open an issue if you think you found a bug, have an idea for a cool feature, or have any questions about how LEMUR works. Consider this an *alpha* release with the goal to gather feedback, but be aware that code written against the current version of lemur might not work in the future.
 
-## Quickstart
+## Quick start
 
 ```{r preparation, echo=FALSE}
 set.seed(1)
@@ -50,8 +50,8 @@ sce <- lemur::glioblastoma_example_data[1:50,sample.int(5000, size = 500)]
 ```
 
 ```{r quick_start, message=FALSE, warning=FALSE}
-library(lemur)
-library(SingleCellExperiment)
+library("lemur")
+library("SingleCellExperiment")
 
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
 fit <- align_harmony(fit)   # This step is optional
@@ -59,16 +59,16 @@ fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "pano
 nei <- find_de_neighborhoods(fit, independent_matrix = counts(sce), group_by = vars(patient_id, condition))
 ```
 
-## Example
+## A worked through example
 
-We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The data consists of tumor biopsies from five glioblastomas which were treated using panobinostat or used as a control. Accordingly, we will analyze ten samples (patient-treatment combinations) using a paired experimental design.
+We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The data consist of tumor biopsies from five glioblastomas which were treated with the drug panobinostat and with a control. Accordingly, we will analyze ten samples (patient-treatment combinations) using a paired experimental design.
 
-We start by loading some packages which are necessary to analyze the data:
+We start by loading some required packages.
 
 ```{r load_packages, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(SingleCellExperiment)
-library(lemur)
+library("tidyverse")
+library("SingleCellExperiment")
+library("lemur")
 set.seed(42)
 ```
 
