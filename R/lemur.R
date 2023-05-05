@@ -8,8 +8,6 @@
 #'   and `col_data` argument
 #' @param col_data an optional data frame with `ncol(data)` rows.
 #' @param n_embedding the dimension of the $k$-plane that is rotated through space.
-#' @param alignment optional specification how or if points should be aligned. This
-#'   can also be done in a separate step by calling [`align_harmony`] or [`align_by_grouping`].
 #' @param linear_coefficient_estimator specify which estimator is used to center the conditions.
 #'   `"linear"` runs simple regression it works well in many circumstances but can produce poor
 #'   results if the composition of the cell types changes between conditions (e.g., one cell type
@@ -35,7 +33,6 @@
 #' @export
 lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_embedding = 15,
-                  alignment = FALSE,
                   linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                   use_assay = "logcounts",
                   ...,
@@ -48,7 +45,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 
   res <- lemur_impl(data_mat, des$design_matrix, n_embedding = n_embedding,
-                    alignment = alignment, linear_coefficient_estimator = linear_coefficient_estimator, verbose = verbose, ...)
+                    linear_coefficient_estimator = linear_coefficient_estimator, verbose = verbose, ...)
   alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
     des$design_formula
   }else{
@@ -62,7 +59,6 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
              base_point = res$base_point,
              coefficients = res$coefficients,
              embedding = res$embedding,
-             alignment_method = res$alignment_method,
              alignment_coefficients = res$alignment_coefficients,
              alignment_design = alignment_design,
              alignment_design_matrix = res$alignment_design_matrix)
@@ -71,7 +67,6 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
 lemur_impl <- function(Y, design_matrix,
                        n_embedding = 15,
-                       alignment = FALSE,
                        base_point = c("global_embedding", "mean"),
                        linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                        linear_coefficients = NULL,
@@ -160,9 +155,6 @@ lemur_impl <- function(Y, design_matrix,
   if(alignment_coef_fixed_but_embedding_fitted){
     # Rotate the embedding if it wasn't provided
     stop("Fixing 'alignment_coefficients' without fixing 'embedding' is not implemented")
-  }else if(! alignment_coef_fixed && ! isFALSE(alignment)){
-    if(verbose) message("Align points")
-    stop("Cannot handle 'alignment='", alignment)
   }else{
     alignment_coefficients <- array(0, c(n_embedding, n_embedding, ncol(alignment_design_matrix)))
   }
@@ -184,7 +176,6 @@ lemur_impl <- function(Y, design_matrix,
        base_point = base_point,
        coefficients = coefficients,
        embedding = embedding,
-       alignment_method = alignment,
        alignment_coefficients = alignment_coefficients,
        alignment_design_matrix = alignment_design_matrix)
 }

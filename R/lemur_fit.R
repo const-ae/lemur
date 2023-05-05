@@ -18,7 +18,6 @@
 #'  \item{`fit$embedding`}{a matrix (`fit$n_embedding * ncol(fit)`) with the low dimensional position for each cell.}
 #'  \item{`fit$design_matrix`}{a matrix with covariates for each cell (`ncol(fit) * ncol(fit$design_matrix)`).}
 #'  \item{`fit$linear_coefficients`}{a matrix (`nrow(fit) * ncol(fit$design_matrix)`) with the coefficients for the linear regression.}
-#'  \item{`fit$alignment_method`}{a boolean. *Might be deleted or changed in a future version*.}
 #'  \item{`fit$alignment_coefficients`}{a 3D tensor with the coefficients for the alignment (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
 #'  \item{`fit$alignment_design`}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
 #'  \item{`fit$alignment_design_matrix`}{an alternative design matrix specification for the alignment.}
@@ -37,7 +36,7 @@ lemur_fit <- function(data_mat, col_data, row_data,
                       n_embedding,
                        design, design_matrix, linear_coefficients,
                        base_point, coefficients, embedding,
-                       alignment_method, alignment_coefficients,
+                       alignment_coefficients,
                        alignment_design, alignment_design_matrix){
 
 
@@ -56,7 +55,7 @@ lemur_fit <- function(data_mat, col_data, row_data,
                               metadata = list(n_embedding = n_embedding,
                                               design = design,
                                               base_point = base_point, coefficients = coefficients,
-                                              alignment_method = alignment_method, alignment_coefficients = alignment_coefficients,
+                                              alignment_coefficients = alignment_coefficients,
                                               alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
                                               row_mask = rep(TRUE, n_features)))
   .lemur_fit(sce)
@@ -86,7 +85,6 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(is.null(base_point)) msg <- c(msg, "'base_point' must not be NULL")
   coefficients <- obj$coefficients
   if(is.null(coefficients)) msg <- c(msg, "'coefficients' must not be NULL")
-  alignment_method <- obj$alignment_method
   alignment_coefficients <- obj$alignment_coefficients
   if(is.null(alignment_coefficients)) msg <- c(msg, "'alignment_coefficients' must not be NULL")
   alignment_design <- obj$alignment_design
@@ -111,7 +109,6 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(coefficients) && dim(coefficients)[3] != ncol(design_matrix)) msg <- c(msg, "`dim(coefficients)[3]` does not match `ncol(design_matrix)`")
   if(! is.null(embedding) && nrow(embedding) != n_embedding) msg <- c(msg, "`nrow(embedding)` does not match `n_embedding`")
   if(! is.null(embedding) && ncol(embedding) != n_obs) msg <- c(msg, "`ncol(embedding)` does not match number of observations")
-  if(! is.null(alignment_method) && length(alignment_method) != 1 && length(alignment_method) != n_obs) msg <- c(msg, "`length(alignment_method)` must either be a single value or a vector with the same length as the number of observation")
   if(! is.null(alignment_coefficients) && ! is.array(alignment_coefficients) || length(dim(alignment_coefficients)) != 3) msg <- c(msg, "`alignment_coefficients` must be a three dimensional array")
   if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[1] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[1]` does not match `n_embedding`")
   if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[2] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[2]` does not match `n_embedding`")
@@ -152,10 +149,6 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
   if(! j_missing){
     jj <- SingleCellExperiment:::.convert_subset_index(j, rownames(x))
     metadata(x)[["alignment_design_matrix"]] <- metadata(x)[["alignment_design_matrix"]][jj,,drop=FALSE]
-    am <- metadata(x)[["alignment_method"]]
-    if(! isTRUE(am) && ! isFALSE(am)){
-      metadata(x)[["alignment_method"]] <- metadata(x)[["alignment_method"]][jj]
-    }
   }
 
   callNextMethod()
@@ -166,7 +159,7 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
 .methods_to_suggest <- c("n_embedding",
                          "design", "base_point",
                          "coefficients", "embedding", "design_matrix", "linear_coefficients",
-                         "alignment_method", "alignment_coefficients", "alignment_design", "alignment_design_matrix",
+                         "alignment_coefficients", "alignment_design", "alignment_design_matrix",
                          "contrast", "colData", "rowData")
 
 
@@ -217,7 +210,6 @@ setMethod("$", "lemur_fit",
     alignment_design =        metadata(x)[["alignment_design"]],
     alignment_design_matrix = metadata(x)[["alignment_design_matrix"]],
     alignment_coefficients =  metadata(x)[["alignment_coefficients"]],
-    alignment_method =        metadata(x)[["alignment_method"]],
     contrast =                metadata(x)[["contrast"]],
     colData =                 colData(x),
     rowData =                 rowData(x),

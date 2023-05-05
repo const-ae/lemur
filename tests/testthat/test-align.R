@@ -124,7 +124,7 @@ test_that("check that aligning points works perfectly for low number of points",
             linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
             base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
             embedding = mat,
-            alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+            alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
             alignment_design = NULL, alignment_design_matrix = design_matrix)
   gr <- rep(seq_len(n_points), times = 2)
   fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
@@ -148,7 +148,7 @@ test_that("check that harmony alignment works as expected", {
                    linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
                    base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
                    embedding = mat,
-                   alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+                   alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
                    alignment_design = NULL, alignment_design_matrix = design_matrix)
   gr <- rep(seq_len(n_points), times = 2)
   fit_al2 <- align_harmony(fit, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
@@ -187,7 +187,7 @@ test_that("correct_design_matrix-groups function accounts for weights", {
   #                  linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
   #                  base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
   #                  embedding = mat,
-  #                  alignment_method = NULL, alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+  #                  alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
   #                  alignment_design = NULL, alignment_design_matrix = design_matrix)
   # gr <- rep(1, n_points)
   # fit_al <- align_by_grouping(fit, grouping = gr)

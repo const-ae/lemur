@@ -55,7 +55,6 @@ test_that("subsetting works", {
   expect_equal(dim(fit3$embedding), c(5, 20))
   expect_equal(dim(fit3$design_matrix), c(20, 3))
   expect_equal(dim(fit3$linear_coefficients), c(40, 3))
-  # expect_equal(length(fit3$alignment_method), 20)
   expect_equal(rownames(fit3), c("gene_1", "gene_3"))
   expect_equal(colnames(fit3), paste0("cell_", 101:120))
 
@@ -145,11 +144,9 @@ test_that("align_by_grouping works", {
   set.seed(1)
   dat <- make_synthetic_data(n_genes = 30)
   fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
-  expect_equal(fit$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   fit2 <- align_by_grouping(fit, grouping = alignment, verbose = FALSE)
-  # expect_equal(fit2$alignment_method, alignment)
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
 })
 
@@ -157,7 +154,6 @@ test_that("align_by_grouping works", {
 test_that("align_neighbors works", {
   dat <- make_synthetic_data(n_genes = 15)
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
-  expect_equal(fit$alignment_method, FALSE)
 
   fit_al <- align_neighbors(fit, cells_per_cluster = 1, verbose = FALSE)
 
@@ -176,7 +172,6 @@ test_that("align_harmony works", {
 test_that("aligning works with alternative design matrices", {
   dat <- make_synthetic_data(n_genes = 30)
   fit <- lemur(dat, design = ~ 1, n_embedding = 5, verbose = FALSE)
-  expect_equal(fit$alignment_method, FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   alignment_design <- model.matrix(~ condition, fit$colData)

@@ -132,7 +132,7 @@ residuals_impl <- function(object,
 get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_embedding = TRUE){
   if(with_embedding){
     fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,  n_embedding = fit$n_embedding,
-                          alignment = fit$alignment_method, base_point = fit$base_point,  verbose = FALSE)
+                          base_point = fit$base_point,  verbose = FALSE)
     Y - predict_impl(object = fit_alt, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_embedding = TRUE,
                  n_embedding = fit_alt$n_embedding,
@@ -143,9 +143,9 @@ get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_desig
                  row_mask = rep(TRUE, nrow(Y)))
   }else{
     fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,
-                                           n_embedding = 0,
-                                           alignment = fit$alignment_method, base_point = matrix(nrow = nrow(fit), ncol = 0),
-                                           verbose = FALSE)
+                          n_embedding = 0,
+                          base_point = matrix(nrow = nrow(fit), ncol = 0),
+                          verbose = FALSE)
     Y - predict_impl(object = fit_alt, embedding = fit_alt$embedding,
                  with_linear_model = TRUE, with_embedding = FALSE,
                  n_embedding = fit_alt$n_embedding,

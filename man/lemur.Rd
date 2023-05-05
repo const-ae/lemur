@@ -9,7 +9,6 @@ lemur(
   design = ~1,
   col_data = NULL,
   n_embedding = 15,
-  alignment = FALSE,
   linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
   use_assay = "logcounts",
   ...,
@@ -26,9 +25,6 @@ and \code{col_data} argument}
 \item{col_data}{an optional data frame with \code{ncol(data)} rows.}
 
 \item{n_embedding}{the dimension of the $k$-plane that is rotated through space.}
-
-\item{alignment}{optional specification how or if points should be aligned. This
-can also be done in a separate step by calling \code{\link{align_harmony}} or \code{\link{align_by_grouping}}.}
 
 \item{linear_coefficient_estimator}{specify which estimator is used to center the conditions.
 \code{"linear"} runs simple regression it works well in many circumstances but can produce poor

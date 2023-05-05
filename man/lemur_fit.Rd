@@ -32,7 +32,6 @@ the exponential map.}
 \item{\code{fit$embedding}}{a matrix (\code{fit$n_embedding * ncol(fit)}) with the low dimensional position for each cell.}
 \item{\code{fit$design_matrix}}{a matrix with covariates for each cell (\code{ncol(fit) * ncol(fit$design_matrix)}).}
 \item{\code{fit$linear_coefficients}}{a matrix (\code{nrow(fit) * ncol(fit$design_matrix)}) with the coefficients for the linear regression.}
-\item{\code{fit$alignment_method}}{a boolean. \emph{Might be deleted or changed in a future version}.}
 \item{\code{fit$alignment_coefficients}}{a 3D tensor with the coefficients for the alignment (\code{fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)})}
 \item{\code{fit$alignment_design}}{an alternative design specification for the alignment. This is typically a \code{\link[stats:formula]{stats::formula}}.}
 \item{\code{fit$alignment_design_matrix}}{an alternative design matrix specification for the alignment.}
