@@ -1,3 +1,7 @@
+# v0.0.18
+
+* Remove `alignment_method` field from `lemur_fit` objects as it was not used for anything.
+
 # v0.0.17
 
 * Rename argument name for `align_by_template` from `alignment_template` to `template`
