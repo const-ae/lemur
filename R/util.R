@@ -10,6 +10,22 @@ sym <- function(M){
   0.5 * (M + t(M))
 }
 
+`%update_values%` <- function(x, y){
+  if(is.null(x) && is.null(y)){
+    NULL
+  }else if(is.null(x)){
+    y
+  }else if(is.null(y)){
+    x
+  }else{
+    for(n in names(y)){
+      x[[n]] <- y[[n]]
+    }
+    x
+  }
+}
+
+
 
 #' Iterating function that returns a matrix
 #'

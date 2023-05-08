@@ -221,7 +221,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
   })
 
   # Prepare values
-  Y <- assay(fit, "expr")
+  Y <- assay(fit, fit$use_assay)
   if(rlang::quo_is_null(rlang::enquo(group_by))){
     stop("The 'group_by' argument is NULL. Please provide the names from the column data should be used for aggregating the data.\n",
          "For example, 'group_by = vars(", paste0(head(colnames(fit$colData), n = 2), collapse = ","), ")'")

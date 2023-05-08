@@ -57,8 +57,7 @@ handle_design_parameter <- function(design, data, col_data){
     stop("The design_matrix has more columns (", ncol(design_matrix),
          ") than the there are samples in the data matrix (", n_samples, " columns).\n",
          "Too few replicates / too many coefficients to fit model.\n",
-         "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(design_matrix, n = 3)), "\n",
-         "The head of the data: \n", glmGamPoi:::format_matrix(head(data[,seq_len(min(5, ncol(data))),drop=FALSE], n = 3)))
+         "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(design_matrix, n = 3)))
   }
 
   # Check rank of design_matrix

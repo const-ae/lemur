@@ -52,16 +52,17 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
     NULL
   }
 
-  lemur_fit(data_mat, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
-             n_embedding = res$n_embedding,
-             design = des$design_formula, design_matrix = res$design_matrix,
-             linear_coefficients = res$linear_coefficients,
-             base_point = res$base_point,
-             coefficients = res$coefficients,
-             embedding = res$embedding,
-             alignment_coefficients = res$alignment_coefficients,
-             alignment_design = alignment_design,
-             alignment_design_matrix = res$alignment_design_matrix)
+  lemur_fit(data, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
+            n_embedding = res$n_embedding,
+            design = des$design_formula, design_matrix = res$design_matrix,
+            linear_coefficients = res$linear_coefficients,
+            base_point = res$base_point,
+            coefficients = res$coefficients,
+            embedding = res$embedding,
+            alignment_coefficients = res$alignment_coefficients,
+            alignment_design = alignment_design,
+            alignment_design_matrix = res$alignment_design_matrix,
+            use_assay = use_assay,
 }
 
 

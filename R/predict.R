@@ -124,12 +124,12 @@ setMethod("residuals", signature = "lemur_fit", function(object,
 residuals_impl <- function(object,
                            with_linear_model = TRUE,
                            with_embedding = TRUE){
-  assay(object, "expr") - predict(object, with_linear_model = with_linear_model, with_embedding = with_embedding)
+  assay(object, object$use_assay) - predict(object, with_linear_model = with_linear_model, with_embedding = with_embedding)
 }
 
 
 
-get_residuals_for_alt_fit <- function(fit, Y = assay(fit, "expr"), reduced_design_mat, with_linear_model = TRUE, with_embedding = TRUE){
+get_residuals_for_alt_fit <- function(fit, Y = assay(fit, fit$use_assay), reduced_design_mat, with_linear_model = TRUE, with_embedding = TRUE){
   if(with_embedding){
     fit_alt <- lemur_impl(Y, design_matrix = reduced_design_mat,  n_embedding = fit$n_embedding,
                           base_point = fit$base_point,  verbose = FALSE)

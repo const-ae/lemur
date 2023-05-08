@@ -32,33 +32,37 @@
 #' @export
 .lemur_fit <- setClass("lemur_fit", contains = "SingleCellExperiment")
 
-lemur_fit <- function(data_mat, col_data, row_data,
+lemur_fit <- function(data, col_data, row_data,
                       n_embedding,
-                       design, design_matrix, linear_coefficients,
-                       base_point, coefficients, embedding,
-                       alignment_coefficients,
-                       alignment_design, alignment_design_matrix){
+                      design, design_matrix, linear_coefficients,
+                      base_point, coefficients, embedding,
+                      alignment_coefficients,
+                      alignment_design, alignment_design_matrix,
+                      use_assay, test_data){
 
-
-  if(is.null(data_mat)){
-    n_features <- nrow(row_data)
-    assays <- list()
+  if(is.null(data)){
+    data <- SingleCellExperiment(assays = list())
+  }else if(! is(data, "SummarizedExperiment")){
+    data <- SingleCellExperiment(assays = setNames(list(data), use_assay))
   }else{
-    n_features <- nrow(data_mat)
-    assays <- list(expr = data_mat)
+    data <- as(data, "SingleCellExperiment")
   }
+
+  n_features <- nrow(data)
   linearFit <- LinearEmbeddingMatrix(design_matrix, linear_coefficients)
   colnames(linearFit) <- colnames(linear_coefficients)
-  sce <- SingleCellExperiment(assays, colData = col_data, rowData = row_data,
-                              reducedDims = list(linearFit = linearFit,
-                                                 embedding = t(embedding)),
-                              metadata = list(n_embedding = n_embedding,
-                                              design = design,
-                                              base_point = base_point, coefficients = coefficients,
-                                              alignment_coefficients = alignment_coefficients,
-                                              alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
-                                              row_mask = rep(TRUE, n_features)))
-  .lemur_fit(sce)
+
+  # Do some more graceful merging of the existing and the new information.
+  colData(data) <- (colData(data) %update_values% col_data) |> as("DataFrame")
+  rowData(data) <- (rowData(data) %update_values% row_data) |> as("DataFrame")
+  reducedDims(data) <- reducedDims(data) %update_values% list(linearFit = linearFit, embedding = t(embedding))
+  metadata(data) <- metadata(data) %update_values% list(
+    n_embedding = n_embedding, design = design, base_point = base_point,
+    coefficients = coefficients, alignment_coefficients = alignment_coefficients,
+    alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
+    use_assay = use_assay, test_data = test_data, row_mask = rep(TRUE, n_features))
+
+  .lemur_fit(data)
 }
 
 
@@ -71,9 +75,6 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
 
   msg <- NULL
 
-  if(length(assayNames(obj)) > 0 && assayNames(obj)[1] != "expr"){
-    msg <- c(msg, "'expr' must be the first assay")
-  }
   n_features_original <- length(metadata(obj)$row_mask)
   # n_features <- sum(int_metadata(obj)$row_mask)
   n_features <- nrow(obj)
@@ -97,6 +98,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(is.null(design_matrix)) msg <- c(msg, "'design_matrix' must not be NULL")
   linear_coefficients <- featureLoadings(reducedDim(obj, "linearFit"))
   if(is.null(linear_coefficients)) msg <- c(msg, "'linear_coefficients' must not be NULL")
+  use_assay <- obj$use_assay
+  if(is.null(use_assay)) msg <- c(msg, "'use_assay' must not be NULL")
 
   if(! is.null(design_matrix) && nrow(design_matrix) != n_obs) msg <- c(msg, "`nrow(design_matrix)` does not match number of observations")
   if(! is.null(linear_coefficients) && nrow(linear_coefficients) != n_features_original) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_features_original`")
@@ -116,6 +119,7 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(alignment_design_matrix) && nrow(alignment_design_matrix) != n_obs) msg <- c(msg, "`nrow(alignment_design_matrix)` does not match number of observations")
   if(! is.null(alignment_design) &&  ! inherits(alignment_design, "formula")) msg <- c(msg, "`alignment_design` must inherit from formula or be NULL")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
+  if(! is.null(use_assay) &&  ! use_assay %in% assayNames(obj)) msg <- c(msg, "`use_assay` must be one of the assays")
 
 
   if(is.null(msg)){
@@ -156,11 +160,11 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
 
 
 
-.methods_to_suggest <- c("n_embedding",
-                         "design", "base_point",
-                         "coefficients", "embedding", "design_matrix", "linear_coefficients",
-                         "alignment_coefficients", "alignment_design", "alignment_design_matrix",
-                         "contrast", "colData", "rowData")
+.methods_to_suggest <- c("n_embedding", "embedding",
+                         "design", "design_matrix", "base_point",
+                         "coefficients", "linear_coefficients", "alignment_coefficients",
+                         "alignment_design", "alignment_design_matrix",
+                         "contrast", "use_assay", "colData", "rowData", "test_data")
 
 
 #' @rdname lemur_fit
@@ -211,6 +215,7 @@ setMethod("$", "lemur_fit",
     alignment_design_matrix = metadata(x)[["alignment_design_matrix"]],
     alignment_coefficients =  metadata(x)[["alignment_coefficients"]],
     contrast =                metadata(x)[["contrast"]],
+    use_assay =               metadata(x)[["use_assay"]],
     colData =                 colData(x),
     rowData =                 rowData(x),
     stop("Invalid `name` value.")
