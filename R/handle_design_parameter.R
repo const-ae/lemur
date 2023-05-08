@@ -86,7 +86,7 @@ handle_design_parameter <- function(design, data, col_data){
 convert_formula_to_design_matrix <- function(formula, col_data){
   attr(col_data, "na.action") <- "na.pass"
   tryCatch({
-    mf <- model.frame(formula, data = col_data, drop.unused.levels = TRUE)
+    mf <- model.frame(formula, data = col_data, drop.unused.levels = FALSE)
     terms <- attr(mf, "terms")
     attr(terms, "xlevels") <- stats::.getXlevels(terms, mf)
     mm <- stats::model.matrix.default(terms, mf)
