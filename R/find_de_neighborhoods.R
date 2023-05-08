@@ -50,25 +50,72 @@ glmGamPoi::vars
 #'
 #' @export
 find_de_neighborhoods <- function(fit,
-                                  independent_matrix = NULL,
-                                  group_by = NULL,
+                                  group_by,
+                                  contrast = fit$contrast,
                                   selection_procedure = c("zscore", "contrast"),
                                   directions = c("random", "contrast", "axis_parallel"),
-                                  independent_matrix_type = c("counts", "continuous"),
                                   de_mat = assay(fit, "DE"),
-                                  contrast = fit$contrast,
-                                  n_random_directions = 50,
-                                  count_test_method = c("glmGamPoi", "edgeR"),
+                                  independent_data = fit$test_data,
+                                  independent_data_col_data = NULL,
+                                  test_method = c("glmGamPoi", "edgeR", "limma", "none"),
+                                  continuous_assay_name = fit$use_assay,
+                                  count_assay_name = "counts",
                                   design = fit$design,
                                   include_complement = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
-  independent_matrix_type <- match.arg(independent_matrix_type)
+  test_method <- match.arg(test_method)
+  selection_procedure <- match.arg(selection_procedure)
+  skip_independent_test <- is.null(independent_data) || test_method == "none"
+
+  if(is(independent_data, "SummarizedExperiment")){
+    if(! continuous_assay_name %in% assayNames(independent_data)){
+      stop("Cannot find assay '", continuous_assay_name, "' in the assays of 'independent_data'")
+    }
+    # Nothing else to be done here
+  }else if(is.list(independent_data)){
+    if(! continuous_assay_name %in% names(independent_data)){
+      stop("Cannot find assay '", continuous_assay_name, "' in the names of 'independent_data'")
+    }
+    if(is.null(independent_data_col_data)){
+      stop("'independent_data_col_data' must not be NULL")
+    }
+    independent_data <- SingleCellExperiment(assays = independent_data)
+  }else if(is.matrix(independent_data)){
+    message("'independent_data' is a matrix treating it as continuous values")
+    if(is.null(independent_data_col_data)){
+      stop("'independent_data_col_data' must not be NULL")
+    }
+    independent_data <- SingleCellExperiment(assays = setNames(list(independent_data), continuous_assay_name))
+  }else if(is.null(independent_data)){
+    # This is necessary to satisfy model.matrix in 'project_on_lemur_fit'
+    col_data_copy <- fit$colData
+    character_cols <- vapply(col_data_copy, is.character, logical(1L))
+    col_data_copy[character_cols] <- lapply(col_data_copy[character_cols], as.factor)
+    attr(design, "ignore_degeneracy") <- TRUE
+    independent_data <- SingleCellExperiment(assays = setNames(list(matrix(nrow = nrow(fit), ncol = 0) * 1.0), continuous_assay_name),
+                                             colData = col_data_copy[integer(0L),,drop=FALSE])
+  }else{
+    stop("Cannot handle 'indepdendet_data' of type: ", paste0(class(independent_data), collapse = ", "))
+  }
+  SummarizedExperiment::colData(independent_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(independent_data, independent_data_col_data))
+  if(nrow(fit) != nrow(independent_data)){
+    stop("The number of features in 'fit' and 'independent_data' differ.")
+  }else{
+    if(! is.null(rownames(fit)) && ! is.null(rownames(independent_data)) &&
+       any(rownames(fit) != rownames(independent_data))){
+      stop("The rownames differ between 'fit' and 'independent_data'.")
+    }
+  }
+
+  projected_indep_data <- project_on_lemur_fit(fit, data = independent_data, use_assay = continuous_assay_name, design = design, return = "matrix")
+
 
   if(is.character(directions)){
     directions <- match.arg(directions)
+    # There is one direction vector for each gene
     if(directions == "random"){
-      dirs <- select_directions_from_random_points(n_random_directions, fit$embedding, de_mat)
+      dirs <- select_directions_from_random_points(n_random_directions = 50, fit$embedding, de_mat)
     }else if(directions == "contrast"){
       dirs <- select_directions_from_contrast(fit, {{contrast}})
     }else if(directions == "axis_parallel"){
@@ -80,29 +127,37 @@ find_de_neighborhoods <- function(fit,
     dirs <- directions
   }
 
-  selection_procedure <- match.arg(selection_procedure)
   if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
   if(selection_procedure == "zscore"){
-    de_regions <- find_de_neighborhoods_with_z_score(fit, dirs, de_mat, include_complement = include_complement, verbose = verbose)
+    de_regions <- find_de_neighborhoods_with_z_score(fit, dirs, de_mat, independent_embedding = projected_indep_data,
+                                                     include_complement = include_complement, ..., verbose = verbose)
   }else if(selection_procedure == "contrast"){
-    de_regions <- find_de_neighborhoods_with_contrast(fit, dirs, group_by = {{group_by}}, contrast = contrast, include_complement = include_complement, ..., verbose = verbose)
+    de_regions <- find_de_neighborhoods_with_contrast(fit, dirs, group_by = {{group_by}}, contrast = contrast,
+                                                      independent_embedding = projected_indep_data,
+                                                      include_complement = include_complement, ..., verbose = verbose)
   }else if(selection_procedure == "likelihood"){
     # Implement one of Wolfgang's suggestions for the selection procedure
     # de_regions <- find_de_neighborhoods_with_likelihood_ratio(fit, dirs, de_mat, include_complement = include_complement)
   }
-  de_regions$n_cells <- lengths(de_regions$indices)
+  if(skip_independent_test){
+    de_regions$n_cells <- lengths(de_regions$indices)
+    de_regions$independent_indices <- NULL
+  }else{
+    de_regions$n_cells <- lengths(de_regions$independent_indices)
+    de_regions$indices <- de_regions$independent_indices
+    de_regions$independent_indices <- NULL
+  }
   de_regions <- de_regions[, c("name", "selection", "indices", "n_cells", "sel_statistic")]
 
 
-  if(is.null(independent_matrix)){
+  if(skip_independent_test){
     de_regions
   }else{
-    if(verbose) message("Validate neighborhoods using independent ", independent_matrix_type, " data.")
-    stopifnot(all(dim(fit) == dim(independent_matrix)))
-    if(! is.null(rownames(fit)) && is.null(rownames(independent_matrix))){
-      rownames(independent_matrix) <- rownames(fit)
+    if(verbose) message("Validate neighborhoods using independent data")
+    if(! is.null(rownames(fit)) && is.null(rownames(independent_data))){
+      rownames(independent_data) <- rownames(fit)
     }
-    if(any(rownames(fit) != rownames(independent_matrix))){
+    if(any(rownames(fit) != rownames(independent_data))){
       stop("The rownames of fit and counts don't match.")
     }
     if(rlang::quo_is_null(rlang::enquo(contrast))){
@@ -115,12 +170,17 @@ find_de_neighborhoods <- function(fit,
     }, error = function(e){
       # Do nothing. The 'contrast' is probably an unquoted expression
     })
-    result <- if(independent_matrix_type == "counts"){
-      neighborhood_count_test(de_regions, counts = independent_matrix, group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = fit$colData, method = count_test_method, verbose = verbose)
+    result <- if(test_method != "limma"){
+      if(! count_assay_name %in% assayNames(independent_data)){
+        stop("Trying to execute count-based differential expression analysis on the test data because 'test_method=\"", test_method, "\"'. However, ",
+          "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(independent_data), collapse = ", "),
+             ") of the 'independent_data' object.")
+      }
+      neighborhood_count_test(de_regions, counts = assay(independent_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
+                              design = design, col_data = colData(independent_data), method = test_method, verbose = verbose)
     }else{
-      neighborhood_normal_test(de_regions, values = independent_matrix, group_by = group_by, contrast = {{contrast}},
-                               design = design, col_data = fit$colData, shrink = TRUE,  verbose = verbose)
+      neighborhood_normal_test(de_regions, values = assay(independent_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
+                               design = design, col_data = colData(independent_data), shrink = TRUE,  verbose = verbose)
     }
     result
   }
@@ -175,21 +235,31 @@ select_directions_from_canonical_correlation <- function(embedding, de_mat){
 }
 
 
-find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, include_complement, verbose = TRUE){
+find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_embedding = NULL,
+                                               include_complement = TRUE, verbose = TRUE){
   n_genes <- nrow(fit)
   stopifnot(ncol(fit) == ncol(de_mat))
   stopifnot(nrow(fit) == nrow(de_mat))
   proj <- dirs %*% fit$embedding
+  if(is.null(independent_embedding)){
+    independent_embedding <- matrix(nrow = fit$n_embedding, ncol = 0)
+  }
+  indep_proj <- dirs %*% independent_embedding
 
   result <- do.call(rbind, lapply(seq_len(n_genes), \(gene_idx){
     pr <- proj[gene_idx,]
+    ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
     max_idx <- cumz_which_abs_max(de_mat[gene_idx,order_pr])
     rev_max_idx <- cumz_which_abs_max(rev(de_mat[gene_idx,order_pr]))
     if(abs(max_idx$max) > abs(rev_max_idx$max)){
-      data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))), sel_statistic = max_idx$max)
+      data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))),
+                 independent_indices = I(list(unname(which(ipr <= pr[order_pr][max_idx$idx])))),
+                 sel_statistic = max_idx$max)
     }else{
-      data.frame(indices = I(list(unname(which(pr >= rev(pr[order_pr])[rev_max_idx$idx])))), sel_statistic = rev_max_idx$max)
+      data.frame(indices = I(list(unname(which(pr >= rev(pr[order_pr])[rev_max_idx$idx])))),
+                 independent_indices = I(list(unname(which(ipr >= rev(pr[order_pr])[rev_max_idx$idx])))),
+                 sel_statistic = rev_max_idx$max)
     }
   }))
   result$name <- rownames(fit)
@@ -200,20 +270,23 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, include_comple
 
   if(include_complement){
     all_indices <- seq_len(ncol(fit))
+    indep_all_indices <- seq_len(ncol(independent_embedding))
     comp_indices <- lapply(result$indices, \(indices) setdiff(all_indices, indices))
+    comp_ind_indices <- lapply(result$independent_indices, \(indices) setdiff(indep_all_indices, indices))
     comp_stat <- vapply(seq_len(nrow(fit)), \(gene_idx){
       sel <- comp_indices[[gene_idx]]
       vals <- de_mat[gene_idx, sel]
       mean(vals) / (sd(vals) / sqrt(length(sel)))
     }, FUN.VALUE = numeric(1L))
-    rbind(result, data.frame(name = result$name, indices = I(comp_indices), sel_statistic = comp_stat, selection = FALSE))
+    rbind(result, data.frame(name = result$name, indices = I(comp_indices),
+                             independent_indices = I(comp_ind_indices), sel_statistic = comp_stat, selection = FALSE))
   }else{
     result
   }
 }
 
-find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, include_complement,
-                                                ridge_penalty = 1e-6, verbose = TRUE){
+find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, independent_embedding = NULL,
+                                                include_complement = TRUE, ridge_penalty = 1e-6, verbose = TRUE){
   n_genes <- nrow(fit)
   contrast <- parse_contrast({{contrast}}, formula = fit$design)
   cntrst <- evaluate_contrast_tree(contrast, contrast, \(x, .){
@@ -229,18 +302,27 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
   group <-  vctrs::vec_group_id(as.data.frame(lapply(group_by, rlang::eval_tidy, data = as.data.frame(fit$colData))))
   design_mat <- fit$design_matrix
   proj <- dirs %*% fit$embedding
+  if(is.null(independent_embedding)){
+    independent_embedding <- matrix(nrow = fit$n_embedding, ncol = 0)
+  }
+  indep_proj <- dirs %*% independent_embedding
 
   result <- do.call(rbind, lapply(seq_len(n_genes), \(gene_idx){
     pr <- proj[gene_idx,]
+    ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
     max_idx <- cum_brls_which_abs_max(Y[gene_idx, order_pr], design_mat[order_pr,], group = group[order_pr],
                                       contrast = cntrst, penalty = ridge_penalty)
     rev_max_idx <- cum_brls_which_abs_max(Y[gene_idx, rev(order_pr)], design_mat[rev(order_pr),], group = group[rev(order_pr)],
                                           contrast = cntrst, penalty = ridge_penalty)
     if(abs(max_idx$max) > abs(rev_max_idx$max)){
-      data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))), sel_statistic = max_idx$max)
+      data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))),
+                 independent_indices = I(list(unname(which(ipr <= pr[order_pr][max_idx$idx])))),
+                 sel_statistic = max_idx$max)
     }else{
-      data.frame(indices = I(list(unname(which(pr >= rev(pr[order_pr])[rev_max_idx$idx])))), sel_statistic = rev_max_idx$max)
+      data.frame(indices = I(list(unname(which(pr >= rev(pr[order_pr])[rev_max_idx$idx])))),
+                 independent_indices = I(list(unname(which(ipr >= rev(pr[order_pr])[rev_max_idx$idx])))),
+                 sel_statistic = rev_max_idx$max)
     }
   }))
   result$selection <- TRUE
@@ -251,11 +333,14 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
   if(include_complement){
     all_indices <- seq_len(ncol(fit))
+    indep_all_indices <- seq_len(ncol(independent_embedding))
     comp_indices <- lapply(result$indices, \(indices) setdiff(all_indices, indices))
+    comp_ind_indices <- lapply(result$independent_indices, \(indices) setdiff(indep_all_indices, indices))
     comp_stat <-  neighborhood_normal_test(data.frame(name = rownames(Y), indices = I(comp_indices)),
                                            values = Y, group_by = group_by, contrast = cntrst,
                                            design = fit$design, fit$colData, shrink = FALSE, verbose = verbose)$t_statistic
-    result <- rbind(result, data.frame(name = result$name, indices = I(comp_indices), sel_statistic = comp_stat, selection = FALSE))
+    result <- rbind(result, data.frame(name = result$name, indices = I(comp_indices),
+                                       independent_indices = I(comp_ind_indices), sel_statistic = comp_stat, selection = FALSE))
   }
   result
 }
@@ -354,6 +439,9 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   masked_values <- as(values[de_regions$name,,drop=FALSE] * mask, "CsparseMatrix")
   if(verbose) message("Form pseudobulk (averaging values)")
   groups <- lapply(group_by, rlang::eval_tidy, data = as.data.frame(col_data))
+  if(is.null(groups)){
+    stop("'group_by' must not be 'NULL'.")
+  }
   names(groups) <- vapply(group_by, rlang::as_label, character(1L))
   split_res <- vctrs::vec_group_loc(as.data.frame(groups))
   group_split <- split_res$loc

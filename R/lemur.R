@@ -35,12 +35,36 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_embedding = 15,
                   linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
                   use_assay = "logcounts",
+                  test_fraction = 0.2,
                   ...,
                   verbose = TRUE){
 
   data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
-
   col_data <- glmGamPoi:::get_col_data(data, col_data)
+  if(! is(data, "SummarizedExperiment")){
+    data <- SingleCellExperiment(assays = setNames(list(data_mat), use_assay), colData = col_data)
+  }
+
+  if(test_fraction < 0 || test_fraction >= 1){
+    stop("'test_fraction' must be at least 0 and smaller than 1.")
+  }else if(test_fraction == 0){
+    test_data <- NULL
+  }else{
+    if(verbose) message("Storing ", round(test_fraction, 2) * 100, "% of the data (", round(ncol(data_mat) * test_fraction), " cells)",
+                        " as test data.")
+    test_cells <- sample.int(ncol(data_mat), size = round(ncol(data_mat) * test_fraction), replace = FALSE)
+    training_cells <- setdiff(seq_len(ncol(data_mat)), test_cells)
+    test_data <- data[,test_cells]
+    data <- data[,training_cells]
+    data_mat <- data_mat[,training_cells,drop=FALSE]
+    col_data <- col_data[training_cells,,drop=FALSE]
+    if(is.matrix(design)){
+      design <- design[training_cells,,drop=FALSE]
+    }else if(is.vector(design) || is.factor(design)){
+      design <- design[training_cells]
+    }
+  }
+
   des <- handle_design_parameter(design, data, col_data)
 
 
@@ -63,6 +87,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
             alignment_design = alignment_design,
             alignment_design_matrix = res$alignment_design_matrix,
             use_assay = use_assay,
+            test_data = test_data)
 }
 
 

@@ -218,6 +218,7 @@ setMethod("$", "lemur_fit",
     use_assay =               metadata(x)[["use_assay"]],
     colData =                 colData(x),
     rowData =                 rowData(x),
+    test_data =               metadata(x)[["test_data"]],
     stop("Invalid `name` value.")
   )
 })
