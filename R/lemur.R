@@ -16,6 +16,8 @@
 #'   However, expression changes affecting all cells equally are not regressed out.
 #' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
 #'   which assay should be used.
+#' @param test_fraction the fraction of cells that are split of before the model fit to keep an
+#'   independent set of test observations. Default: 20% (`0.2`).
 #' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'

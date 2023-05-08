@@ -11,6 +11,7 @@ lemur(
   n_embedding = 15,
   linear_coefficient_estimator = c("linear", "cluster_median", "zero"),
   use_assay = "logcounts",
+  test_fraction = 0.2,
   ...,
   verbose = TRUE
 )
@@ -35,6 +36,9 @@ However, expression changes affecting all cells equally are not regressed out.}
 
 \item{use_assay}{if \code{data} is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
 which assay should be used.}
+
+\item{test_fraction}{the fraction of cells that are split of before the model fit to keep an
+independent set of test observations. Default: 20\% (\code{0.2}).}
 
 \item{...}{additional parameters that are passed on to the internal function \code{lemur_impl}.}
 
