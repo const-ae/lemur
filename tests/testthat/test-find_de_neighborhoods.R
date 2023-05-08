@@ -198,7 +198,7 @@ test_that("find_de_neighborhoods works", {
                                      test_data_col_data = colData(fit$test_data),
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
-  expect_equal(de_neigh5, de_neigh6)
+  expect_equal(de_neigh5[,-c(3,4)], de_neigh6[,-c(3,4,5)])
 
   de_neigh7 <- find_de_neighborhoods(fit, test_data = fit$test_data,
                                      group_by = vars(individual, condition),
@@ -206,7 +206,7 @@ test_that("find_de_neighborhoods works", {
                                      test_method = "limma",
                                      verbose = FALSE)
   expect_equal(de_neigh7[,c("name", "selection", "indices", "n_cells", "sel_statistic")],
-               de_neigh6[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
+               de_neigh5[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
 })
 
 

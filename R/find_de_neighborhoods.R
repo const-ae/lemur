@@ -147,7 +147,7 @@ find_de_neighborhoods <- function(fit,
   if(skip_independent_test){
     colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic")
   }else{
-    if(verbose) message("Validate neighborhoods using independent data")
+    if(verbose) message("Validate neighborhoods using test data")
     if(! is.null(rownames(fit)) && is.null(rownames(test_data))){
       rownames(test_data) <- rownames(fit)
     }
@@ -179,12 +179,18 @@ find_de_neighborhoods <- function(fit,
                                design = design, col_data = colData(test_data), shrink = TRUE, de_region_index_name = "independent_indices",  verbose = verbose)
     }
   }
-  test_idx <- which(fit$is_test_data)
-  train_idx <- which(!fit$is_test_data)
-  de_regions$indices <- lapply(seq_len(nrow(de_regions)), \(row){
-    c(train_idx[de_regions$indices[[row]]], test_idx[de_regions$independent_indices[[row]]])
-  })
-  de_regions$independent_indices <- NULL
+
+  if(identical(test_data, fit$test_data)){
+    # Merge columns
+    test_idx <- which(fit$is_test_data)
+    train_idx <- which(!fit$is_test_data)
+    de_regions$indices <- lapply(seq_len(nrow(de_regions)), \(row){
+      c(train_idx[de_regions$indices[[row]]], test_idx[de_regions$independent_indices[[row]]])
+    })
+    de_regions$independent_indices <- NULL
+  }else{
+    colnames <- c(colnames[1:3], "independent_indices", colnames[-(1:3)])
+  }
   de_regions$n_cells <- lengths(de_regions$indices)
   de_regions[colnames]
 
