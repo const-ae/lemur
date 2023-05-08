@@ -97,7 +97,8 @@ test_that("alignment with template works", {
   change <- diag(nrow = 2) + randn(2, 2, sd = 0.01)
   template[,group == "a"] <- change %*% template[,group == "a"]
 
-  fit_al <- align_by_template(fit, template = template, verbose = FALSE, mnn = 1, cells_per_cluster = 1)
+  fit_al <- align_by_template(fit, design = group, template = template, verbose = FALSE, mnn = 1, cells_per_cluster = 1)
+  expect_equal(fit$alignment_design_matrix, fit_al$alignment_design_matrix)
   skip("Not sure what the rest of this test was supposed to achieve.")
 })
 
@@ -126,9 +127,9 @@ test_that("check that aligning points works perfectly for low number of points",
             embedding = mat,
             alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
             alignment_design = NULL, alignment_design_matrix = design_matrix,
-            use_assay = "foo", test_data = NULL)
+            use_assay = "foo", is_test_data = rep(FALSE, ncol(mat)))
   gr <- rep(seq_len(n_points), times = 2)
-  fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
+  fit_al <- align_by_grouping(fit, design = fit$alignment_design_matrix, grouping = gr, ridge_penalty = 0, verbose = FALSE)
   expect_equal(fit_al$embedding[,df$tmp == "a"], fit_al$embedding[,df$tmp == "b"], tolerance = 1e-8)
 })
 
@@ -151,9 +152,9 @@ test_that("check that harmony alignment works as expected", {
                    embedding = mat,
                    alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
                    alignment_design = NULL, alignment_design_matrix = design_matrix,
-                   use_assay = "foo", test_data = NULL)
+                   use_assay = "foo", is_test_data = rep(FALSE, ncol(mat)))
   gr <- rep(seq_len(n_points), times = 2)
-  fit_al2 <- align_harmony(fit, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
+  fit_al2 <- align_harmony(fit, design = fit$alignment_design_matrix, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
   set.seed(1)
   harm <- harmony::HarmonyMatrix(mat, meta_data = df, vars_use = "tmp", do_pca = FALSE, nclust = n_points, lambda = 1e-8, verbose = FALSE)
 

@@ -26,12 +26,10 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
   Y <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data)
-  design_matrix <- des$design_matrix
   al_des <- handle_design_parameter(design, data, col_data)
-  al_design_matrix <- al_des$design_matrix
-  Y_clean <- Y - fit$linear_coefficients %*% t(design_matrix)
-  embedding <- project_data_on_diffemb(Y_clean, design = design_matrix, coefficients = fit$coefficients, base_point = fit$base_point)
-  embedding <- apply_linear_transformation(embedding, fit$alignment_coefficients, al_design_matrix)
+  embedding <- project_on_lemur_fit_impl(Y, des$design_matrix, al_des$design_matrix,
+                                         fit$coefficients, fit$linear_coefficients, fit$alignment_coefficients,
+                                         fit$base_point)
   colnames(embedding) <- colnames(data)
 
   if(return == "matrix"){
@@ -40,15 +38,22 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
     lemur_fit(data, col_data = col_data,
               row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
               n_embedding = fit$n_embedding,
-              design = des$design_formula, design_matrix = design_matrix,
+              design = des$design_formula, design_matrix = des$design_matrix,
               linear_coefficients = fit$linear_coefficients,
               base_point = fit$base_point,
               coefficients = fit$coefficients,
               embedding = embedding,
               alignment_coefficients = fit$alignment_coefficients,
               alignment_design = al_des$design_formula,
-              alignment_design_matrix = al_design_matrix,
-              use_assay = use_assay, test_data = NULL)
+              alignment_design_matrix = al_des$design_matrix,
+              use_assay = use_assay, is_test_data = rep(FALSE, ncol(embedding)))
   }
+}
+
+project_on_lemur_fit_impl <- function(Y, design_matrix, alignment_design_matrix, coefficients, linear_coefficients, alignment_coefficients, base_point){
+  Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+  embedding <- project_data_on_diffemb(Y_clean, design = design_matrix, coefficients = coefficients, base_point = base_point)
+  embedding <- apply_linear_transformation(embedding, alignment_coefficients, alignment_design_matrix)
+  embedding
 }
 

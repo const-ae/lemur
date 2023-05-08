@@ -38,8 +38,7 @@ lemur_fit <- function(data, col_data, row_data,
                       base_point, coefficients, embedding,
                       alignment_coefficients,
                       alignment_design, alignment_design_matrix,
-                      use_assay, test_data){
-
+                      use_assay, is_test_data){
   if(is.null(data)){
     data <- SingleCellExperiment(assays = list())
   }else if(! is(data, "SummarizedExperiment")){
@@ -54,13 +53,14 @@ lemur_fit <- function(data, col_data, row_data,
 
   # Do some more graceful merging of the existing and the new information.
   colData(data) <- (colData(data) %update_values% col_data) |> as("DataFrame")
+  SingleCellExperiment::int_colData(data)$is_test_data <- is_test_data
   rowData(data) <- (rowData(data) %update_values% row_data) |> as("DataFrame")
   reducedDims(data) <- reducedDims(data) %update_values% list(linearFit = linearFit, embedding = t(embedding))
   metadata(data) <- metadata(data) %update_values% list(
     n_embedding = n_embedding, design = design, base_point = base_point,
     coefficients = coefficients, alignment_coefficients = alignment_coefficients,
     alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
-    use_assay = use_assay, test_data = test_data, row_mask = rep(TRUE, n_features))
+    use_assay = use_assay, row_mask = rep(TRUE, n_features))
 
   .lemur_fit(data)
 }
@@ -100,6 +100,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(is.null(linear_coefficients)) msg <- c(msg, "'linear_coefficients' must not be NULL")
   use_assay <- obj$use_assay
   if(is.null(use_assay)) msg <- c(msg, "'use_assay' must not be NULL")
+  is_test_data <- obj$is_test_data
+  if(is.null(is_test_data)) msg <- c(msg, "'is_test_data' must not be NULL")
 
   if(! is.null(design_matrix) && nrow(design_matrix) != n_obs) msg <- c(msg, "`nrow(design_matrix)` does not match number of observations")
   if(! is.null(linear_coefficients) && nrow(linear_coefficients) != n_features_original) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_features_original`")
@@ -120,6 +122,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(alignment_design) &&  ! inherits(alignment_design, "formula")) msg <- c(msg, "`alignment_design` must inherit from formula or be NULL")
   if(! is.null(design) &&  ! inherits(design, "formula")) msg <- c(msg, "`design` must inherit from formula or be NULL")
   if(! is.null(use_assay) &&  ! use_assay %in% assayNames(obj)) msg <- c(msg, "`use_assay` must be one of the assays")
+  if(! is.null(is_test_data) &&  ! is.logical(is_test_data)) msg <- c(msg, "`is_test_data` must be a logical vector")
+  if(! is.null(is_test_data) &&  length(is_test_data) != n_obs ) msg <- c(msg, "length `is_test_data` must match the number of observations")
 
 
   if(is.null(msg)){
@@ -164,7 +168,8 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
                          "design", "design_matrix", "base_point",
                          "coefficients", "linear_coefficients", "alignment_coefficients",
                          "alignment_design", "alignment_design_matrix",
-                         "contrast", "use_assay", "colData", "rowData", "test_data")
+                         "contrast", "use_assay", "colData", "rowData",
+                         "test_data", "training_data", "is_test_data")
 
 
 #' @rdname lemur_fit
@@ -218,10 +223,20 @@ setMethod("$", "lemur_fit",
     use_assay =               metadata(x)[["use_assay"]],
     colData =                 colData(x),
     rowData =                 rowData(x),
-    test_data =               metadata(x)[["test_data"]],
+    test_data =               get_test_data(x),
+    training_data =           get_training_data(x),
+    is_test_data =            int_colData(x)[["is_test_data"]],
     stop("Invalid `name` value.")
   )
 })
+
+get_test_data <- function(fit){
+  fit[,fit$is_test_data]
+}
+
+get_training_data <- function(fit){
+  fit[,!fit$is_test_data]
+}
 
 #' @rdname cash-lemur_fit-method
 setReplaceMethod("$", "lemur_fit",

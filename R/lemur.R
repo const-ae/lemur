@@ -43,53 +43,51 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
   data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
+  des <- handle_design_parameter(design, data, col_data)
+  al_des <- des
+
   if(! is(data, "SummarizedExperiment")){
     data <- SingleCellExperiment(assays = setNames(list(data_mat), use_assay), colData = col_data)
   }
 
+  is_test_data <- rep(FALSE, ncol(data))
   if(test_fraction < 0 || test_fraction >= 1){
     stop("'test_fraction' must be at least 0 and smaller than 1.")
-  }else if(test_fraction == 0){
-    test_data <- NULL
   }else{
-    if(verbose) message("Storing ", round(test_fraction, 2) * 100, "% of the data (", round(ncol(data_mat) * test_fraction), " cells)",
+    if(verbose) message("Storing ", round(test_fraction, 2) * 100, "% of the data (", round(ncol(data) * test_fraction), " cells)",
                         " as test data.")
-    test_cells <- sample.int(ncol(data_mat), size = round(ncol(data_mat) * test_fraction), replace = FALSE)
-    training_cells <- setdiff(seq_len(ncol(data_mat)), test_cells)
-    test_data <- data[,test_cells]
-    data <- data[,training_cells]
-    data_mat <- data_mat[,training_cells,drop=FALSE]
-    col_data <- col_data[training_cells,,drop=FALSE]
-    if(is.matrix(design)){
-      design <- design[training_cells,,drop=FALSE]
-    }else if(is.vector(design) || is.factor(design)){
-      design <- design[training_cells]
-    }
+    is_test_data[sample.int(ncol(data), size = round(ncol(data) * test_fraction), replace = FALSE)] <- TRUE
   }
 
-  des <- handle_design_parameter(design, data, col_data)
-
-
-  res <- lemur_impl(data_mat, des$design_matrix, n_embedding = n_embedding,
+  design_matrix <- des$design_matrix[!is_test_data,,drop=FALSE]
+  res <- lemur_impl(data_mat[,!is_test_data,drop=FALSE], design_matrix, n_embedding = n_embedding,
                     linear_coefficient_estimator = linear_coefficient_estimator, verbose = verbose, ...)
-  alignment_design <- if(matrix_equals(res$design_matrix, res$alignment_design_matrix)){
+  alignment_design <- if(matrix_equals(design_matrix, res$alignment_design_matrix)){
     des$design_formula
   }else{
     NULL
   }
+  embedding <- matrix(NA, nrow = res$n_embedding, ncol = ncol(data))
+  embedding[,!is_test_data] <- res$embedding
+  embedding[,is_test_data] <- project_on_lemur_fit_impl(Y = data_mat[,is_test_data,drop=FALSE], design_matrix = des$design_matrix[is_test_data,,drop=FALSE],
+                                                      alignment_design_matrix = al_des$design_matrix[is_test_data,,drop=FALSE],
+                                                      coefficients = res$coefficients, linear_coefficients = res$linear_coefficients,
+                                                      alignment_coefficients = res$alignment_coefficients, base_point = res$base_point)
 
-  lemur_fit(data, col_data = col_data, row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
+  lemur_fit(data, col_data = col_data,
+            row_data = if(is(data, "SummarizedExperiment")) rowData(data) else NULL,
             n_embedding = res$n_embedding,
-            design = des$design_formula, design_matrix = res$design_matrix,
+            design = des$design_formula,
+            design_matrix = des$design_matrix,
             linear_coefficients = res$linear_coefficients,
             base_point = res$base_point,
             coefficients = res$coefficients,
-            embedding = res$embedding,
+            embedding = embedding,
             alignment_coefficients = res$alignment_coefficients,
             alignment_design = alignment_design,
-            alignment_design_matrix = res$alignment_design_matrix,
+            alignment_design_matrix = al_des$design_matrix,
             use_assay = use_assay,
-            test_data = test_data)
+            is_test_data = is_test_data)
 }
 
 
@@ -121,17 +119,17 @@ lemur_impl <- function(Y, design_matrix,
   }
 
 
-  if(reshuffling_fraction != 0){
-    stopifnot(reshuffling_fraction > 0 && reshuffling_fraction <= 1)
-    warning("Reshuffling elements from the design matrix is a beta feature, that was ",
-            "designed to regularize the differential inference for unmatched populations.\n",
-            "On the down-side a large 'reshuffle_fraction' can adversely affect the accuracy of the inference.",
-            "Please use with care.", call. = FALSE)
-    sel <- sample.int(nrow(design_matrix), size = round(nrow(design_matrix) * reshuffling_fraction), replace = FALSE)
-    shuf_sel <- sample(sel)
-    design_matrix[sel,] <- design_matrix[shuf_sel,]
-    alignment_design_matrix[sel,] <- alignment_design_matrix[shuf_sel,]
-  }
+  # if(reshuffling_fraction != 0){
+  #   stopifnot(reshuffling_fraction > 0 && reshuffling_fraction <= 1)
+  #   warning("Reshuffling elements from the design matrix is a beta feature, that was ",
+  #           "designed to regularize the differential inference for unmatched populations.\n",
+  #           "On the down-side a large 'reshuffle_fraction' can adversely affect the accuracy of the inference.",
+  #           "Please use with care.", call. = FALSE)
+  #   sel <- sample.int(nrow(design_matrix), size = round(nrow(design_matrix) * reshuffling_fraction), replace = FALSE)
+  #   shuf_sel <- sample(sel)
+  #   design_matrix[sel,] <- design_matrix[shuf_sel,]
+  #   alignment_design_matrix[sel,] <- alignment_design_matrix[shuf_sel,]
+  # }
 
   # Initialize values
   if(linear_coef_fixed){
@@ -204,8 +202,7 @@ lemur_impl <- function(Y, design_matrix,
        base_point = base_point,
        coefficients = coefficients,
        embedding = embedding,
-       alignment_coefficients = alignment_coefficients,
-       alignment_design_matrix = alignment_design_matrix)
+       alignment_coefficients = alignment_coefficients)
 }
 
 

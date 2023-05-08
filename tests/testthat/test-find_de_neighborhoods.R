@@ -184,23 +184,23 @@ test_that("find_de_neighborhoods works", {
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
 
   tmp <- find_de_neighborhoods(fit, group_by = vars(individual, condition),
-                               independent_data = dat, selection_procedure = "zscore",
+                               test_data = dat, selection_procedure = "zscore",
                                directions = "random", verbose = FALSE, continuous_assay_name = "logcounts",
                                test_method = "limma")
 
-  de_neigh1 <- find_de_neighborhoods(fit, independent_data = NULL, selection_procedure = "zscore", directions = "random", verbose = FALSE)
+  de_neigh1 <- find_de_neighborhoods(fit, test_data = NULL, selection_procedure = "zscore", directions = "random", verbose = FALSE)
   de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "random", verbose = FALSE)
   # de_neigh3 <- find_de_neighborhoods(fit, selection_procedure = "likelihood", directions = "random")
   de_neigh4 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "axis_parallel", verbose = FALSE)
   de_neigh5 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
 
-  de_neigh6 <- find_de_neighborhoods(fit, independent_data = list(logcounts = logcounts(fit$test_data), counts = counts(fit$test_data)),
-                                     independent_data_col_data = colData(fit$test_data),
+  de_neigh6 <- find_de_neighborhoods(fit, test_data = list(logcounts = logcounts(fit$test_data), counts = counts(fit$test_data)),
+                                     test_data_col_data = colData(fit$test_data),
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
   expect_equal(de_neigh5, de_neigh6)
 
-  de_neigh7 <- find_de_neighborhoods(fit, independent_data = fit$test_data,
+  de_neigh7 <- find_de_neighborhoods(fit, test_data = fit$test_data,
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast",
                                      test_method = "limma",
@@ -215,10 +215,10 @@ test_that("find_de_regions works with subset", {
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
-  fit_red <- fit[,1:25]
+  fit_red <- fit[,1:200]
   expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
-  de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:25], test_method = "none", verbose = FALSE)
-  expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 50), FUN.VALUE = logical(1))))
+  de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:200], test_method = "none", verbose = FALSE)
+  expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 400), FUN.VALUE = logical(1))))
 })
 
 

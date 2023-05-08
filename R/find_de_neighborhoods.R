@@ -22,7 +22,7 @@ glmGamPoi::vars
 #' @param de_mat the matrix with the differential expression values and is only relevant if
 #'   `selection_procedure = "zscore"` or `directions = "random"`. Defaults
 #'   to an assay called `"DE"` that is produced by `lemur::test_de()`.
-#' @param independent_data a `SummarizedExperiment` object or a named list of matrices. The
+#' @param test_data a `SummarizedExperiment` object or a named list of matrices. The
 #'   data is used to test if the neighborhood inferred on the training data contain a
 #'   reliable significant change. If `test_method` is `"glmGamPoi"` or `"edgeR"` a test
 #'   using raw counts is conducted and two matching assays are needed: (1) the continuous
@@ -30,6 +30,7 @@ glmGamPoi::vars
 #'   position of each cell and (2) the count assay (`count_assay_name`) is used for
 #'   forming the pseudobulk. If `test_method == "limma"`, only the continuous assay is needed. \cr
 #'   The arguments defaults to the test data split of when calling `lemur()`.
+#' @param test_data_col_data additional column data for the `test_data` argument.
 #' @param test_method choice of test for the pseudobulked differential expression.
 #'   [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/) and
 #'   [edgeR](https://bioconductor.org/packages/edgeR/) work on an count assay.
@@ -54,8 +55,8 @@ find_de_neighborhoods <- function(fit,
                                   selection_procedure = c("zscore", "contrast"),
                                   directions = c("random", "contrast", "axis_parallel"),
                                   de_mat = assay(fit, "DE"),
-                                  independent_data = fit$test_data,
-                                  independent_data_col_data = NULL,
+                                  test_data = fit$test_data,
+                                  test_data_col_data = NULL,
                                   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
                                   continuous_assay_name = fit$use_assay,
                                   count_assay_name = "counts",
@@ -65,60 +66,63 @@ find_de_neighborhoods <- function(fit,
   stopifnot(is(fit, "lemur_fit"))
   test_method <- match.arg(test_method)
   selection_procedure <- match.arg(selection_procedure)
-  skip_independent_test <- is.null(independent_data) || test_method == "none"
+  skip_independent_test <- is.null(test_data) || test_method == "none"
+  training_fit <- fit$training_data
 
-  if(is(independent_data, "SummarizedExperiment")){
-    if(! continuous_assay_name %in% assayNames(independent_data)){
+  if(is(test_data, "SummarizedExperiment")){
+    if(! continuous_assay_name %in% assayNames(test_data)){
       stop("Cannot find assay '", continuous_assay_name, "' in the assays of 'independent_data'")
     }
     # Nothing else to be done here
-  }else if(is.list(independent_data)){
-    if(! continuous_assay_name %in% names(independent_data)){
+  }else if(is.list(test_data)){
+    if(! continuous_assay_name %in% names(test_data)){
       stop("Cannot find assay '", continuous_assay_name, "' in the names of 'independent_data'")
     }
-    if(is.null(independent_data_col_data)){
+    if(is.null(test_data_col_data)){
       stop("'independent_data_col_data' must not be NULL")
     }
-    independent_data <- SingleCellExperiment(assays = independent_data)
-  }else if(is.matrix(independent_data)){
+    test_data <- SingleCellExperiment(assays = test_data)
+  }else if(is.matrix(test_data)){
     message("'independent_data' is a matrix treating it as continuous values")
-    if(is.null(independent_data_col_data)){
+    if(is.null(test_data_col_data)){
       stop("'independent_data_col_data' must not be NULL")
     }
-    independent_data <- SingleCellExperiment(assays = setNames(list(independent_data), continuous_assay_name))
-  }else if(is.null(independent_data)){
+    test_data <- SingleCellExperiment(assays = setNames(list(test_data), continuous_assay_name))
+  }else if(is.null(test_data)){
     # This is necessary to satisfy model.matrix in 'project_on_lemur_fit'
     col_data_copy <- fit$colData
     character_cols <- vapply(col_data_copy, is.character, logical(1L))
     col_data_copy[character_cols] <- lapply(col_data_copy[character_cols], as.factor)
     attr(design, "ignore_degeneracy") <- TRUE
-    independent_data <- SingleCellExperiment(assays = setNames(list(matrix(nrow = nrow(fit), ncol = 0) * 1.0), continuous_assay_name),
+    test_data <- SingleCellExperiment(assays = setNames(list(matrix(nrow = nrow(fit), ncol = 0) * 1.0), continuous_assay_name),
                                              colData = col_data_copy[integer(0L),,drop=FALSE])
   }else{
-    stop("Cannot handle 'indepdendet_data' of type: ", paste0(class(independent_data), collapse = ", "))
+    stop("Cannot handle 'indepdendet_data' of type: ", paste0(class(test_data), collapse = ", "))
   }
-  SummarizedExperiment::colData(independent_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(independent_data, independent_data_col_data))
-  if(nrow(fit) != nrow(independent_data)){
+  SummarizedExperiment::colData(test_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(test_data, test_data_col_data))
+  if(nrow(fit) != nrow(test_data)){
     stop("The number of features in 'fit' and 'independent_data' differ.")
   }else{
-    if(! is.null(rownames(fit)) && ! is.null(rownames(independent_data)) &&
-       any(rownames(fit) != rownames(independent_data))){
+    if(! is.null(rownames(fit)) && ! is.null(rownames(test_data)) &&
+       any(rownames(fit) != rownames(test_data))){
       stop("The rownames differ between 'fit' and 'independent_data'.")
     }
   }
 
-  projected_indep_data <- project_on_lemur_fit(fit, data = independent_data, use_assay = continuous_assay_name, design = design, return = "matrix")
+  projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name, design = design, return = "matrix")
 
 
   if(is.character(directions)){
     directions <- match.arg(directions)
     # There is one direction vector for each gene
     if(directions == "random"){
-      dirs <- select_directions_from_random_points(n_random_directions = 50, fit$embedding, de_mat)
+      stopifnot(all(dim(de_mat) == dim(fit)))
+      dirs <- select_directions_from_random_points(n_random_directions = 50, training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }else if(directions == "contrast"){
-      dirs <- select_directions_from_contrast(fit, {{contrast}})
+      dirs <- select_directions_from_contrast(training_fit, {{contrast}})
     }else if(directions == "axis_parallel"){
-      dirs <- select_directions_from_axes(fit$embedding, de_mat)
+      stopifnot(all(dim(de_mat) == dim(fit)))
+      dirs <- select_directions_from_axes(training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }
   }else{
     stopifnot(is.matrix(directions))
@@ -128,35 +132,26 @@ find_de_neighborhoods <- function(fit,
 
   if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
   if(selection_procedure == "zscore"){
-    de_regions <- find_de_neighborhoods_with_z_score(fit, dirs, de_mat, independent_embedding = projected_indep_data,
-                                                     include_complement = include_complement, ..., verbose = verbose)
+    stopifnot(all(dim(de_mat) == dim(fit)))
+    de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
+                                                     independent_embedding = projected_indep_data,
+                                                     include_complement = include_complement, verbose = verbose)
   }else if(selection_procedure == "contrast"){
-    de_regions <- find_de_neighborhoods_with_contrast(fit, dirs, group_by = {{group_by}}, contrast = contrast,
+    de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = contrast,
                                                       independent_embedding = projected_indep_data,
                                                       include_complement = include_complement, ..., verbose = verbose)
   }else if(selection_procedure == "likelihood"){
     # Implement one of Wolfgang's suggestions for the selection procedure
-    # de_regions <- find_de_neighborhoods_with_likelihood_ratio(fit, dirs, de_mat, include_complement = include_complement)
+    # de_regions <- find_de_neighborhoods_with_likelihood_ratio(training_fit, dirs, de_mat, include_complement = include_complement)
   }
   if(skip_independent_test){
-    de_regions$n_cells <- lengths(de_regions$indices)
-    de_regions$independent_indices <- NULL
-  }else{
-    de_regions$n_cells <- lengths(de_regions$independent_indices)
-    de_regions$indices <- de_regions$independent_indices
-    de_regions$independent_indices <- NULL
-  }
-  de_regions <- de_regions[, c("name", "selection", "indices", "n_cells", "sel_statistic")]
-
-
-  if(skip_independent_test){
-    de_regions
+    colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic")
   }else{
     if(verbose) message("Validate neighborhoods using independent data")
-    if(! is.null(rownames(fit)) && is.null(rownames(independent_data))){
-      rownames(independent_data) <- rownames(fit)
+    if(! is.null(rownames(fit)) && is.null(rownames(test_data))){
+      rownames(test_data) <- rownames(fit)
     }
-    if(any(rownames(fit) != rownames(independent_data))){
+    if(any(rownames(fit) != rownames(test_data))){
       stop("The rownames of fit and counts don't match.")
     }
     if(rlang::quo_is_null(rlang::enquo(contrast))){
@@ -169,20 +164,30 @@ find_de_neighborhoods <- function(fit,
     }, error = function(e){
       # Do nothing. The 'contrast' is probably an unquoted expression
     })
-    result <- if(test_method != "limma"){
-      if(! count_assay_name %in% assayNames(independent_data)){
+    if(test_method != "limma"){
+      if(! count_assay_name %in% assayNames(test_data)){
         stop("Trying to execute count-based differential expression analysis on the test data because 'test_method=\"", test_method, "\"'. However, ",
-          "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(independent_data), collapse = ", "),
+          "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(test_data), collapse = ", "),
              ") of the 'independent_data' object.")
       }
-      neighborhood_count_test(de_regions, counts = assay(independent_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = colData(independent_data), method = test_method, verbose = verbose)
+      colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc")
+      de_regions <- neighborhood_count_test(de_regions, counts = assay(test_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
+                              design = design, col_data = colData(test_data), method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
     }else{
-      neighborhood_normal_test(de_regions, values = assay(independent_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
-                               design = design, col_data = colData(independent_data), shrink = TRUE,  verbose = verbose)
+      colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
+      de_regions <- neighborhood_normal_test(de_regions, values = assay(test_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
+                               design = design, col_data = colData(test_data), shrink = TRUE, de_region_index_name = "independent_indices",  verbose = verbose)
     }
-    result
   }
+  test_idx <- which(fit$is_test_data)
+  train_idx <- which(!fit$is_test_data)
+  de_regions$indices <- lapply(seq_len(nrow(de_regions)), \(row){
+    c(train_idx[de_regions$indices[[row]]], test_idx[de_regions$independent_indices[[row]]])
+  })
+  de_regions$independent_indices <- NULL
+  de_regions$n_cells <- lengths(de_regions$indices)
+  de_regions[colnames]
+
 }
 
 select_directions_from_axes <- function(embedding, de_mat){
@@ -346,11 +351,13 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
 
 
-neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data, method = c("glmGamPoi", "edgeR"), verbose = TRUE){
+neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data, method = c("glmGamPoi", "edgeR"),
+                                    de_region_index_name = "indices", verbose = TRUE){
   method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))
+  indices <- de_regions[[de_region_index_name]]
   for(idx in seq_len(nrow(de_regions))){
-    mask[idx,de_regions$indices[[idx]]] <- 1
+    mask[idx,indices[[idx]]] <- 1
   }
 
   mask <- if(utils::packageVersion("Matrix") >= "1.4.2"){
@@ -409,15 +416,16 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
 
 
 neighborhood_normal_test <- function(de_regions, values, group_by, contrast, design, col_data,
-                                     shrink = TRUE, verbose = TRUE){
+                                     shrink = TRUE, de_region_index_name = "indices", verbose = TRUE){
   if(is.null(de_regions$name)){
     stop("The de_region data frame must contain a column called 'name'.")
   }
   cntrst <- parse_contrast({{contrast}}, formula = design)
   cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
   mask <- matrix(NA, nrow = nrow(de_regions),  ncol = ncol(values))
+  indices <- de_regions[[de_region_index_name]]
   for(idx in seq_len(nrow(de_regions))){
-    mask[idx,de_regions$indices[[idx]]] <- 1
+    mask[idx,indices[[idx]]] <- 1
   }
 
   mask <- if(utils::packageVersion("Matrix") >= "1.4.2"){
@@ -460,7 +468,11 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   })
   lm_fit <- limma::contrasts.fit(lm_fit, contrasts = cntrst)
   if(shrink){
-    lm_fit <- limma::eBayes(lm_fit, trend = TRUE, robust = TRUE)
+    lm_fit <- tryCatch({
+      limma::eBayes(lm_fit, trend = TRUE, robust = TRUE)
+    }, error = function(err){
+      limma::eBayes(lm_fit, trend = FALSE, robust = TRUE)
+    })
   }else{
     lm_fit <- limma_eBayes_without_shrinkage(lm_fit)
   }

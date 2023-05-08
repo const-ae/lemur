@@ -21,8 +21,7 @@ handle_design_parameter <- function(design, data, col_data){
     }
     tmp <- glmGamPoi:::convert_chr_vec_to_model_matrix(design, NULL)
     design_matrix <- tmp$model_matrix
-    design_formula <- tmp$formula
-    attr(design_formula, "constructed_from") <- "vector"
+    design_formula <- NULL
   }else if(inherits(design,"formula")){
     tmp <- convert_formula_to_design_matrix(design, col_data)
     design_matrix <- tmp$design_matrix
