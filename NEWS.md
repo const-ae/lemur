@@ -1,3 +1,13 @@
+# v0.0.19
+
+* Add new `test_fraction` argument to `lemur()` function. It automatically defines a hold-out datasets for the fitting step.
+These hold-out data is used to infer the differential expression of the neighborhoods in `find_de_neighborhoods`. This change
+addresses the double-dipping problem, where it was previously left to the user to provide an independent matrix for the 
+`find_de_neighborhoods` function.
+* As a consequence of these changes, the structure of `lemur_fit` objects has changed. They gain three new fields called
+`fit$test_data`, `fit$training_data`, and `fit$is_test_data`.
+* The order and names of the arguments for `find_de_neighborhoods` has changed.
+
 # v0.0.18
 
 * Remove `alignment_method` field from `lemur_fit` objects as it was not used for anything.

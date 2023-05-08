@@ -1,7 +1,7 @@
 Package: lemur
 Type: Package
 Title: Latent Embedding Multivariate Regression
-Version: 0.0.18
+Version: 0.0.19
 Authors@R: person("Constantin", "Ahlmann-Eltze", email = "artjom31415@googlemail.com", 
                role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3762-068X"))
 Description: Fit a rotation regression on the latent spaces of each condition of
