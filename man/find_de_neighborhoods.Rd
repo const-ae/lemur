@@ -11,8 +11,8 @@ find_de_neighborhoods(
   selection_procedure = c("zscore", "contrast"),
   directions = c("random", "contrast", "axis_parallel"),
   de_mat = assay(fit, "DE"),
-  independent_data = fit$test_data,
-  independent_data_col_data = NULL,
+  test_data = fit$test_data,
+  test_data_col_data = NULL,
   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
   continuous_assay_name = fit$use_assay,
   count_assay_name = "counts",
@@ -46,7 +46,7 @@ Alternatively, this can also be a matrix with one direction for each gene
 \code{selection_procedure = "zscore"} or \code{directions = "random"}. Defaults
 to an assay called \code{"DE"} that is produced by \code{lemur::test_de()}.}
 
-\item{independent_data}{a \code{SummarizedExperiment} object or a named list of matrices. The
+\item{test_data}{a \code{SummarizedExperiment} object or a named list of matrices. The
 data is used to test if the neighborhood inferred on the training data contain a
 reliable significant change. If \code{test_method} is \code{"glmGamPoi"} or \code{"edgeR"} a test
 using raw counts is conducted and two matching assays are needed: (1) the continuous
@@ -54,6 +54,8 @@ assay (with \code{continuous_assay_name}) is projected onto the LEMUR fit to fin
 position of each cell and (2) the count assay (\code{count_assay_name}) is used for
 forming the pseudobulk. If \code{test_method == "limma"}, only the continuous assay is needed. \cr
 The arguments defaults to the test data split of when calling \code{lemur()}.}
+
+\item{test_data_col_data}{additional column data for the \code{test_data} argument.}
 
 \item{test_method}{choice of test for the pseudobulked differential expression.
 \href{https://bioconductor.org/packages/glmGamPoi/}{glmGamPoi} and

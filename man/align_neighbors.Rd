@@ -12,7 +12,7 @@ align_neighbors(
   data_matrix = assay(fit),
   cells_per_cluster = 20,
   mnn = 10,
-  design = fit$alignment_design_matrix,
+  design = fit$alignment_design,
   ridge_penalty = 0.5,
   verbose = TRUE
 )
@@ -20,7 +20,7 @@ align_neighbors(
 align_harmony(
   fit,
   ...,
-  design = fit$alignment_design_matrix,
+  design = fit$alignment_design,
   ridge_penalty = 0.5,
   min_cluster_membership = 0.001,
   max_iter = 10,
@@ -32,7 +32,7 @@ align_by_template(
   template,
   cells_per_cluster = 20,
   mnn = 10,
-  design = fit$alignment_design_matrix,
+  design = fit$alignment_design,
   ridge_penalty = 0.5,
   verbose = TRUE
 )
@@ -40,7 +40,7 @@ align_by_template(
 align_by_grouping(
   fit,
   grouping,
-  design = fit$alignment_design_matrix,
+  design = fit$alignment_design,
   ridge_penalty = 0.5,
   verbose = TRUE
 )

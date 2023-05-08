@@ -5,10 +5,9 @@
 \title{Find the rotation and stretching coefficients to make latent position of matching groups similar}
 \usage{
 correct_design_matrix_groups(
-  fit,
   matching_groups,
   embedding,
-  design,
+  design_matrix,
   ridge_penalty = 0.5,
   verbose = TRUE
 )
