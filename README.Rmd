@@ -56,7 +56,7 @@ library("SingleCellExperiment")
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
 fit <- align_harmony(fit)   # This step is optional
 fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-nei <- find_de_neighborhoods(fit, independent_matrix = counts(sce), group_by = vars(patient_id, condition))
+nei <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
 ```
 
 ## A worked through example
@@ -92,8 +92,11 @@ as_tibble(orig_umap) %>%
 
 We fit the LEMUR model by calling `lemur()`. We provide the experimental design using a formula. The elements of the formula can refer to columns of the `colData` of the `SingleCellExperiment` object. We also set the number of latent dimensions, which has a similar interpretation as the number of dimensions in PCA. Optionally, we can further align corresponding cells using manually annotated cell types (`align_by_grouping`) or an automated alignment procedure (e.g., `align_harmony`, `align_neighbors`).
 
+The `test_fraction` argument sets the fraction of cells which are exclusively used to test for differential expression and not for inferring the LEMUR parameters.
+
 ```{r fit_lemur}
-fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
+             n_embedding = 15, test_fraction = 0.4, verbose = FALSE)
 
 # The alignment step is optional and there are several approaches to choose the alignment.
 # The ridge_penalty regularizes the alignment
@@ -140,8 +143,7 @@ as_tibble(umap) %>%
 Alternatively, we can use the matrix of differential expression values (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that show consistent differential expression. If we provide a count matrix, the function uses a pseudobulked differential expression test to confirm the gene expression differences on the count level.
 
 ```{r de_neighborhoods}
-neighborhoods <- find_de_neighborhoods(fit, independent_matrix = counts(glioblastoma_example_data),
-                                      group_by = vars(patient_id, condition),
+neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
                                       include_complement = FALSE, verbose = FALSE)
 
 as_tibble(neighborhoods) %>%

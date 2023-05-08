@@ -6,21 +6,22 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of lemur is to enable easy analysis of multi-condition
-single-cell data. Lemur fits latent embedding regression, which means it
-tries to find the PCA embedding for each condition and parameterizes the
-transition from one embedding to another. For this task, lemur uses
-geodesic regression on the Grassmann manifold, which is solved
-efficiently using tangent-space linear modeling. The result is an
-interpretable model of the gene expression for arbitrary experimental
-designs that can be expressed using a design matrix.
+The goal of `lemur` is to enable easy analysis of multi-condition
+single-cell data. `lemur` fits a latent embedding regression model,
+which means it tries to find a PCA-like embedding for each condition and
+parameterizes the transition from one embedding to another. For this
+task, `lemur` uses geodesic regression on a Grassmann manifold, which is
+solved efficiently using tangent-space linear modeling. `lemur` works
+with arbitrary experimental designs that can be expressed using a design
+matrix. The result is an interpretable model of the gene expression
+patterns.
 
 ![Schematic of the matrix decomposition at the core of
 LEMUR](man/figures/equation_schematic.png)
 
 ## Installation
 
-Lemur depends on features from
+`lemur` depends on features from
 [`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only
 available in the development version, so please install `glmGamPoi` from
 GitHub before proceeding with lemur’s installation:
@@ -38,40 +39,39 @@ devtools::install_github("const-ae/lemur")
 ## A word of caution
 
 This package is being actively developed, and I am still making breaking
-changes. I would be delighted if you decide to try out the package, and
-please open an issue if you think you found a bug, have an idea for a
+changes. I would be delighted if you decide to try out the package.
+Please do open an issue if you think you found a bug, have an idea for a
 cool feature, or have any questions about how LEMUR works. Consider this
-a *beta* release with the goal to gather feedback but be aware that code
-written against the current version of lemur might not work in the
+an *alpha* release with the goal to gather feedback, but be aware that
+code written against the current version of lemur might not work in the
 future.
 
-## Quickstart
+## Quick start
 
 ``` r
-library(lemur)
-library(SingleCellExperiment)
+library("lemur")
+library("SingleCellExperiment")
 
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15)
 fit <- align_harmony(fit)   # This step is optional
 fit <- test_de(fit, contrast = cond(condition = "ctrl") - cond(condition = "panobinostat"))
-nei <- find_de_neighborhoods(fit, independent_matrix = counts(sce), group_by = vars(patient_id, condition))
+nei <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
 ```
 
-## Example
+## A worked through example
 
 We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The
-data consists of tumor biopsies from five glioblastomas which were
-treated using panobinostat or used as a control. Accordingly, we will
-analyze ten samples (patient-treatment combinations) using a paired
+data consist of tumor biopsies from five glioblastomas which were
+treated with the drug panobinostat and with a control. Accordingly, we
+will analyze ten samples (patient-treatment combinations) using a paired
 experimental design.
 
-We start by loading some packages which are necessary to analyze the
-data:
+We start by loading some required packages.
 
 ``` r
-library(tidyverse)
-library(SingleCellExperiment)
-library(lemur)
+library("tidyverse")
+library("SingleCellExperiment")
+library("lemur")
 set.seed(42)
 ```
 
@@ -124,8 +124,13 @@ corresponding cells using manually annotated cell types
 (`align_by_grouping`) or an automated alignment procedure (e.g.,
 `align_harmony`, `align_neighbors`).
 
+The `test_fraction` argument sets the fraction of cells which are
+exclusively used to test for differential expression and not for
+inferring the LEMUR parameters.
+
 ``` r
-fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_embedding = 15, verbose = FALSE)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
+             n_embedding = 15, test_fraction = 0.4, verbose = FALSE)
 
 # The alignment step is optional and there are several approaches to choose the alignment.
 # The ridge_penalty regularizes the alignment
@@ -138,8 +143,8 @@ fit <- align_harmony(fit, ridge_penalty = 0.5) # Use maximum-diversity clusterin
 fit
 #> class: lemur_fit 
 #> dim: 300 5000 
-#> metadata(9): n_embedding design ... alignment_design_matrix row_mask
-#> assays(1): expr
+#> metadata(9): n_embedding design ... use_assay row_mask
+#> assays(2): counts logcounts
 #> rownames(300): ENSG00000210082 ENSG00000118785 ... ENSG00000167468
 #>   ENSG00000139289
 #> rowData names(6): gene_id symbol ... strand. source
@@ -205,8 +210,7 @@ the function uses a pseudobulked differential expression test to confirm
 the gene expression differences on the count level.
 
 ``` r
-neighborhoods <- find_de_neighborhoods(fit, independent_matrix = counts(glioblastoma_example_data),
-                                      group_by = vars(patient_id, condition),
+neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
                                       include_complement = FALSE, verbose = FALSE)
 
 as_tibble(neighborhoods) %>%
@@ -214,18 +218,18 @@ as_tibble(neighborhoods) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
   dplyr::select(name, symbol, n_cells, pval, adj_pval)
 #> # A tibble: 300 × 5
-#>    name            symbol n_cells      pval adj_pval
-#>    <chr>           <chr>    <int>     <dbl>    <dbl>
-#>  1 ENSG00000187193 MT1X      4462 0.0000242  0.00726
-#>  2 ENSG00000147588 PMP2      3783 0.0000622  0.00933
-#>  3 ENSG00000245532 NEAT1     3527 0.000101   0.00992
-#>  4 ENSG00000177700 POLR2L    4374 0.000142   0.00992
-#>  5 ENSG00000125148 MT2A      4088 0.000183   0.00992
-#>  6 ENSG00000130208 APOC1     3055 0.000224   0.00992
-#>  7 ENSG00000198668 CALM1     3938 0.000293   0.00992
-#>  8 ENSG00000156508 EEF1A1    2885 0.000306   0.00992
-#>  9 ENSG00000169715 MT1E      4194 0.000312   0.00992
-#> 10 ENSG00000175899 A2M       3428 0.000331   0.00992
+#>    name            symbol n_cells       pval adj_pval
+#>    <chr>           <chr>    <int>      <dbl>    <dbl>
+#>  1 ENSG00000187193 MT1X      4656 0.00000788  0.00236
+#>  2 ENSG00000245532 NEAT1     2935 0.0000295   0.00333
+#>  3 ENSG00000113889 KNG1      4333 0.0000417   0.00333
+#>  4 ENSG00000147588 PMP2      4681 0.0000444   0.00333
+#>  5 ENSG00000175899 A2M       4691 0.0000696   0.00417
+#>  6 ENSG00000177700 POLR2L    3558 0.000238    0.0119 
+#>  7 ENSG00000125148 MT2A      4474 0.000309    0.0126 
+#>  8 ENSG00000198668 CALM1     3410 0.000336    0.0126 
+#>  9 ENSG00000169429 CXCL8     1652 0.000618    0.0206 
+#> 10 ENSG00000069275 NUCKS1    4121 0.000757    0.0214 
 #> # ℹ 290 more rows
 ```
 
@@ -341,7 +345,7 @@ out myself. If you can share the data publicly, please open an issue.
 sessionInfo()
 #> R version 4.3.0 (2023-04-21)
 #> Platform: x86_64-apple-darwin20 (64-bit)
-#> Running under: macOS Big Sur 11.7
+#> Running under: macOS Big Sur 11.7.6
 #> 
 #> Matrix products: default
 #> BLAS:   /Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/lib/libRblas.0.dylib 
@@ -363,12 +367,12 @@ sessionInfo()
 #>  [5] purrr_1.0.1                 readr_2.1.4                
 #>  [7] tidyr_1.3.0                 tibble_3.2.1               
 #>  [9] ggplot2_3.4.2               tidyverse_2.0.0            
-#> [11] SingleCellExperiment_1.22.0 SummarizedExperiment_1.30.0
+#> [11] SingleCellExperiment_1.22.0 SummarizedExperiment_1.30.1
 #> [13] Biobase_2.60.0              GenomicRanges_1.52.0       
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
-#> [17] S4Vectors_0.38.0            BiocGenerics_0.46.0        
+#> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.16               
+#> [21] lemur_0.0.18               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
@@ -380,25 +384,25 @@ sessionInfo()
 #> [13] sparseMatrixStats_1.12.0  lifecycle_1.0.3          
 #> [15] GenomeInfoDbData_1.2.10   farver_2.1.1             
 #> [17] compiler_4.3.0            munsell_0.5.0            
-#> [19] codetools_0.2-19          glmGamPoi_1.12.0         
+#> [19] codetools_0.2-19          glmGamPoi_1.13.0         
 #> [21] htmltools_0.5.5           RCurl_1.98-1.12          
-#> [23] yaml_2.3.7                crayon_1.5.2             
-#> [25] pillar_1.9.0              MASS_7.3-59              
-#> [27] uwot_0.1.14               DelayedArray_0.25.0      
+#> [23] yaml_2.3.7                pillar_1.9.0             
+#> [25] crayon_1.5.2              MASS_7.3-60              
+#> [27] uwot_0.1.14               DelayedArray_0.26.1      
 #> [29] tidyselect_1.2.0          digest_0.6.31            
 #> [31] stringi_1.7.12            labeling_0.4.2           
 #> [33] splines_4.3.0             cowplot_1.1.1            
 #> [35] fastmap_1.1.1             grid_4.3.0               
 #> [37] colorspace_2.1-0          cli_3.6.1                
 #> [39] harmony_0.1.1             magrittr_2.0.3           
-#> [41] utf8_1.2.3                withr_2.5.0              
-#> [43] DelayedMatrixStats_1.22.0 scales_1.2.1             
-#> [45] timechange_0.2.0          rmarkdown_2.21           
-#> [47] XVector_0.40.0            hms_1.1.3                
-#> [49] evaluate_0.20             knitr_1.42               
-#> [51] RcppAnnoy_0.0.20          irlba_2.3.5.1            
-#> [53] rlang_1.1.0               isoband_0.2.7            
-#> [55] Rcpp_1.0.10               glue_1.6.2               
-#> [57] rstudioapi_0.14           R6_2.5.1                 
-#> [59] zlibbioc_1.46.0
+#> [41] S4Arrays_1.0.1            utf8_1.2.3               
+#> [43] withr_2.5.0               DelayedMatrixStats_1.22.0
+#> [45] scales_1.2.1              timechange_0.2.0         
+#> [47] rmarkdown_2.21            XVector_0.40.0           
+#> [49] hms_1.1.3                 evaluate_0.20            
+#> [51] knitr_1.42                RcppAnnoy_0.0.20         
+#> [53] irlba_2.3.5.1             rlang_1.1.1              
+#> [55] isoband_0.2.7             Rcpp_1.0.10              
+#> [57] glue_1.6.2                rstudioapi_0.14          
+#> [59] R6_2.5.1                  zlibbioc_1.46.0
 ```
