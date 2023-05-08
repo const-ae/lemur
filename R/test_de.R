@@ -145,7 +145,7 @@ test_global <- function(fit,
     deviance_ref <- sum(residuals(fit, with_linear_model = with_lm, with_embedding = with_emb)^2)
     # Fit the reduced model
     resid_red <- get_residuals_for_alt_fit(fit, reduced_design_mat = reduced_design_mat, with_linear_model = with_lm, with_embedding = with_emb)
-    predict_red <- assay(fit, "expr") - resid_red
+    predict_red <- assay(fit, fit$use_assay) - resid_red
     deviance_red <- sum(resid_red^2)
     deviance_delta_null <- vapply(seq_len(n_resampling_iter), \(iter){
       new_Y <- predict_red + resid_red[,sample.int(ncol(resid_red), replace = FALSE),drop=FALSE]
