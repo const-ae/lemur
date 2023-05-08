@@ -1,7 +1,7 @@
 test_that("making data works", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat
-  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, test_fraction = 0, verbose = FALSE)
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_embedding, 5)
   expect_equal(format(fit$design), "~condition")
@@ -13,11 +13,27 @@ test_that("making data works", {
   expect_equal(fit$alignment_coefficients, array(0, dim = c(5, 5, 3)))
   expect_equal(format(fit$alignment_design), "~condition")
   expect_equal(fit$alignment_design_matrix, fit$design_matrix)
+  expect_equal(fit$use_assay, "logcounts")
+  expect_equal(fit$test_data, NULL)
+})
+
+test_that("test_fraction works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  n_training_cells <- 500 * 0.6
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, test_fraction = 0.4, verbose = FALSE)
+  expect_equal(dim(fit), c(50, n_training_cells))
+  expect_equal(dim(fit$embedding), c(5, n_training_cells))
+  expect_equal(dim(fit$design_matrix), c(n_training_cells, 3))
+
+  td <- fit$test_data
+  expect_s4_class(td, "SingleCellExperiment")
+  expect_equal(assayNames(td), c("logcounts"))
+  expect_equal(dim(td), c(50, 500 - n_training_cells))
 })
 
 test_that("the fit is valid", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, test_fraction = 0, verbose = FALSE)
 
   expect_equal(dim(fit), dim(dat))
   expect_equal(fit$n_embedding, 5)
@@ -37,7 +53,7 @@ test_that("the fit is valid", {
 test_that("subsetting works", {
   set.seed(1)
   dat <- make_synthetic_data(n_genes = 40, n_cells = 200)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, test_fraction = 0, verbose = FALSE)
   fit2 <- fit[1:10, 101:120]
   expect_true(validObject(fit2))
 
@@ -72,13 +88,12 @@ test_that("subsetting works", {
 test_that("predicting works", {
   # Compare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 0, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 0, test_fraction = 0, verbose = FALSE)
   fit_lm <- lm(t(assay(dat)) ~ condition, data = colData(dat))
   expect_equal(fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
   expect_equal(predict(fit, with_embedding = FALSE), t(predict(fit_lm)), ignore_attr = "dimnames")
   expect_equal(residuals(fit, with_embedding = FALSE), t(residuals(fit_lm)))
-  expect_equal(predict(fit) + residuals(fit), assay(fit))
-
+  expect_equal(predict(fit) + residuals(fit), assay(fit, "logcounts"))
   # Predict works with subsetting
   pred_full <- predict(fit)
   pred_red <- predict(fit[1:3,])
@@ -97,9 +112,9 @@ test_that("Adding predictors improves predictions", {
   dat <- make_synthetic_data(n_lat = 5)
   dat$random <- sample(c("a", "b"), size = ncol(dat), replace = TRUE)
 
-  fit1 <- lemur(dat, design = ~ condition, n_embedding = 2, verbose = FALSE)
-  fit2 <- lemur(dat, design = ~ condition + random, n_embedding = 2, verbose = FALSE)
-  fit3 <- lemur(dat, design = ~ condition * random, n_embedding = 2, verbose = FALSE)
+  fit1 <- lemur(dat, design = ~ condition, n_embedding = 2, test_fraction = 0, verbose = FALSE)
+  fit2 <- lemur(dat, design = ~ condition + random, n_embedding = 2, test_fraction = 0, verbose = FALSE)
+  fit3 <- lemur(dat, design = ~ condition * random, n_embedding = 2, test_fraction = 0, verbose = FALSE)
 
   error1 <- mean((logcounts(dat) - predict(fit1))^2)
   error2 <- mean((logcounts(dat) - predict(fit2))^2)
@@ -112,10 +127,29 @@ test_that("Adding predictors improves predictions", {
   expect_lt(error3, error2)
 })
 
+test_that("projection works", {
+  # Compare with linear model fit
+  dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
+  dat1 <- dat[,1:250]
+  dat2 <- dat[,251:500]
+  fit <- lemur(dat1, design = ~ condition, n_embedding = 3, test_fraction = 0, verbose = FALSE)
+  fit <- align_by_grouping(fit, grouping = sample(c("a", "b"), size = 250, replace = TRUE), verbose = FALSE)
+  proj1 <- project_on_lemur_fit(fit, dat1)
+  expect_equal(fit$embedding, proj1)
+  proj2 <- project_on_lemur_fit(fit, dat2)
+  proj3 <- project_on_lemur_fit(fit, assay(dat2, "logcounts"), col_data = colData(dat2))
+  expect_equal(proj2, proj3)
+
+  proj1_fit <- project_on_lemur_fit(fit, dat1, return = "lemur_fit")
+  expect_true(validObject(proj1_fit))
+  expect_equal(proj1_fit, fit)
+})
+
+
 
 test_that("n_embedding = 0 works", {
   dat <- make_synthetic_data(n_genes = 30, n_lat = 25)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 0, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 0, test_fraction = 0, verbose = FALSE)
   zero_dim_mat <- matrix(nrow = 30, ncol = 0)
   expect_equal(fit$base_point, zero_dim_mat)
   expect_equal(fit$coefficients, array(dim = c(30, 0, 3)), ignore_attr = "dimnames")
@@ -171,7 +205,7 @@ test_that("align_harmony works", {
 
 test_that("aligning works with alternative design matrices", {
   dat <- make_synthetic_data(n_genes = 30)
-  fit <- lemur(dat, design = ~ 1, n_embedding = 5, verbose = FALSE)
+  fit <- lemur(dat, design = ~ 1, n_embedding = 5, test_fraction = 0, verbose = FALSE)
 
   alignment <- sample(letters[1:3], ncol(fit), replace = TRUE)
   alignment_design <- model.matrix(~ condition, fit$colData)
@@ -190,6 +224,7 @@ test_that("Under-determined fits run successfully", {
   dat <- make_synthetic_data()
   dat$condition <- as.factor(dat$condition)
   dat <- dat[,dat$condition != "c"]
+  dat$condition <- droplevels(dat$condition)
   fit <- lemur(dat, design = ~ condition, n_embedding = 2, verbose = FALSE)
 
   expect_silent(test_de(fit, cond(condition = "b")))
@@ -202,9 +237,10 @@ test_that("fixing linear coefficients works", {
 
   design <- model.matrix(~ group - 1, data = data.frame(group = sample(letters[1:2], size = 20, replace = TRUE)))
   coef <- t(lm.fit(design, t(mat))$coefficients)
-  res1 <- lemur(mat, design = design, n_embedding = 2, linear_coefficients = coef, verbose = FALSE)
-  res2 <- lemur(mat, design = design, n_embedding = 2, verbose = FALSE)
+  res1 <- lemur(mat, design = design, n_embedding = 2, linear_coefficients = coef, test_fraction = 0, verbose = FALSE)
+  res2 <- lemur(mat, design = design, n_embedding = 2, test_fraction = 0, verbose = FALSE)
   expect_equal(res1, res2)
+  expect_silent(lemur(mat, design = design, n_embedding = 2, test_fraction = 0.2, verbose = FALSE))
 })
 
 

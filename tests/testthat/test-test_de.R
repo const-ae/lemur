@@ -2,7 +2,7 @@
 test_that("test_de works", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
-  fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
+  fit <- align_by_grouping(fit, grouping = fit$colData$cell_type, verbose = FALSE)
   fit <- fit[,1:10]
 
   res <- test_de(fit, cond(condition = "b") - cond(condition = "a"))
@@ -29,7 +29,7 @@ test_that("my implementation of Welford's algorithm works", {
 test_that("test_de works with custom embedding", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 500, n_lat = 3, n_centers = 5)
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
-  fit <- align_by_grouping(fit, grouping = dat$cell_type, verbose = FALSE)
+  fit <- align_by_grouping(fit, grouping = fit$colData$cell_type, verbose = FALSE)
   fit <- fit[,1:10]
   test_point <- matrix(0, nrow = 3, ncol = 1)
   colnames(test_point) <- "zero"
@@ -61,7 +61,7 @@ test_that("the angle between planes is correctly calculated", {
   dat <- make_synthetic_data(n_genes = 30, n_cells = 5000, n_lat = 5, n_centers = 3)
   fitlm <- lm(t(assay(dat)) ~ dat$condition)
   assay(dat) <- t(fitlm$residuals)
-  fit <- lemur(dat, design = ~ condition, n_embedding = n_emb, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = n_emb, test_fraction = 0, verbose = FALSE)
   expect_equal(fit$linear_coefficients, matrix(0, nrow = nrow(fit), ncol = 3), ignore_attr = "dimnames")
   # The angle and delta_diffemb for a left-right contrast are slightly different than the results
   # for a one-sided contrast. The left-right contrast is slighly more accurate because it calculate

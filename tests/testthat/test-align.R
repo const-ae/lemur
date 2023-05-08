@@ -1,7 +1,7 @@
 set.seed(1)
 dat <- make_synthetic_data(n_centers = 4, n_genes = 50)
 dat$patient <- sample(paste0("p", 1:3), 500, replace = TRUE)
-fit <- lemur(dat, ~ condition + patient, n_embedding = 5, verbose = FALSE)
+fit <- lemur(dat, ~ condition + patient, n_embedding = 5, test_fraction = 0, verbose = FALSE)
 
 test_that("forward and reverse transformation cancel", {
   coef <- array(cbind(randn(5, 5), randn(5, 5)), dim = c(5,5,2))
@@ -90,7 +90,7 @@ test_that("alignment with template works", {
   n_cells <- 300
   mat <- randn(10, n_cells)
   group <- as.factor(sample(letters[1:2], size = n_cells, replace = TRUE))
-  fit <- lemur(mat, design = group, n_embedding = 2, verbose = FALSE)
+  fit <- lemur(mat, design = group, n_embedding = 2, test_fraction = 0, verbose = FALSE)
 
 
   template <- fit$embedding
@@ -125,7 +125,8 @@ test_that("check that aligning points works perfectly for low number of points",
             base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
             embedding = mat,
             alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
-            alignment_design = NULL, alignment_design_matrix = design_matrix)
+            alignment_design = NULL, alignment_design_matrix = design_matrix,
+            use_assay = "foo", test_data = NULL)
   gr <- rep(seq_len(n_points), times = 2)
   fit_al <- align_by_grouping(fit, grouping = gr, ridge_penalty = 0, verbose = FALSE)
   expect_equal(fit_al$embedding[,df$tmp == "a"], fit_al$embedding[,df$tmp == "b"], tolerance = 1e-8)
@@ -149,7 +150,8 @@ test_that("check that harmony alignment works as expected", {
                    base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
                    embedding = mat,
                    alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
-                   alignment_design = NULL, alignment_design_matrix = design_matrix)
+                   alignment_design = NULL, alignment_design_matrix = design_matrix,
+                   use_assay = "foo", test_data = NULL)
   gr <- rep(seq_len(n_points), times = 2)
   fit_al2 <- align_harmony(fit, nclust = n_points, ridge_penalty = 1e-3, verbose = FALSE)
   set.seed(1)

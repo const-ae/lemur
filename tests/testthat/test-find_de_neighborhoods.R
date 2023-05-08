@@ -41,6 +41,7 @@ test_that("find_de_neighborhoods_with_z_score works", {
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
   nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
   expect_equal(nrow(nei), 50)
+  expect_equal(nei$independent_indices, I(lapply(seq_len(50), \(x) integer(0L))))
   nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
   expect_equal(nrow(nei2), 100)
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))
@@ -65,6 +66,7 @@ test_that("find_de_neighborhoods_with_z_score works", {
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
   nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
   expect_equal(nrow(nei), 50)
+  expect_equal(nei$independent_indices, I(lapply(seq_len(50), \(x) integer(0L))))
   nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
   expect_equal(nrow(nei2), 100)
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100])))
@@ -99,10 +101,8 @@ test_that("neighborhood_count_test works", {
   test_res2 <- neighborhood_count_test(de_regions, group_by = vars(patient, condition),
                                       contrast = cond(condition = "ctrl") - cond(condition = "trt"), counts = y,
                                       design = form$design_formula, col_data = dat, method = "edgeR", verbose = FALSE)
-  # head(test_res1)
-  # head(test_res2)
-  # plot(test_res1$lfc, test_res2$lfc, ylim = c(-5, 5)); abline(0,1)
-  # plot(test_res1$pval, test_res2$pval); abline(0,1)
+  # plot(test_res1$lfc, test_res2$lfc, ylim = c(-5, 5)); abline(0,1) # Pretty straight line
+  # plot(test_res1$pval, test_res2$pval); abline(0,1)  # Pretty straight line
   expect_equal(colnames(test_res1), colnames(test_res2))
 })
 
@@ -149,9 +149,9 @@ test_that("neighborhood_normal_test works", {
 test_that("find_de_neighborhoods_with_contrast works", {
   set.seed(6)
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
-  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  dat$individual <- sample(paste0("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
-  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, test_fraction = 0, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
   set.seed(1)
@@ -177,26 +177,33 @@ test_that("find_de_neighborhoods_with_contrast works", {
 
 test_that("find_de_neighborhoods works", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
-  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  assay(dat, "counts", withDimnames = FALSE) <- array(rpois(prod(dim(dat)), lambda = 7), dim = dim(dat))
+  dat$individual <- sample(paste0("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
-  de_neigh1 <- find_de_neighborhoods(fit, selection_procedure = "zscore", directions = "random", verbose = FALSE)
+
+  tmp <- find_de_neighborhoods(fit, group_by = vars(individual, condition),
+                               independent_data = dat, selection_procedure = "zscore",
+                               directions = "random", verbose = FALSE, continuous_assay_name = "logcounts",
+                               test_method = "limma")
+
+  de_neigh1 <- find_de_neighborhoods(fit, independent_data = NULL, selection_procedure = "zscore", directions = "random", verbose = FALSE)
   de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "random", verbose = FALSE)
   # de_neigh3 <- find_de_neighborhoods(fit, selection_procedure = "likelihood", directions = "random")
   de_neigh4 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "axis_parallel", verbose = FALSE)
   de_neigh5 <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
 
-  counts <- matrix(rpois(ncol(dat) * nrow(dat), lambda = 2.1), nrow = nrow(dat), ncol = ncol(dat))
-  de_neigh6 <- find_de_neighborhoods(fit, independent_matrix = counts,
+  de_neigh6 <- find_de_neighborhoods(fit, independent_data = list(logcounts = logcounts(fit$test_data), counts = counts(fit$test_data)),
+                                     independent_data_col_data = colData(fit$test_data),
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
-  expect_equal(de_neigh5, de_neigh6[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
+  expect_equal(de_neigh5, de_neigh6)
 
-  de_neigh7 <- find_de_neighborhoods(fit, independent_matrix = counts,
+  de_neigh7 <- find_de_neighborhoods(fit, independent_data = fit$test_data,
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast",
-                                     independent_matrix_type = "continuous",
+                                     test_method = "limma",
                                      verbose = FALSE)
   expect_equal(de_neigh7[,c("name", "selection", "indices", "n_cells", "sel_statistic")],
                de_neigh6[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
@@ -210,26 +217,26 @@ test_that("find_de_regions works with subset", {
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   fit_red <- fit[,1:25]
   expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
-  de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:25], verbose = FALSE)
+  de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:25], test_method = "none", verbose = FALSE)
   expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 50), FUN.VALUE = logical(1))))
 })
 
 
 test_that("find_de_regions works reasonably well with counts", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
-  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  dat$individual <- sample(paste0("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  dat$pat <- sample(c("A", "B", "C"), size = ncol(dat), replace = TRUE)
+  counts(dat, withDimnames = FALSE) <- matrix(rpois(50 * 500, lambda = 2.4), nrow = 50, ncol = 500)
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
-  SummarizedExperiment::colData(fit)$pat <- sample(c("A", "B", "C"), size = ncol(fit), replace = TRUE)
-  counts <- matrix(rpois(50 * 500, lambda = 2.4), nrow = 50, ncol = 500)
   set.seed(1)
-  de_neigh <- find_de_neighborhoods(fit, independent_matrix = counts, group_by = vars(pat, condition),
-                                    de_mat = assay(fit, "DE"), contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
+  de_neigh <- find_de_neighborhoods(fit, group_by = vars(pat, condition), de_mat = assay(fit, "DE"),
+                                    contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
   expect_equal(colnames(de_neigh), c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
   set.seed(1)
-  de_neigh2 <- find_de_neighborhoods(fit, independent_matrix = counts, group_by = vars(pat, condition), verbose = FALSE)
+  de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(pat, condition), verbose = FALSE)
   expect_equal(de_neigh, de_neigh2)
-  expect_error(find_de_neighborhoods(fit, independent_matrix = counts, contrast = NULL, group_by = vars(pat, condition), verbose = FALSE))
+  expect_error(find_de_neighborhoods(fit, contrast = NULL, group_by = vars(pat, condition), verbose = FALSE))
 })
 
 
