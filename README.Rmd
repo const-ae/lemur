@@ -170,7 +170,7 @@ To plot the boundaries of the differential expression neighborhood, we create a 
 
 ```{r umap_de3}
 neighborhood_coordinates <- neighborhoods %>%
-  dplyr::filter(name == sel_gene) %>%
+  dplyr::filter(selection & name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
   left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%

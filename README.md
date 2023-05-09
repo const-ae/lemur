@@ -256,7 +256,7 @@ create a helper dataframe and use the `geom_density2d` function from
 
 ``` r
 neighborhood_coordinates <- neighborhoods %>%
-  dplyr::filter(name == sel_gene) %>%
+  dplyr::filter(selection & name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
   left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
@@ -372,7 +372,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.18               
+#> [21] lemur_0.0.19               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
@@ -388,7 +388,7 @@ sessionInfo()
 #> [21] htmltools_0.5.5           RCurl_1.98-1.12          
 #> [23] yaml_2.3.7                pillar_1.9.0             
 #> [25] crayon_1.5.2              MASS_7.3-60              
-#> [27] uwot_0.1.14               DelayedArray_0.26.1      
+#> [27] uwot_0.1.14               DelayedArray_0.26.2      
 #> [29] tidyselect_1.2.0          digest_0.6.31            
 #> [31] stringi_1.7.12            labeling_0.4.2           
 #> [33] splines_4.3.0             cowplot_1.1.1            
@@ -399,7 +399,7 @@ sessionInfo()
 #> [43] withr_2.5.0               DelayedMatrixStats_1.22.0
 #> [45] scales_1.2.1              timechange_0.2.0         
 #> [47] rmarkdown_2.21            XVector_0.40.0           
-#> [49] hms_1.1.3                 evaluate_0.20            
+#> [49] hms_1.1.3                 evaluate_0.21            
 #> [51] knitr_1.42                RcppAnnoy_0.0.20         
 #> [53] irlba_2.3.5.1             rlang_1.1.1              
 #> [55] isoband_0.2.7             Rcpp_1.0.10              
