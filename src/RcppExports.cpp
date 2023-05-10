@@ -12,18 +12,19 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // cumz_which_abs_max
-List cumz_which_abs_max(NumericVector x);
-RcppExport SEXP _lemur_cumz_which_abs_max(SEXP xSEXP) {
+List cumz_which_abs_max(NumericVector x, int min_neighborhood_size);
+RcppExport SEXP _lemur_cumz_which_abs_max(SEXP xSEXP, SEXP min_neighborhood_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(cumz_which_abs_max(x));
+    Rcpp::traits::input_parameter< int >::type min_neighborhood_size(min_neighborhood_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cumz_which_abs_max(x, min_neighborhood_size));
     return rcpp_result_gen;
 END_RCPP
 }
 // cum_brls_which_abs_max
-List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const IntegerVector group, const arma::rowvec& contrast, const double penalty);
-RcppExport SEXP _lemur_cum_brls_which_abs_max(SEXP ySEXP, SEXP XSEXP, SEXP groupSEXP, SEXP contrastSEXP, SEXP penaltySEXP) {
+List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const IntegerVector group, const arma::rowvec& contrast, const double penalty, int min_neighborhood_size);
+RcppExport SEXP _lemur_cum_brls_which_abs_max(SEXP ySEXP, SEXP XSEXP, SEXP groupSEXP, SEXP contrastSEXP, SEXP penaltySEXP, SEXP min_neighborhood_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< const NumericVector >::type y(ySEXP);
@@ -31,14 +32,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const IntegerVector >::type group(groupSEXP);
     Rcpp::traits::input_parameter< const arma::rowvec& >::type contrast(contrastSEXP);
     Rcpp::traits::input_parameter< const double >::type penalty(penaltySEXP);
-    rcpp_result_gen = Rcpp::wrap(cum_brls_which_abs_max(y, X, group, contrast, penalty));
+    Rcpp::traits::input_parameter< int >::type min_neighborhood_size(min_neighborhood_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cum_brls_which_abs_max(y, X, group, contrast, penalty, min_neighborhood_size));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lemur_cumz_which_abs_max", (DL_FUNC) &_lemur_cumz_which_abs_max, 1},
-    {"_lemur_cum_brls_which_abs_max", (DL_FUNC) &_lemur_cum_brls_which_abs_max, 5},
+    {"_lemur_cumz_which_abs_max", (DL_FUNC) &_lemur_cumz_which_abs_max, 2},
+    {"_lemur_cum_brls_which_abs_max", (DL_FUNC) &_lemur_cum_brls_which_abs_max, 6},
     {NULL, NULL, 0}
 };
 

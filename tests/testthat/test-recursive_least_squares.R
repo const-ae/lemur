@@ -42,9 +42,23 @@ test_that("recursive least squares works", {
 
 
   # Comparison with C++ implementation
-  cpp_res <- cum_brls_which_abs_max(y, mm, group, contrast = contr, penalty = 1e-6)
+  cpp_res <- cum_brls_which_abs_max(y, mm, group, contrast = contr, penalty = 1e-6, min_neighborhood_size = 0)
   expect_equal(cpp_res$idx, which.max(abs(res$t_stat)))
   expect_equal(cpp_res$max, res$t_stat[which.max(abs(res$t_stat))])
+})
+
+test_that("min_neighborhood_size argument of cum_brls_which_abs_max works", {
+  mm <- duplicate_rows(matrix(rnorm(3 * 3), nrow = 3, ncol = 3), times = 10)
+  y <- rnorm(30)
+  group <- c(rep(1:6, times = 5))
+  contr <-  matrix(c(1, 0, -1), nrow = 1)
+
+  res1 <- cum_brls_which_abs_max(y, mm, group, contrast = contr, penalty = 1e-6, min_neighborhood_size = 28)
+  # res1$idx # either 28, 29, or 30
+  expect_gte(res1$idx, 28)
+
+  res2 <- cum_brls_which_abs_max(y, mm, group, contrast = contr, penalty = 1e-6, min_neighborhood_size = 50)
+  expect_equal(res2$idx, 30)
 })
 
 

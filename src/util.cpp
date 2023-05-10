@@ -28,8 +28,9 @@ using namespace Rcpp;
 
 
 // [[Rcpp::export(rng = FALSE)]]
-List cumz_which_abs_max(NumericVector x){
+List cumz_which_abs_max(NumericVector x, int min_neighborhood_size){
   int size = x.size();
+  min_neighborhood_size = std::min(min_neighborhood_size, size);
   int max_idx = 0;
   double max = -std::numeric_limits<float>::infinity();
   int sign = +1;
@@ -47,7 +48,7 @@ List cumz_which_abs_max(NumericVector x){
     double delta2 = x[i-1] - m;
     msq = (msq * (i - 1) + delta * delta2) / i;
     double val = abs(m / sqrt(msq / (i-1)));
-    if(val > max){
+    if(i >= min_neighborhood_size - 1 && val > max){
       max = val;
       sign = m < 0 ? -1 : +1;
       max_idx = i;
@@ -59,8 +60,10 @@ List cumz_which_abs_max(NumericVector x){
 
 // [[Rcpp::export(rng = FALSE)]]
 List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const IntegerVector group,
-                            const arma::rowvec& contrast, const double penalty){
+                            const arma::rowvec& contrast, const double penalty, int min_neighborhood_size){
   int size = y.size();
+  min_neighborhood_size = std::min(min_neighborhood_size, size);
+
   int max_idx = 0;
   double max_val = -std::numeric_limits<float>::infinity();
   int sign = +1;
@@ -79,10 +82,10 @@ List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const Int
   int n_obs = 0;
   double se_pre = 0;
 
-  for(arma::uword i = 0; i < size; ++i){
+  for(int i = 0; i < size; ++i){
     double yi = y[i];
     arma::colvec xi = X.row(i).t();
-    arma::uword gi = group[i] - 1;
+    int gi = group[i] - 1;
     double delta_m = 1/(count[gi] + 1.0) * yi - (1 - count[gi] / (count[gi] + 1.0)) * m(gi);
     m(gi) += delta_m;
     count(gi) += 1;
@@ -99,7 +102,7 @@ List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const Int
       double rss = std::max(1e-6, arma::accu(arma::pow(m - X_act * beta, 2)));
       double se = sqrt(se_pre * rss / (n_obs - k));
       double t_stat = arma::as_scalar(contrast * beta) / se;
-      if(abs(t_stat) > max_val){
+      if(i >= min_neighborhood_size-1 && abs(t_stat) > max_val){
         max_val = abs(t_stat);
         sign = t_stat < 0 ? -1 : +1;
         max_idx = i + 1;
@@ -108,9 +111,6 @@ List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const Int
   }
   return List::create(Named("idx") = max_idx, Named("max") = sign * max_val);
 }
-
-
-
 
 
 /*** R

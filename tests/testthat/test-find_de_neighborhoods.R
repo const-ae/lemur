@@ -39,10 +39,10 @@ test_that("find_de_neighborhoods_with_z_score works", {
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
-  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
+  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE, min_neighborhood_size = 0)
   expect_equal(nrow(nei), 50)
   expect_equal(nei$independent_indices, I(lapply(seq_len(50), \(x) integer(0L))))
-  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
+  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE, min_neighborhood_size = 0)
   expect_equal(nrow(nei2), 100)
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))
   DE <- assay(fit, "DE")
@@ -64,10 +64,10 @@ test_that("find_de_neighborhoods_with_z_score works", {
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
-  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE)
+  nei <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = FALSE, min_neighborhood_size = 0)
   expect_equal(nrow(nei), 50)
   expect_equal(nei$independent_indices, I(lapply(seq_len(50), \(x) integer(0L))))
-  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE)
+  nei2 <- find_de_neighborhoods_with_z_score(fit, dirs, assay(fit, "DE"), include_complement = TRUE, min_neighborhood_size = 0)
   expect_equal(nrow(nei2), 100)
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100])))
   DE <- assay(fit, "DE")
@@ -157,14 +157,14 @@ test_that("find_de_neighborhoods_with_contrast works", {
   set.seed(1)
   nei <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
                                              contrast = cond(condition = "a") - cond(condition = "b"),
-                                             include_complement = FALSE)
+                                             include_complement = FALSE, ridge_penalty = 1e-6)
 
 
   expect_equal(nrow(nei), 50)
   set.seed(1)
   nei2 <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
                                              contrast = cond(condition = "a") - cond(condition = "b"),
-                                             include_complement = TRUE, verbose = FALSE)
+                                             include_complement = TRUE, ridge_penalty = 1e-6, min_neighborhood_size = 10, verbose = FALSE)
   expect_equal(nrow(nei2), 100)
   expect_equal(nei, nei2[1:50,])
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))
