@@ -1,3 +1,8 @@
+# v0.0.20
+
+* Change defaults for `find_de_neighborhoods`. Increase the `ridge_penalty` and add a `min_neighborhood_size = 10` argument
+to avoid creation of very small neighborhoods.
+
 # v0.0.19
 
 * Add new `test_fraction` argument to `lemur()` function. It automatically defines a hold-out datasets for the fitting step.
