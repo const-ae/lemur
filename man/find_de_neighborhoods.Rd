@@ -17,6 +17,7 @@ find_de_neighborhoods(
   continuous_assay_name = fit$use_assay,
   count_assay_name = "counts",
   design = fit$design,
+  alignment_design = fit$alignment_design,
   include_complement = TRUE,
   verbose = TRUE,
   ...
@@ -64,7 +65,7 @@ The arguments defaults to the test data split of when calling \code{lemur()}.}
 
 \item{continuous_assay_name, count_assay_name}{the assay or list names of \code{independent_data}.}
 
-\item{design}{the design to use for the fit. Default: \code{fit$design}}
+\item{design, alignment_design}{the design to use for the fit. Default: \code{fit$design}}
 
 \item{include_complement}{a boolean to specify if the complement of the identified per gene
 neighborhood is also returned. It will be marked in the output by \code{selection = FALSE}.}

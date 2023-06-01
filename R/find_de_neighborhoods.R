@@ -36,7 +36,7 @@ glmGamPoi::vars
 #'   [edgeR](https://bioconductor.org/packages/edgeR/) work on an count assay.
 #'   [limma](http://bioconductor.org/packages/limma/) works on the continuous assay.
 #' @param continuous_assay_name,count_assay_name the assay or list names of `independent_data`.
-#' @param design the design to use for the fit. Default: `fit$design`
+#' @param design,alignment_design the design to use for the fit. Default: `fit$design`
 #' @param include_complement a boolean to specify if the complement of the identified per gene
 #'   neighborhood is also returned. It will be marked in the output by `selection = FALSE`.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
@@ -54,13 +54,14 @@ find_de_neighborhoods <- function(fit,
                                   contrast = fit$contrast,
                                   selection_procedure = c("zscore", "contrast"),
                                   directions = c("random", "contrast", "axis_parallel"),
-                                  de_mat = assay(fit, "DE"),
+                                  de_mat = SummarizedExperiment::assays(fit)[["DE"]],
                                   test_data = fit$test_data,
                                   test_data_col_data = NULL,
                                   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
                                   continuous_assay_name = fit$use_assay,
                                   count_assay_name = "counts",
                                   design = fit$design,
+                                  alignment_design = fit$alignment_design,
                                   include_complement = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
@@ -94,6 +95,7 @@ find_de_neighborhoods <- function(fit,
     character_cols <- vapply(col_data_copy, is.character, logical(1L))
     col_data_copy[character_cols] <- lapply(col_data_copy[character_cols], as.factor)
     attr(design, "ignore_degeneracy") <- TRUE
+    attr(alignment_design, "ignore_degeneracy") <- TRUE
     test_data <- SingleCellExperiment(assays = setNames(list(matrix(nrow = nrow(fit), ncol = 0) * 1.0), continuous_assay_name),
                                              colData = col_data_copy[integer(0L),,drop=FALSE])
   }else{
@@ -109,18 +111,23 @@ find_de_neighborhoods <- function(fit,
     }
   }
 
-  projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name, design = design, return = "matrix")
+  projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name,
+                                               design = design, alignment_design = alignment_design, return = "matrix")
 
 
   if(is.character(directions)){
     directions <- match.arg(directions)
     # There is one direction vector for each gene
     if(directions == "random"){
+      if(is.null(de_mat)) stop("'directions = \"random\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
+                               "argument or call 'fit <- test_de(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       dirs <- select_directions_from_random_points(n_random_directions = 50, training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }else if(directions == "contrast"){
       dirs <- select_directions_from_contrast(training_fit, {{contrast}})
     }else if(directions == "axis_parallel"){
+      if(is.null(de_mat)) stop("'directions = \"axis_parallel\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
+                               "argument or call 'fit <- test_de(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       dirs <- select_directions_from_axes(training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }
@@ -132,6 +139,8 @@ find_de_neighborhoods <- function(fit,
 
   if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
   if(selection_procedure == "zscore"){
+    if(is.null(de_mat)) stop("'selection_procedure = \"zscore\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
+                             "argument or call 'fit <- test_de(fit, ...)'")
     stopifnot(all(dim(de_mat) == dim(fit)))
     de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
                                                      independent_embedding = projected_indep_data,
