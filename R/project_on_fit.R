@@ -26,7 +26,7 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
   Y <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data)
-  al_des <- handle_design_parameter(design, data, col_data)
+  al_des <- handle_design_parameter(alignment_design, data, col_data)
   embedding <- project_on_lemur_fit_impl(Y, des$design_matrix, al_des$design_matrix,
                                          fit$coefficients, fit$linear_coefficients, fit$alignment_coefficients,
                                          fit$base_point)
