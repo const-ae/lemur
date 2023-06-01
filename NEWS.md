@@ -1,3 +1,8 @@
+# v0.0.21
+
+* Minor bug fix in `find_de_neighborhoods`. The function threw an error if `alignment_design != design`. 
+* Better error messages if `find_de_neighborhoods` is called without having called `test_de` before.
+
 # v0.0.20
 
 * Change defaults for `find_de_neighborhoods`. Increase the `ridge_penalty` and add a `min_neighborhood_size = 10` argument
