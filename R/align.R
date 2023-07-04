@@ -1,46 +1,20 @@
 #' Enforce additional alignment of cell clusters beyond the direct differential embedding
 #'
 #' @param fit a `lemur_fit` object
+#' @param grouping argument specific for `align_by_grouping`. Either a vector which assigns
+#'   each cell to one group or a matrix with `ncol(fit)` columns where the rows are a soft-assignment
+#'   to a cluster (i.e., columns sum to `1`). `NA`'s are allowed.
 #' @param design a specification of the design (matrix or formula) that is used
 #'   for the transformation. Default: `fit$design_matrix`
 #' @param ridge_penalty specification how much the flexibility of the transformation
-#'   should be regularized. This can be a single positive scalar or named list
-#'   (`"stretching"` and `"rotation"`). Default: `0.5`
-#' @param verbose Should the method print information during the fitting. Default: `TRUE`.
-#' @param ... additional parameters that are passed on to relevant functions
-#' @param cells_per_cluster argument specific for `align_neighbors`. Before mutual nearest neighbor
-#'   search the cells are clustered per condition. Default: `20`
-#' @param mnn argument specific for `align_neighbors`. The number of mutual nearest neighbors.
-#'   Default: `10`
-#' @param data_matrix argument specific for `align_neighbors`. The data matrix that is used for
-#'   the mutual nearest neighbor search. Default: `assay(fit)`
-#' @param min_cluster_membership argument specific for `align_harmony`. The minimum probability
-#'   from the soft clustering. Default: `0.1`
+#'   should be regularized. Default: `0`
 #' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
-#' @param template argument specific for `align_by_template`. A readily integrated dataset
-#'   that is approximated using the `align_neighbors` function.
-#' @param grouping argument specific for `align_by_grouping`. A manually provided list of groups
-#'   that are considered similar.
-#'
+#' @param ... additional parameters that are passed on to relevant functions
+#' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
 #' @export
-align_neighbors <- function(fit,
-                            data_matrix = assay(fit), cells_per_cluster = 20, mnn = 10,
-                            design = fit$alignment_design, ridge_penalty = 0.5, verbose = TRUE){
-  stopifnot(ncol(data_matrix) == ncol(fit))
-  if(verbose) message("Find mutual nearest neighbors")
-  training_fit <- fit$training_data
-  design_matrix <- handle_design_parameter(design, training_fit, glmGamPoi:::get_col_data(training_fit, NULL))$design_matrix
-  mnn_groups <- get_mutual_neighbors(data_matrix[,!fit$is_test_data,drop=FALSE], design_matrix, cells_per_cluster = cells_per_cluster, mnn = mnn)
-  correction <- correct_design_matrix_groups(mnn_groups, training_fit$embedding, design_matrix, ridge_penalty = ridge_penalty)
-  correct_fit(fit, correction$alignment_coefs, design)
-}
-
-#' @rdname align_neighbors
-#' @export
-align_harmony <- function(fit, ...,
-                          design = fit$alignment_design,
-                          ridge_penalty = 0.5, min_cluster_membership = 0.001, max_iter = 10, verbose = TRUE){
+align_harmony <- function(fit, design = fit$alignment_design,
+                          ridge_penalty = 0, max_iter = 10, ..., verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
@@ -48,7 +22,6 @@ align_harmony <- function(fit, ...,
   }
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
-
 
 
   mm_groups <- get_groups(act_design_matrix, n_groups = ncol(act_design_matrix) * 10)
@@ -60,13 +33,10 @@ align_harmony <- function(fit, ...,
   harm_obj <- harmony_init(training_fit$embedding, act_design_matrix, ..., verbose = verbose)
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
-    threshold <- min(min_cluster_membership, max(harm_obj$R) * 0.5)
-    matches <- lapply(seq_len(harm_obj$K), \(row_idx) which(harm_obj$R[row_idx,] > threshold))
-    weights <- lapply(seq_len(harm_obj$K), \(row_idx) harm_obj$R[row_idx,matches[[row_idx]]])
-    index_groups <- lapply(matches, \(idx) mm_groups[idx])
-    correction <- correct_design_matrix_groups(list(matches = matches, index_groups = index_groups, weights = weights),
-                                               harm_obj$Z_orig, act_design_matrix, ridge_penalty = ridge_penalty)
-    harm_obj$Z_corr <- correction$embedding
+
+    alignment <- align_impl(training_fit$embedding, harm_obj$R, act_design_matrix, ridge_penalty = ridge_penalty)
+
+    harm_obj$Z_corr <- alignment$embedding
     harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
     if(harm_obj$check_convergence(1)){
       if(verbose) message("Converged")
@@ -74,136 +44,95 @@ align_harmony <- function(fit, ...,
     }
   }
 
-  correct_fit(fit, correction$alignment_coefs, design)
-}
-
-
-#' @rdname align_neighbors
-#' @export
-align_by_template <- function(fit, template,
-                              cells_per_cluster = 20, mnn = 10,
-                              design = fit$alignment_design, ridge_penalty = 0.5, verbose = TRUE){
-  stopifnot(is.matrix(template))
-  stopifnot(ncol(template) == ncol(fit))
-  if(verbose) message("Received template that puts similar cells close to each other")
-  align_neighbors(fit, data_matrix = template,
-                  cells_per_cluster = cells_per_cluster, mnn = mnn,
-                  design = design, ridge_penalty = ridge_penalty, verbose = verbose)
+  correct_fit(fit, alignment$alignment_coefficients, design)
 }
 
 #' @rdname align_neighbors
 #' @export
-align_by_grouping <- function(fit,
-                              grouping, design = fit$alignment_design, ridge_penalty = 0.5, verbose = TRUE){
+align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
+                              ridge_penalty = 0, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
-  training_fit <- fit$training_data
 
-  if(is.list(grouping)){
-    # Check that it conforms to the expectation of the mnn_grouping
-    if("matches" %in% names(grouping)){
-      # Do nothing
-    }else{
-      grouping <- list(matches = grouping)
-    }
-    valid <- vapply(grouping$matches, \(entry){
-      is.numeric(entry) && all(is.na(entry) | (entry > 0 & entry <= ncol(training_fit)))
-    }, FUN.VALUE = logical(1L))
-    stopifnot(all(valid))
-  }else if(is.vector(grouping) || is.factor(grouping)){
-    stopifnot(length(grouping) == ncol(fit))
-    grouping <- grouping[!fit$is_test_data]
-    # Convert grouping into the right shape
-    unique_values <- unique(grouping)
-    unique_values <- unique_values[! is.na(unique_values)]
-    matches <- lapply(unique_values, \(lvl) which(grouping == lvl))
-    grouping <- list(matches = matches)
+  if(! is.matrix(grouping)){
+    grouping <- grouping[! fit$is_test_data]
   }else{
-    stop("Cannot handle 'grouping' of class", paste0(class(grouping), collapse = ", "))
+    grouping <- grouping[,! fit$is_test_data,drop=FALSE]
   }
 
-  if(!"index_groups" %in% names(grouping)){
-    design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
-    act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
+  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
+  act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
 
-    mm_groups <- get_groups(act_design_matrix, n_groups = ncol(act_design_matrix) * 10)
-    grouping$index_groups <- lapply(grouping$matches, \(idx) mm_groups[idx])
-  }
+  res <- align_impl(fit$training_data$embedding, grouping, act_design_matrix,
+                    ridge_penalty = ridge_penalty, calculate_new_embedding = FALSE)
 
-  correction <- correct_design_matrix_groups(grouping, training_fit$embedding, act_design_matrix, ridge_penalty = ridge_penalty)
-  correct_fit(fit, correction$alignment_coefs, design)
+  correct_fit(fit, res$alignment_coefficients, design)
 }
 
 
-#' Find the rotation and stretching coefficients to make latent position of matching groups similar
-#'
-#' @param matching_groups a list with two (plus one optional) elements.
-#'   \describe{
-#'     \item{matches}{a list of vectors with the indices of the cells that are part of the match}
-#'     \item{index_groups}{a list of vectors whose lengths correspond to `match`. The entries correspond to
-#'     the separate conditions in the design matrix. *This is weird because it is redundant with the `design` argument.*}
-#'     \item{weights}{an optional list of vectors whose lengths correspond to `match`. The entries correspond to
-#'     the weight of that cell in the match.}
-#'   }
+#' Align the points according to some grouping
 #'
 #' @keywords internal
-correct_design_matrix_groups <- function(matching_groups, embedding, design_matrix, ridge_penalty = 0.5, verbose = TRUE){
-  stopifnot(is.matrix(design_matrix))
-  n_embedding <- nrow(embedding)
-  ridge_penalty <- handle_ridge_penalty_parameter(ridge_penalty)
-
-
-  D <- do.call(rbind, lapply(seq_along(matching_groups$matches), \(idx){
-    do.call(rbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      design_matrix[matching_groups$matches[[idx]][which(matching_groups$index_groups[[idx]] == igr)[1]],,drop=FALSE]
-    }))
-  }))
-  Y <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
-    do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      if(is.null(matching_groups$weights)){
-        matrixStats::rowMeans2(embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
-      }else{
-        matrixStats::rowWeightedMeans(embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
-      }
-    }))
-  }))
-
-  # M is the mean of the aggregated groups Y
-  M <- do.call(cbind, lapply(seq_along(matching_groups$matches), \(idx){
-    Y_tmp <- do.call(cbind, lapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      if(is.null(matching_groups$weights)){
-        matrixStats::rowMeans2(embedding, cols = matching_groups$matches[[idx]][matching_groups$index_groups[[idx]] == igr])
-      }else{
-        matrixStats::rowWeightedMeans(embedding[,matching_groups$matches[[idx]],drop=FALSE], w = matching_groups$weights[[idx]], cols = matching_groups$index_groups[[idx]] == igr)
-      }
-    }))
-    vec <- if(is.null(Y_tmp)){
-      matrix(nrow = nrow(embedding), ncol = 0)
-    }else{
-      rowMeans(Y_tmp)
-    }
-    duplicate_cols(vec, length(unique(matching_groups$index_groups[[idx]])))
-  }))
-
-  weights <- if(is.null(matching_groups$weights)){
-    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      sum(matching_groups$index_groups[[idx]] == igr)
-    }, FUN.VALUE = 0.0)))
+align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0, calculate_new_embedding = TRUE){
+  if(! is.matrix(grouping)){
+    grouping_matrix <- one_hot_encoding(grouping)
   }else{
-    unlist(lapply(seq_along(matching_groups$matches), \(idx) vapply(unique(matching_groups$index_groups[[idx]]), \(igr){
-      sum(matching_groups$weights[[idx]][matching_groups$index_groups[[idx]] == igr])
-    }, FUN.VALUE = 0.0)))
+    stopifnot(ncol(grouping) == ncol(embedding))
+    # Make sure the entries sum to 1
+    grouping_matrix <- t(t(grouping) / colSums2(grouping))
   }
-  weights <- weights / sum(weights)
 
-  interact_design_matrix <- duplicate_cols(D, each = n_embedding)  * duplicate_cols(t(Y), times = ncol(D))
-  alignment_coefs <- ridge_regression(M - Y, X = interact_design_matrix, ridge_penalty = ridge_penalty, weights = weights)
-  alignment_coefs <- array(alignment_coefs, dim = c(n_embedding, n_embedding, ncol(D)))
+  stopifnot(ncol(embedding) == ncol(grouping_matrix))
+  stopifnot(ncol(embedding) == nrow(design_matrix))
 
-  embedding <- apply_linear_transformation(embedding, alignment_coefs, design_matrix)
+  n_groups <- nrow(grouping)
+  n_emb <- nrow(embedding)
+  K <- ncol(design_matrix)
 
-  list(alignment_coefs = alignment_coefs, embedding = embedding)
+  conditions <- get_groups(design_matrix, ncol(design_matrix) * 10)
+  conds <- unique(conditions)
+
+  # Calculate mean per cell_type+condition
+  cond_ct_means <- lapply(conds, \(co){
+    t(mply_dbl(seq_len(n_groups), \(idx){
+      MatrixGenerics::rowWeightedMeans(embedding, w = grouping_matrix[idx,], cols = conditions == co)
+    }, ncol = n_emb))
+  })
+
+  # Calculate target as mean of `cond_ct_means` per cell_type
+  target <- matrix(NA, nrow = n_emb, ncol = n_groups)
+  for(idx in seq_len(n_groups)){
+    target[,idx] <- colMeans(mply_dbl(conds, \(co) cond_ct_means[[co]][,idx], ncol = n_emb), na.rm = TRUE)
+  }
+
+  # Shift all cells by `ctc_mean - ct_target` (`new_pos`)
+  new_pos <- embedding
+  for(co in conds){
+    diff <- target - cond_ct_means[[co]]
+    new_pos[,conditions == co] <- new_pos[,conditions == co] + diff %zero_dom_mat_mult% grouping[,conditions == co]
+  }
+
+  # Approximate shift by regressing `new_pos ~ S(x) * orig_pos`
+  interact_design_matrix <- duplicate_cols(design_matrix, each = n_emb) * duplicate_cols(t(embedding), times = ncol(design_matrix))
+  alignment_coefs <- ridge_regression(new_pos - embedding, interact_design_matrix, ridge_penalty = ridge_penalty)
+  alignment_coefs <- array(alignment_coefs, dim = c(n_emb, n_emb, ncol(design_matrix)))
+
+  new_emb <-if(calculate_new_embedding){
+    apply_linear_transformation(embedding, alignment_coefs, design_matrix)
+  }else{
+    NULL
+  }
+  list(alignment_coefficients = alignment_coefs, embedding = new_emb)
 }
 
+
+one_hot_encoding <- function(groups){
+  uniq_gr <- unique(groups)
+  res <- matrix(0, nrow = length(uniq_gr), ncol = length(groups), dimnames = list(uniq_gr, names(groups)))
+  for(i in seq_along(uniq_gr)){
+    res[i, groups == uniq_gr[i]] <- 1
+  }
+  res
+}
 
 forward_linear_transformation <- function(alignment_coefficients, design_vector){
   diag(nrow = dim(alignment_coefficients)[1]) + sum_tangent_vectors(alignment_coefficients, design_vector)
@@ -226,65 +155,6 @@ apply_linear_transformation <- function(A, alignment_coefs, design){
   }
   A
 }
-
-get_mutual_neighbors <- function(data, design_matrix, cells_per_cluster = 20, mnn = 10){
-  mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
-  if(is.null(mm_groups)){
-    stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
-         "This error could be removed, but this feature hasn't been implemented yet.")
-  }
-  groups <- unique(mm_groups)
-
-  matches <- list()
-  index_group <- list()
-  if(cells_per_cluster <= 1){
-    # Iterate over combinations of design matrix row groups
-    for(idx1 in seq_along(groups)){
-      for(idx2 in seq_along(groups)){
-        if(idx1 < idx2){
-          sel1 <- mm_groups == idx1
-          sel2 <- mm_groups == idx2
-          k1 <- min(mnn, ceiling(sum(sel1) / 4), ceiling(sum(sel2) / 4))
-          mnn_list <- BiocNeighbors::findMutualNN(t(data[,sel1]), t(data[,sel2]), k1 = k1)
-          matches <- c(matches, lapply(seq_along(mnn_list$first), \(idx3){
-            c(which(sel1)[mnn_list$first[idx3]], which(sel2)[mnn_list$second[idx3]])
-          }))
-          index_group <- c(index_group, rep(list(c(1,2)), length(mnn_list$first)))
-        }
-      }
-    }
-  }else{
-    # Cluster each design matrix row group
-    clusters <- lapply(groups, \(gr){
-      sel <- mm_groups == gr
-      k <- max(1, round(sum(sel) / cells_per_cluster))
-      cl <- kmeans(t(data[,sel,drop=FALSE]), centers = k, nstart = 10, iter.max = 100)
-      list(Y = t(cl$centers), indices = which(sel), cluster = unname(cl$cluster))
-    })
-    # Iterate over combinations of design matrix row groups
-    for(idx1 in seq_along(groups)){
-      for(idx2 in seq_along(groups)){
-        if(idx1 < idx2){
-          # Find MNN for each cluster center
-          cl1 <- clusters[[idx1]]
-          cl2 <- clusters[[idx2]]
-          k1 <- min(mnn, ceiling(ncol(cl1$Y) / 4), ceiling(ncol(cl2$Y) / 4))
-          mnn_list <- BiocNeighbors::findMutualNN(t(cl1$Y), t(cl2$Y), k1 = k1)
-          matches <- c(matches, lapply(seq_along(mnn_list$first), \(idx3){
-            c(cl1$indices[cl1$cluster == mnn_list$first[idx3]], cl2$indices[cl2$cluster == mnn_list$second[idx3]])
-          }))
-          index_group <- c(index_group, lapply(seq_along(mnn_list$first), \(idx3){
-            c(rep(1, length(cl1$indices[cl1$cluster == mnn_list$first[idx3]])),
-              rep(2, length(cl2$indices[cl2$cluster == mnn_list$second[idx3]])))
-          }))
-        }
-      }
-    }
-  }
-  list(matches = matches, index_groups = index_group)
-}
-
-
 
 correct_fit <- function(fit, alignment_coefs, design){
   old <- S4Vectors:::disableValidity()

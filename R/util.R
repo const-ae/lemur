@@ -345,3 +345,29 @@ pseudoinverse <- function(X){
   }
 }
 
+
+
+
+#' Helper function that makes sure that NA * 0 = 0 in matrix multiply
+#'
+#' @param X a matrix of size `n*m`
+#' @param Y a matrix of size `m*p`
+#'
+#' @return a matrix of size `n*p`
+#'
+#' @keywords internal
+`%zero_dom_mat_mult%` <- function(X, Y){
+  X[is.infinite(X)] <- NA
+  Y[is.infinite(Y)] <- NA
+  X_cp <- X
+  X_cp[is.na(X_cp)] <- 0
+  Y_cp <- Y
+  Y_cp[is.na(Y_cp)] <- 0
+
+  res <- X_cp %*% Y_cp
+  mask1 <- (is.na(X)) %*% (is.na(Y) | Y != 0)
+  mask2 <- (is.na(X) | X != 0) %*% (is.na(Y))
+  res[mask1 + mask2 != 0] <- NA
+  res
+}
+
