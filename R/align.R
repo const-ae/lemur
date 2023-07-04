@@ -9,6 +9,9 @@
 #' @param ridge_penalty specification how much the flexibility of the transformation
 #'   should be regularized. Default: `0`
 #' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
+#' @param preserve_position_of_NAs argument specific for `align_by_grouping`.
+#'   Boolean flag to decide if `NA`s in the `grouping` mean that these cells should stay where they are (if
+#'   possible) or if they are free to move around. Default: `FALSE`
 #' @param ... additional parameters that are passed on to relevant functions
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
@@ -50,7 +53,7 @@ align_harmony <- function(fit, design = fit$alignment_design,
 #' @rdname align_neighbors
 #' @export
 align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
-                              ridge_penalty = 0, verbose = TRUE){
+                              ridge_penalty = 0.01, preserve_position_of_NAs = FALSE, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
 
   if(! is.matrix(grouping)){
@@ -72,19 +75,32 @@ align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
 #' Align the points according to some grouping
 #'
 #' @keywords internal
-align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0, calculate_new_embedding = TRUE){
+align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
+                       preserve_position_of_NAs = FALSE, calculate_new_embedding = TRUE){
   if(! is.matrix(grouping)){
     grouping_matrix <- one_hot_encoding(grouping)
   }else{
     stopifnot(ncol(grouping) == ncol(embedding))
-    # Make sure the entries sum to 1
-    grouping_matrix <- t(t(grouping) / colSums2(grouping))
+    stopifnot(all(grouping >= 0, na.rm = TRUE))
+    # Make sure the entries sum to 1 (and don't touch them if the column is all zero)
+    col_sums <- colSums2(grouping)
+    col_sums[col_sums == 0] <- 1
+    grouping_matrix <- t(t(grouping) / col_sums)
+  }
+
+  # NA's are converted to zero columns ensuring that `diff %*% grouping_matrix = 0`
+  grouping_matrix[,MatrixGenerics::colAnyNAs(grouping_matrix)] <- 0
+  if(! preserve_position_of_NAs){
+    all_zero_col <- MatrixGenerics::colSums2(grouping_matrix) == 0
+    grouping_matrix <- grouping_matrix[,! all_zero_col,drop=FALSE]
+    embedding <- embedding[,! all_zero_col,drop=FALSE]
+    design_matrix <- design_matrix[! all_zero_col,,drop=FALSE]
   }
 
   stopifnot(ncol(embedding) == ncol(grouping_matrix))
   stopifnot(ncol(embedding) == nrow(design_matrix))
 
-  n_groups <- nrow(grouping)
+  n_groups <- nrow(grouping_matrix)
   n_emb <- nrow(embedding)
   K <- ncol(design_matrix)
 
@@ -108,7 +124,7 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0, ca
   new_pos <- embedding
   for(co in conds){
     diff <- target - cond_ct_means[[co]]
-    new_pos[,conditions == co] <- new_pos[,conditions == co] + diff %zero_dom_mat_mult% grouping[,conditions == co]
+    new_pos[,conditions == co] <- new_pos[,conditions == co] + diff %zero_dom_mat_mult% grouping_matrix[,conditions == co]
   }
 
   # Approximate shift by regressing `new_pos ~ S(x) * orig_pos`
@@ -124,12 +140,25 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0, ca
   list(alignment_coefficients = alignment_coefs, embedding = new_emb)
 }
 
-
+#' Take a vector and convert it to a one-hot encoded matrix
+#'
+#'
+#'
+#' @keywords internal
 one_hot_encoding <- function(groups){
-  uniq_gr <- unique(groups)
-  res <- matrix(0, nrow = length(uniq_gr), ncol = length(groups), dimnames = list(uniq_gr, names(groups)))
-  for(i in seq_along(uniq_gr)){
-    res[i, groups == uniq_gr[i]] <- 1
+  if(is.factor(groups)){
+    levels <- levels(groups)
+  }else{
+    levels <- unique(groups)
+  }
+
+  res <- matrix(0, nrow = length(levels), ncol = length(groups), dimnames = list(levels, names(groups)))
+  for(i in seq_along(levels)){
+    if(is.na(levels[i])){
+      # Do nothing
+    }else{
+      res[i, groups == levels[i]] <- 1
+    }
   }
   res
 }
