@@ -50,7 +50,7 @@ align_harmony <- function(fit, design = fit$alignment_design,
   correct_fit(fit, alignment$alignment_coefficients, design)
 }
 
-#' @rdname align_neighbors
+#' @rdname align_harmony
 #' @export
 align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
                               ridge_penalty = 0.01, preserve_position_of_NAs = FALSE, verbose = TRUE){

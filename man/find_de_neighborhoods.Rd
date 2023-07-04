@@ -10,7 +10,7 @@ find_de_neighborhoods(
   contrast = fit$contrast,
   selection_procedure = c("zscore", "contrast"),
   directions = c("random", "contrast", "axis_parallel"),
-  de_mat = assay(fit, "DE"),
+  de_mat = SummarizedExperiment::assays(fit)[["DE"]],
   test_data = fit$test_data,
   test_data_col_data = NULL,
   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
