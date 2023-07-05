@@ -7,7 +7,7 @@
 #' @param design a specification of the design (matrix or formula) that is used
 #'   for the transformation. Default: `fit$design_matrix`
 #' @param ridge_penalty specification how much the flexibility of the transformation
-#'   should be regularized. Default: `0`
+#'   should be regularized. Default: `0.01`
 #' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
 #' @param preserve_position_of_NAs argument specific for `align_by_grouping`.
 #'   Boolean flag to decide if `NA`s in the `grouping` mean that these cells should stay where they are (if
@@ -17,7 +17,7 @@
 #'
 #' @export
 align_harmony <- function(fit, design = fit$alignment_design,
-                          ridge_penalty = 0, max_iter = 10, ..., verbose = TRUE){
+                          ridge_penalty = 0.01, max_iter = 10, ..., verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
@@ -56,9 +56,14 @@ align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
                               ridge_penalty = 0.01, preserve_position_of_NAs = FALSE, verbose = TRUE){
   if(verbose) message("Received sets of cells that are considered close")
 
-  if(! is.matrix(grouping)){
+  if(is.list(grouping)){
+    stop("'grouping' must be a vector/factor with distinct elements for each group or ",
+         "a matrix with `ncol(fit)` columns and one row per group.")
+  }else if(! is.matrix(grouping)){
+    stopifnot(length(grouping) == ncol(fit))
     grouping <- grouping[! fit$is_test_data]
   }else{
+    stopifnot(ncol(grouping) == ncol(fit))
     grouping <- grouping[,! fit$is_test_data,drop=FALSE]
   }
 
@@ -83,7 +88,7 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
     stopifnot(ncol(grouping) == ncol(embedding))
     stopifnot(all(grouping >= 0, na.rm = TRUE))
     # Make sure the entries sum to 1 (and don't touch them if the column is all zero)
-    col_sums <- colSums2(grouping)
+    col_sums <- MatrixGenerics::colSums2(grouping)
     col_sums[col_sums == 0] <- 1
     grouping_matrix <- t(t(grouping) / col_sums)
   }

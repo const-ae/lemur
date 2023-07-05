@@ -187,23 +187,11 @@ test_that("align_by_grouping works", {
   expect_equal(predict(fit), predict(fit2), tolerance = 1e-3)
 })
 
-
-test_that("align_neighbors works", {
-  dat <- make_synthetic_data(n_genes = 15)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
-
-  fit_al <- align_neighbors(fit, cells_per_cluster = 1, verbose = FALSE)
-
-  expect_equal(predict(fit), predict(fit_al))
-})
-
 test_that("align_harmony works", {
   dat <- make_synthetic_data(n_genes = 15)
   fit <- lemur(dat, design = ~ condition, n_embedding = 3, verbose = FALSE)
   al_harm <- align_harmony(fit, verbose = FALSE)
-  al_nei <- align_neighbors(fit, verbose = FALSE)
   expect_equal(predict(fit), predict(al_harm))
-  expect_equal(predict(fit), predict(al_nei))
 })
 
 test_that("aligning works with alternative design matrices", {

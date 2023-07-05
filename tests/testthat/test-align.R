@@ -52,19 +52,6 @@ test_that("harmony is fine with degenerate designs", {
   )
 })
 
-test_that("alignment with mututal nearest neighbors work", {
-  fit_al <- align_neighbors(fit, verbose = FALSE)
-
-  n_coef <- ncol(fit$design_matrix)
-  n_lat <- fit$n_embedding
-  expect_equal(dim(fit_al$alignment_coefficients), c(n_lat, n_lat, n_coef))
-})
-
-test_that("alignment works with empty groups", {
-  grouping <- list(matches = list(c(1:10), integer(0L), c(25:30)))
-  expect_silent(fit2 <- align_by_grouping(fit, grouping = grouping, verbose = FALSE))
-})
-
 
 test_that("alignment with custom alignment_design works", {
   fit_al <- align_harmony(fit, verbose = FALSE)
@@ -84,22 +71,6 @@ test_that("alignment with custom alignment_design works", {
   expect_error({
     test_de(fit_al3, contrast = cond(condition = "a", patient = "p2") - cond(condition = "b", patient = "p2"))
   })
-})
-
-test_that("alignment with template works", {
-  n_cells <- 300
-  mat <- randn(10, n_cells)
-  group <- as.factor(sample(letters[1:2], size = n_cells, replace = TRUE))
-  fit <- lemur(mat, design = group, n_embedding = 2, test_fraction = 0, verbose = FALSE)
-
-
-  template <- fit$embedding
-  change <- diag(nrow = 2) + randn(2, 2, sd = 0.01)
-  template[,group == "a"] <- change %*% template[,group == "a"]
-
-  fit_al <- align_by_template(fit, design = group, template = template, verbose = FALSE, mnn = 1, cells_per_cluster = 1)
-  expect_equal(fit$alignment_design_matrix, fit_al$alignment_design_matrix)
-  skip("Not sure what the rest of this test was supposed to achieve.")
 })
 
 test_that("handle_ridge_penalty_parameter works", {

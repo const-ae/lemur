@@ -8,7 +8,7 @@
 align_harmony(
   fit,
   design = fit$alignment_design,
-  ridge_penalty = 0,
+  ridge_penalty = 0.01,
   max_iter = 10,
   ...,
   verbose = TRUE
@@ -30,7 +30,7 @@ align_by_grouping(
 for the transformation. Default: \code{fit$design_matrix}}
 
 \item{ridge_penalty}{specification how much the flexibility of the transformation
-should be regularized. Default: \code{0}}
+should be regularized. Default: \code{0.01}}
 
 \item{max_iter}{argument specific for \code{align_harmony}. The number of iterations. Default: \code{10}}
 
