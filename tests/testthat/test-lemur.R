@@ -145,7 +145,8 @@ test_that("projection works", {
 
   proj1_fit <- project_on_lemur_fit(fit, dat1, return = "lemur_fit")
   expect_true(validObject(proj1_fit))
-  expect_equal(proj1_fit, fit)
+  colData(proj1_fit) <- convert_dataframe_cols_chr_to_fct(colData(proj1_fit))
+  expect_equal(proj1_fit, fit, ignore_attr = "dataClasses")
 })
 
 

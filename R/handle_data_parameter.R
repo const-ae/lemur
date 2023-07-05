@@ -41,3 +41,11 @@ handle_data_parameter <- function(data, on_disk, assay){
   }
   data_mat
 }
+
+
+convert_dataframe_cols_chr_to_fct <- function(col_data){
+  character_cols <- vapply(col_data, is.character, logical(1L))
+  col_data[character_cols] <- lapply(col_data[character_cols], as.factor)
+  col_data
+}
+

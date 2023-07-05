@@ -50,6 +50,10 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
     data <- SingleCellExperiment(assays = setNames(list(data_mat), use_assay), colData = col_data)
   }
 
+  # Avoid problems when splitting into test and training data
+  col_data <- convert_dataframe_cols_chr_to_fct(col_data)
+
+  # Create indicator vector which cells are used for training and which for testing
   is_test_data <- rep(FALSE, ncol(data))
   if(test_fraction < 0 || test_fraction >= 1){
     stop("'test_fraction' must be at least 0 and smaller than 1.")
