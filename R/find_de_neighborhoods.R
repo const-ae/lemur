@@ -146,7 +146,7 @@ find_de_neighborhoods <- function(fit,
                                                      independent_embedding = projected_indep_data,
                                                      include_complement = include_complement, verbose = verbose)
   }else if(selection_procedure == "contrast"){
-    de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = contrast,
+    de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
                                                       independent_embedding = projected_indep_data,
                                                       include_complement = include_complement, ..., verbose = verbose)
   }else if(selection_procedure == "likelihood"){
