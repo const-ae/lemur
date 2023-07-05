@@ -309,12 +309,15 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
     rev_max_idx <- cum_brls_which_abs_max(Y[gene_idx, rev(order_pr)], design_mat[rev(order_pr),], group = group[rev(order_pr)],
                                           contrast = cntrst, penalty = ridge_penalty, min_neighborhood_size = min_neighborhood_size)
     if(abs(max_idx$max) > abs(rev_max_idx$max)){
-      data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))),
-                 independent_indices = I(list(unname(which(ipr <= pr[order_pr][max_idx$idx])))),
+      # Add small number because equality test is unreliable for floats
+      thres <- pr[order_pr][max_idx$idx] + 1e-12
+      data.frame(indices = I(list(unname(which(pr <= thres)))),
+                 independent_indices = I(list(unname(which(ipr <= thres)))),
                  sel_statistic = max_idx$max)
     }else{
-      data.frame(indices = I(list(unname(which(pr >= rev(pr[order_pr])[rev_max_idx$idx])))),
-                 independent_indices = I(list(unname(which(ipr >= rev(pr[order_pr])[rev_max_idx$idx])))),
+      thres <- rev(pr[order_pr])[rev_max_idx$idx] - 1e-12
+      data.frame(indices = I(list(unname(which(pr >= thres)))),
+                 independent_indices = I(list(unname(which(ipr >= thres)))),
                  sel_statistic = rev_max_idx$max)
     }
   }))

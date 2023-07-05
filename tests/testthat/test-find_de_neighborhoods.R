@@ -154,6 +154,15 @@ test_that("find_de_neighborhoods_with_contrast works", {
   fit <- lemur(dat, ~ condition, n_embedding = 15, test_fraction = 0, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   dirs <- select_directions_from_axes(fit$embedding, assay(fit, "DE"))
+
+  set.seed(1)
+  nei_orig <- find_de_neighborhoods(fit, test_data = dat, vars(individual, condition),
+                                contrast = cond(condition = "a") - cond(condition = "b"),
+                                test_method = "none", selection_procedure = "contrast",
+                                directions = dirs, verbose = FALSE,
+                                include_complement = FALSE, ridge_penalty = 1e-6)
+  expect_equal(nei_orig$indices, nei_orig$independent_indices)
+
   set.seed(1)
   nei <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
                                              contrast = cond(condition = "a") - cond(condition = "b"),
@@ -161,6 +170,8 @@ test_that("find_de_neighborhoods_with_contrast works", {
 
 
   expect_equal(nrow(nei), 50)
+  expect_equal(nei[,c("indices", "sel_statistic", "selection", "name")], nei_orig[,c("indices", "sel_statistic", "selection", "name")])
+
   set.seed(1)
   nei2 <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
                                              contrast = cond(condition = "a") - cond(condition = "b"),

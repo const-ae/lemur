@@ -287,9 +287,9 @@ which_extreme <- function(x, ignore = NULL){
 
 
 aggregate_matrix <- function(mat, group_split, aggr_fnc, ...){
-  new_data_mat <- do.call(cbind, lapply(group_split, function(idx){
+  new_data_mat <- t(mply_dbl(group_split, \(idx){
     aggr_fnc(mat[,idx,drop=FALSE], ...)
-  }))
+  }, ncol = nrow(mat)))
   rownames(new_data_mat) <- rownames(mat)
   new_data_mat
 }
