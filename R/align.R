@@ -132,10 +132,11 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
     new_pos[,conditions == co] <- new_pos[,conditions == co] + diff %zero_dom_mat_mult% grouping_matrix[,conditions == co]
   }
 
-  # Approximate shift by regressing `new_pos ~ S(x) * orig_pos`
-  interact_design_matrix <- duplicate_cols(design_matrix, each = n_emb) * duplicate_cols(t(embedding), times = ncol(design_matrix))
+  # Approximate shift by regressing `new_pos ~ S(x) * orig_pos + offset(x)`
+  interact_design_matrix <- duplicate_cols(design_matrix, each = n_emb + 1) * duplicate_cols(t(rbind(1, embedding)), times = ncol(design_matrix))
+  # interact_design_matrix <- duplicate_cols(design_matrix, each = n_emb) * duplicate_cols(t(embedding), times = ncol(design_matrix))
   alignment_coefs <- ridge_regression(new_pos - embedding, interact_design_matrix, ridge_penalty = ridge_penalty)
-  alignment_coefs <- array(alignment_coefs, dim = c(n_emb, n_emb, ncol(design_matrix)))
+  alignment_coefs <- array(alignment_coefs, dim = c(n_emb, n_emb + 1, ncol(design_matrix)))
 
   new_emb <-if(calculate_new_embedding){
     apply_linear_transformation(embedding, alignment_coefs, design_matrix)
@@ -169,7 +170,7 @@ one_hot_encoding <- function(groups){
 }
 
 forward_linear_transformation <- function(alignment_coefficients, design_vector){
-  diag(nrow = dim(alignment_coefficients)[1]) + sum_tangent_vectors(alignment_coefficients, design_vector)
+  cbind(0, diag(nrow = dim(alignment_coefficients)[1])) + sum_tangent_vectors(alignment_coefficients, design_vector)
 }
 
 reverse_linear_transformation <- function(alignment_coefficients, design_vector){
@@ -177,7 +178,7 @@ reverse_linear_transformation <- function(alignment_coefficients, design_vector)
   if(n_embedding == 0){
     matrix(nrow = 0, ncol = 0)
   }else{
-    solve(diag(nrow = n_embedding) + sum_tangent_vectors(alignment_coefficients, design_vector))
+    solve(diag(nrow = n_embedding) + sum_tangent_vectors(alignment_coefficients[,-1,,drop=FALSE], design_vector))
   }
 }
 
@@ -185,7 +186,7 @@ apply_linear_transformation <- function(A, alignment_coefs, design){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   groups <- unique(mm_groups)
   for(gr in groups){
-    A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% A[,mm_groups == gr]
+    A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% rbind(1, A[,mm_groups == gr])
   }
   A
 }

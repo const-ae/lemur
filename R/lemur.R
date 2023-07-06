@@ -186,7 +186,7 @@ lemur_impl <- function(Y, design_matrix,
     # Rotate the embedding if it wasn't provided
     stop("Fixing 'alignment_coefficients' without fixing 'embedding' is not implemented")
   }else{
-    alignment_coefficients <- array(0, c(n_embedding, n_embedding, ncol(alignment_design_matrix)))
+    alignment_coefficients <- array(0, c(n_embedding, n_embedding+1, ncol(alignment_design_matrix)))
   }
 
   # Make sure that axes are ordered by variance

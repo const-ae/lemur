@@ -90,14 +90,16 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
       gr2 <- mmg[idx,2]
       covar1 <- newdesign[which(mm_groups == gr1)[1],]
       diffemb <- grassmann_map(sum_tangent_vectors(coefficients, covar1), base_point)
-      alignment <- if(with_alignment){
+      if(with_alignment){
         covar2 <- alignment_design_matrix[which(mm_al_groups == gr2)[1],]
-        reverse_linear_transformation(alignment_coefficients, covar2)
+        alignment <- reverse_linear_transformation(alignment_coefficients, covar2)
+        offset <- c(alignment_coefficients[,1,] %*% covar2)
       }else{
-        diag(nrow = n_embedding)
+        alignment <- diag(nrow = n_embedding)
+        offset <- 0
       }
       sel <- gr1 == mm_groups & gr2 == mm_al_groups
-      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% embedding[,sel]
+      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% (embedding[,sel] - offset)
     }
   }
 

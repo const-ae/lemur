@@ -116,7 +116,7 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(embedding) && ncol(embedding) != n_obs) msg <- c(msg, "`ncol(embedding)` does not match number of observations")
   if(! is.null(alignment_coefficients) && ! is.array(alignment_coefficients) || length(dim(alignment_coefficients)) != 3) msg <- c(msg, "`alignment_coefficients` must be a three dimensional array")
   if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[1] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[1]` does not match `n_embedding`")
-  if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[2] != n_embedding) msg <- c(msg, "`dim(alignment_coefficients)[2]` does not match `n_embedding`")
+  if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[2] != n_embedding + 1) msg <- c(msg, "`dim(alignment_coefficients)[2]` does not match `n_embedding + 1`")
   if(! is.null(alignment_coefficients) && dim(alignment_coefficients)[3] != ncol(alignment_design_matrix)) msg <- c(msg, "`dim(alignment_coefficients)[3]` does not match `ncol(alignment_design_matrix)`")
   if(! is.null(alignment_design_matrix) && nrow(alignment_design_matrix) != n_obs) msg <- c(msg, "`nrow(alignment_design_matrix)` does not match number of observations")
   if(! is.null(alignment_design) &&  ! inherits(alignment_design, "formula")) msg <- c(msg, "`alignment_design` must inherit from formula or be NULL")
