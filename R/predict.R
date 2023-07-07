@@ -93,7 +93,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
       if(with_alignment){
         covar2 <- alignment_design_matrix[which(mm_al_groups == gr2)[1],]
         alignment <- reverse_linear_transformation(alignment_coefficients, covar2)
-        offset <- c(alignment_coefficients[,1,] %*% covar2)
+        offset <- c(matrix(alignment_coefficients[,1,], ncol = length(covar2)) %*% covar2)
       }else{
         alignment <- diag(nrow = n_embedding)
         offset <- 0

@@ -4,11 +4,11 @@ dat$patient <- sample(paste0("p", 1:3), 500, replace = TRUE)
 fit <- lemur(dat, ~ condition + patient, n_embedding = 5, test_fraction = 0, verbose = FALSE)
 
 test_that("forward and reverse transformation cancel", {
-  coef <- array(cbind(randn(5, 5), randn(5, 5)), dim = c(5,5,2))
+  coef <- array(cbind(randn(5, 6), randn(5, 6)), dim = c(5,6,2))
   vec <- rnorm(2)
   forward <- forward_linear_transformation(coef, vec)
   reverse <- reverse_linear_transformation(coef, vec)
-  expect_equal(reverse %*% forward, diag(nrow = 5))
+  expect_equal(reverse %*% forward[,-1], diag(nrow = 5))
 })
 
 
@@ -17,8 +17,8 @@ test_that("alignment with Harmony work", {
 
   n_coef <- ncol(fit$design_matrix)
   n_lat <- fit$n_embedding
-  expect_equal(fit$alignment_coefficients, array(0, dim = c(n_lat, n_lat, n_coef)))
-  expect_equal(dim(fit_al$alignment_coefficients), c(5,5,5))
+  expect_equal(fit$alignment_coefficients, array(0, dim = c(n_lat, n_lat+1, n_coef)))
+  expect_equal(dim(fit_al$alignment_coefficients), c(5,6,5))
 
   pred0 <- predict(fit)
   pred1 <- predict(fit_al)
@@ -86,7 +86,7 @@ test_that("handle_ridge_penalty_parameter works", {
 test_that("check that aligning points works perfectly for low number of points", {
   n_genes <- 10
   n_emb <- 8
-  n_points <- n_emb
+  n_points <- n_emb + 1
   df <- data.frame(tmp = rep(c("a", "b"), each = n_points))
   design_matrix <- model.matrix(~ tmp, data = df)
   mat <- randn(n_emb, n_points * 2)
@@ -96,7 +96,7 @@ test_that("check that aligning points works perfectly for low number of points",
             linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
             base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
             embedding = mat,
-            alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+            alignment_coefficients = array(0, dim = c(n_emb, n_emb+1, 2)),
             alignment_design = NULL, alignment_design_matrix = design_matrix,
             use_assay = "foo", is_test_data = rep(FALSE, ncol(mat)))
   gr <- rep(seq_len(n_points), times = 2)
@@ -110,7 +110,7 @@ test_that("check that harmony alignment works as expected", {
   set.seed(1)
   n_genes <- 10
   n_emb <- 2
-  n_points <- n_emb
+  n_points <- n_emb + 1
   df <- data.frame(tmp = rep(c("a", "b"), each = n_points))
   design_matrix <- model.matrix(~ tmp, data = df)
   mat <- randn(n_emb, n_points)
@@ -121,7 +121,7 @@ test_that("check that harmony alignment works as expected", {
                    linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
                    base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
                    embedding = mat,
-                   alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
+                   alignment_coefficients = array(0, dim = c(n_emb, n_emb+1, 2)),
                    alignment_design = NULL, alignment_design_matrix = design_matrix,
                    use_assay = "foo", is_test_data = rep(FALSE, ncol(mat)))
   gr <- rep(seq_len(n_points), times = 2)
@@ -146,27 +146,6 @@ test_that("check that harmony alignment works as expected", {
   expect_equal(Z_corr, harm)
 })
 
-
-test_that("correct_design_matrix-groups function accounts for weights", {
-  # See line 194 in align.R (call to ridge_regression!!!)
-  # n_genes <- 10
-  # n_emb <- 2
-  # df <- data.frame(tmp = rep(c("a", "b"), times = c(3, 100)))
-  # design_matrix <- model.matrix(~ tmp, data = df)
-  # n_points <- nrow(design_matrix)
-  # mat <- randn(n_emb, 2) %*% t(design_matrix) + randn(n_emb, n_points, sd = 0.1)
-  #
-  # fit <- lemur_fit(randn(n_genes, n_points), col_data = df, row_data = NULL,
-  #                  n_embedding = n_emb, design = ~ tmp, design_matrix = design_matrix,
-  #                  linear_coefficients = matrix(0, nrow = n_genes, ncol = 2),
-  #                  base_point = diag(nrow = n_genes, ncol = n_emb), coefficients = array(0, dim = c(n_genes, n_emb, 2)),
-  #                  embedding = mat,
-  #                  alignment_coefficients = array(0, dim = c(n_emb, n_emb, 2)),
-  #                  alignment_design = NULL, alignment_design_matrix = design_matrix)
-  # gr <- rep(1, n_points)
-  # fit_al <- align_by_grouping(fit, grouping = gr)
-  skip("I cannot come up with a good unit test if the weighting is effective")
-})
 
 
 

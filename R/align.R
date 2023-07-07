@@ -170,7 +170,12 @@ one_hot_encoding <- function(groups){
 }
 
 forward_linear_transformation <- function(alignment_coefficients, design_vector){
-  cbind(0, diag(nrow = dim(alignment_coefficients)[1])) + sum_tangent_vectors(alignment_coefficients, design_vector)
+  n_emb <- dim(alignment_coefficients)[1]
+  if(n_emb == 0){
+    sum_tangent_vectors(alignment_coefficients, design_vector)
+  }else{
+    cbind(0, diag(nrow = n_emb)) + sum_tangent_vectors(alignment_coefficients, design_vector)
+  }
 }
 
 reverse_linear_transformation <- function(alignment_coefficients, design_vector){
@@ -186,7 +191,7 @@ apply_linear_transformation <- function(A, alignment_coefs, design){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   groups <- unique(mm_groups)
   for(gr in groups){
-    A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% rbind(1, A[,mm_groups == gr])
+    A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% rbind(1, A[,mm_groups == gr,drop=FALSE])
   }
   A
 }
