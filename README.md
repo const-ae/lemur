@@ -16,8 +16,12 @@ with arbitrary experimental designs that can be expressed using a design
 matrix. The result is an interpretable model of the gene expression
 patterns.
 
-![Schematic of the matrix decomposition at the core of
-LEMUR](man/figures/equation_schematic.png)
+<figure>
+<img src="man/figures/equation_schematic.png"
+alt="Schematic of the matrix decomposition at the core of LEMUR" />
+<figcaption aria-hidden="true">Schematic of the matrix decomposition at
+the core of LEMUR</figcaption>
+</figure>
 
 ## Installation
 
@@ -130,14 +134,12 @@ inferring the LEMUR parameters.
 
 ``` r
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
-             n_embedding = 15, test_fraction = 0.4, verbose = FALSE)
+             n_embedding = 15, test_fraction = 0.2, verbose = FALSE)
 
-# The alignment step is optional and there are several approaches to choose the alignment.
-# The ridge_penalty regularizes the alignment
-## fit <- align_by_grouping(fit, grouping = fit$colData$cell_type) # Use existing annotations (doesn't exist for this data)
-## fit <- align_by_template(fit, template = aligned_data) # Use existing alignment (doesn't exist for this data)
-## fit <- align_neighbors(fit) # Put mutual nearest neighbors close
-fit <- align_harmony(fit, ridge_penalty = 0.5) # Use maximum-diversity clustering
+# Optionally, align cell positions across conditions
+# Either with manual annotation by calling `align_by_grouping` or
+# with automatically inferred correspondences by calling `align_harmony`
+fit <- align_harmony(fit)
 #> Select cells that are considered close with 'harmony'
 
 fit
@@ -218,18 +220,18 @@ as_tibble(neighborhoods) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
   dplyr::select(name, symbol, n_cells, pval, adj_pval)
 #> # A tibble: 300 × 5
-#>    name            symbol n_cells       pval adj_pval
-#>    <chr>           <chr>    <int>      <dbl>    <dbl>
-#>  1 ENSG00000187193 MT1X      4656 0.00000824  0.00247
-#>  2 ENSG00000245532 NEAT1     2935 0.0000322   0.00361
-#>  3 ENSG00000113889 KNG1      4333 0.0000423   0.00361
-#>  4 ENSG00000147588 PMP2      4681 0.0000481   0.00361
-#>  5 ENSG00000175899 A2M       4691 0.0000721   0.00433
-#>  6 ENSG00000177700 POLR2L    3558 0.000213    0.0107 
-#>  7 ENSG00000198668 CALM1     3410 0.000249    0.0107 
-#>  8 ENSG00000125148 MT2A      4474 0.000378    0.0142 
-#>  9 ENSG00000169429 CXCL8     1652 0.000650    0.0217 
-#> 10 ENSG00000069275 NUCKS1    4121 0.000782    0.0222 
+#>    name            symbol n_cells      pval adj_pval
+#>    <chr>           <chr>    <int>     <dbl>    <dbl>
+#>  1 ENSG00000147588 PMP2      3951 0.0000541   0.0127
+#>  2 ENSG00000113889 KNG1      4437 0.0000845   0.0127
+#>  3 ENSG00000187193 MT1X      1833 0.000198    0.0198
+#>  4 ENSG00000245532 NEAT1     3371 0.000387    0.0290
+#>  5 ENSG00000177700 POLR2L    3591 0.000790    0.0474
+#>  6 ENSG00000132002 DNAJB1    2841 0.00117     0.0508
+#>  7 ENSG00000156508 EEF1A1    3748 0.00168     0.0508
+#>  8 ENSG00000198668 CALM1     2692 0.00169     0.0508
+#>  9 ENSG00000125148 MT2A      3174 0.00198     0.0508
+#> 10 ENSG00000120885 CLU       3270 0.00200     0.0508
 #> # ℹ 290 more rows
 ```
 
@@ -367,20 +369,20 @@ sessionInfo()
 #>  [5] purrr_1.0.1                 readr_2.1.4                
 #>  [7] tidyr_1.3.0                 tibble_3.2.1               
 #>  [9] ggplot2_3.4.2               tidyverse_2.0.0            
-#> [11] SingleCellExperiment_1.22.0 SummarizedExperiment_1.30.1
+#> [11] SingleCellExperiment_1.22.0 SummarizedExperiment_1.30.2
 #> [13] Biobase_2.60.0              GenomicRanges_1.52.0       
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
-#> [19] MatrixGenerics_1.12.0       matrixStats_0.63.0         
-#> [21] lemur_0.0.19               
+#> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
+#> [21] lemur_0.0.22               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
-#>  [3] lattice_0.21-8            tzdb_0.3.0               
+#>  [3] lattice_0.21-8            tzdb_0.4.0               
 #>  [5] vctrs_0.6.2               tools_4.3.0              
 #>  [7] bitops_1.0-7              generics_0.1.3           
 #>  [9] fansi_1.0.4               highr_0.10               
-#> [11] pkgconfig_2.0.3           Matrix_1.5-4             
+#> [11] pkgconfig_2.0.3           Matrix_1.5-4.1           
 #> [13] sparseMatrixStats_1.12.0  lifecycle_1.0.3          
 #> [15] GenomeInfoDbData_1.2.10   farver_2.1.1             
 #> [17] compiler_4.3.0            munsell_0.5.0            
@@ -388,19 +390,19 @@ sessionInfo()
 #> [21] htmltools_0.5.5           RCurl_1.98-1.12          
 #> [23] yaml_2.3.7                pillar_1.9.0             
 #> [25] crayon_1.5.2              MASS_7.3-60              
-#> [27] uwot_0.1.14               DelayedArray_0.26.2      
+#> [27] uwot_0.1.14               DelayedArray_0.26.3      
 #> [29] tidyselect_1.2.0          digest_0.6.31            
 #> [31] stringi_1.7.12            labeling_0.4.2           
 #> [33] splines_4.3.0             cowplot_1.1.1            
 #> [35] fastmap_1.1.1             grid_4.3.0               
 #> [37] colorspace_2.1-0          cli_3.6.1                
 #> [39] harmony_0.1.1             magrittr_2.0.3           
-#> [41] S4Arrays_1.0.1            utf8_1.2.3               
+#> [41] S4Arrays_1.0.4            utf8_1.2.3               
 #> [43] withr_2.5.0               DelayedMatrixStats_1.22.0
 #> [45] scales_1.2.1              timechange_0.2.0         
-#> [47] rmarkdown_2.21            XVector_0.40.0           
+#> [47] rmarkdown_2.22            XVector_0.40.0           
 #> [49] hms_1.1.3                 evaluate_0.21            
-#> [51] knitr_1.42                RcppAnnoy_0.0.20         
+#> [51] knitr_1.43                RcppAnnoy_0.0.20         
 #> [53] irlba_2.3.5.1             rlang_1.1.1              
 #> [55] isoband_0.2.7             Rcpp_1.0.10              
 #> [57] glue_1.6.2                rstudioapi_0.14          
