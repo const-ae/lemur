@@ -21,7 +21,6 @@ Imports:
     vctrs,
     glmGamPoi (>= 1.11.6),
     BiocGenerics,
-    BiocNeighbors,
     S4Vectors,
     Matrix,
     DelayedMatrixStats,
