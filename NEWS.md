@@ -1,3 +1,13 @@
+# v0.0.23
+
+* Improve alignment functions: simplify algorithm, find linear approximation to Harmony's steps,
+include an intercept.
+* Avoid calling private methods from `harmony`.
+* Convert character columns in `colData` to factors to avoid problems when dividing data into
+test and training data.
+* Fix bug in `find_de_neighborhoods` where I didn't embrace an argument.
+* Remove `BiocNeighbors` dependency.
+
 # v0.0.21
 
 * Minor bug fix in `find_de_neighborhoods`. The function threw an error if `alignment_design != design`. 
