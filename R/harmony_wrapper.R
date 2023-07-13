@@ -28,20 +28,42 @@ harmony_init <- function(embedding, design_matrix,
 
   sigma <- rep_len(sigma, nclust)
 
-  harmonyObj <- new(harmony:::harmony, 0) ## 0 is a dummy variable - will change later
+  harmonyObj <- harmony_new_object()
+
   harmonyObj$setup(
     embedding, phi, phi_moe,
     Pr_b, sigma, theta, max.iter.cluster,epsilon.cluster,
     epsilon.harmony, nclust, tau, block.size, lambda_mat, verbose
   )
-
-  harmony:::init_cluster(harmonyObj)
+  harmony_init_clustering(harmonyObj)
   harmonyObj
 }
 
+#' Create an arbitrary Harmony object so that I can modify it later
+#'
+#' @keywords internal
+harmony_new_object <- function(){
+  Y <- randn(10, 3)
+  harmonyObj <- harmony::HarmonyMatrix(Y, rep(letters[1:2], length.out = 10), do_pca = FALSE, nclust = 2, max.iter.harmony = 0, return_object = TRUE)
+  harmonyObj
+}
+
+harmony_init_clustering <- function(harmonyObj, iter.max = 25, nstart = 10){
+  stopifnot(is(harmonyObj, "Rcpp_harmony"))
+  if(! harmonyObj$ran_setup){
+    stop("You must call 'harmonyObj$setup' before calling 'harmony_init_clustering'")
+  }
+  harmonyObj$Y <- t(stats::kmeans(t(harmonyObj$Z_cos), centers = harmonyObj$K, iter.max = iter.max, nstart = nstart)$centers)
+  harmonyObj$init_cluster_cpp(0)
+  harmonyObj
+}
 
 harmony_max_div_clustering <- function(harmonyObj){
-  err_status <- harmony:::cluster(harmonyObj)
+  stopifnot(is(harmonyObj, "Rcpp_harmony"))
+  if(! harmonyObj$ran_init){
+    stop("You must call 'harmony_init_clustering' before calling 'harmony_max_div_clustering'")
+  }
+  err_status <- harmonyObj$cluster_cpp()
   if (err_status == -1) {
     stop('terminated by user')
   } else if (err_status != 0) {
