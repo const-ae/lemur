@@ -232,13 +232,20 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
   n_genes <- nrow(fit)
   stopifnot(ncol(fit) == ncol(de_mat))
   stopifnot(nrow(fit) == nrow(de_mat))
+  show_progress_bar <- verbose && interactive()
   proj <- dirs %*% fit$embedding
   if(is.null(independent_embedding)){
     independent_embedding <- matrix(nrow = fit$n_embedding, ncol = 0)
   }
   indep_proj <- dirs %*% independent_embedding
 
+  if(show_progress_bar){
+    progress_bar <- txtProgressBar(min = 0, max = n_genes, style = 3)
+  }
   result <- do.call(rbind, lapply(seq_len(n_genes), \(gene_idx){
+    if(show_progress_bar && gene_idx %% 10 == 0){
+      setTxtProgressBar(progress_bar, value = gene_idx)
+    }
     pr <- proj[gene_idx,]
     ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
@@ -254,6 +261,9 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
                  sel_statistic = rev_max_idx$max)
     }
   }))
+  if(show_progress_bar){
+    close(progress_bar)
+  }
   result$name <- rownames(fit)
   if(is.null(result$name)){
     result$name <- paste0("feature_", seq_len(nrow(fit)))
@@ -285,6 +295,8 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
   cntrst <- evaluate_contrast_tree(contrast, contrast, \(x, .){
     x
   })
+  show_progress_bar <- verbose && interactive()
+
 
   # Prepare values
   Y <- assay(fit, fit$use_assay)
@@ -300,7 +312,13 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
   }
   indep_proj <- dirs %*% independent_embedding
 
+  if(show_progress_bar){
+    progress_bar <- txtProgressBar(min = 0, max = n_genes, style = 3)
+  }
   result <- do.call(rbind, lapply(seq_len(n_genes), \(gene_idx){
+    if(show_progress_bar && gene_idx %% 10 == 0){
+      setTxtProgressBar(progress_bar, value = gene_idx)
+    }
     pr <- proj[gene_idx,]
     ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
@@ -321,6 +339,9 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
                  sel_statistic = rev_max_idx$max)
     }
   }))
+  if(show_progress_bar){
+    close(progress_bar)
+  }
   result$selection <- TRUE
   result$name <- rownames(fit)
   if(is.null(result$name)){
