@@ -25,20 +25,15 @@ the core of LEMUR</figcaption>
 
 ## Installation
 
-`lemur` depends on features from
-[`glmGamPoi`](https://github.com/const-ae/glmGamPoi) which are only
-available in the development version, so please install `glmGamPoi` from
-GitHub before proceeding with lemur’s installation:
-
-``` r
-devtools::install_github("const-ae/glmGamPoi")
-```
-
-You can install the released version of lemur from Github:
+You can install the development version of lemur from Github:
 
 ``` r
 devtools::install_github("const-ae/lemur")
 ```
+
+`lemur` depends on recent features from
+[`glmGamPoi`](https://github.com/const-ae/glmGamPoi), so make sure that
+`packageVersion("glmGamPoi")` is larger than `1.12.0`.
 
 ## A word of caution
 
@@ -126,11 +121,13 @@ number of latent dimensions, which has a similar interpretation as the
 number of dimensions in PCA. Optionally, we can further align
 corresponding cells using manually annotated cell types
 (`align_by_grouping`) or an automated alignment procedure (e.g.,
-`align_harmony`, `align_neighbors`).
+`align_harmony`).
 
 The `test_fraction` argument sets the fraction of cells which are
 exclusively used to test for differential expression and not for
-inferring the LEMUR parameters.
+inferring the LEMUR parameters. It balances the sensitivity to detect
+subtle patterns in the latent space against the power to detect
+differentially expressed genes.
 
 ``` r
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
@@ -176,13 +173,14 @@ as_tibble(umap) %>%
 
 <img src="man/figures/README-lemur_umap-1.png" width="100%" />
 
-The `test_de` function takes a `lemur_fit_obj` and returns with a new
-assay `"DE"` with the predicted difference between two conditions
-specified in the `contrast`. Note that `lemur` implements a special
-notation for contrasts. Instead of providing a contrast vector or design
-matrix column names, you provide for each *condition* the levels, and
-`lemur` automatically forms the contrast vector. This makes the contrast
-more readable.
+Next, we will calculate the expected effect of the panobinostat
+treatment for each gene and cell. The `test_de` function takes a
+`lemur_fit_obj` and returns with a new assay `"DE"` with the predicted
+difference between two conditions specified in the `contrast`. Note that
+`lemur` implements a special notation for contrasts. Instead of
+providing a contrast vector or design matrix column names, you provide
+for each *condition* the levels, and `lemur` automatically forms the
+contrast vector. This makes the contrast more readable.
 
 ``` r
 fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
@@ -210,6 +208,12 @@ Alternatively, we can use the matrix of differential expression values
 show consistent differential expression. If we provide a count matrix,
 the function uses a pseudobulked differential expression test to confirm
 the gene expression differences on the count level.
+
+The `group_by` argument determines how the pseudobulk samples are
+formed. It specifies the columns in the `fit$colData` that are used to
+define a sample and is inspired by the `group_by` function in `dplyr`.
+Typically, you provide the covariates that were used for the
+experimental design plus the sample id (in this case `patient_id`).
 
 ``` r
 neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
@@ -254,7 +258,9 @@ as_tibble(umap) %>%
 
 To plot the boundaries of the differential expression neighborhood, we
 create a helper dataframe and use the `geom_density2d` function from
-`ggplot2`:
+`ggplot2`. To avoid the cutting of the boundary to the extremes of the
+cell coordinates, add `lims` to the plot with an appropriately large
+limits.
 
 ``` r
 neighborhood_coordinates <- neighborhoods %>%
@@ -283,12 +289,13 @@ understand the expression differences across all genes.
 neighborhoods %>%
   ggplot(aes(x = lfc, y = -log10(pval))) +
     geom_point(aes(color  = adj_pval < 0.1)) +
-    labs(title = "Vulcano plot of the neighborhoods")
+    labs(title = "Volcano plot of the neighborhoods")
 ```
 
 <img src="man/figures/README-volcano_plot-1.png" width="100%" />
 
 ``` r
+
 neighborhoods %>%
   ggplot(aes(x = n_cells, y = -log10(pval))) +
     geom_point(aes(color  = adj_pval < 0.1)) +
@@ -304,8 +311,6 @@ neighborhoods %>%
 
 No. You need to call `lemur` with the unaligned data so that it can
 learn how much the expression of each gene changes between conditions.
-What you can do, though, is to use the aligned data as a template for
-lemur’s alignment step (`align_template`).
 
 > Can I call lemur with
 > [sctransformed](https://github.com/satijalab/sctransform) instead of
@@ -324,9 +329,9 @@ This is a known issue and can be caused if the data has large
 compositional shifts (for example, if one cell type disappears). The
 problem is that the initial linear regression step, which centers the
 conditions relative to each other, overcorrects and introduces a
-consistent shift in the latent space. I am currently trying to develop a
-generic solution for this problem, but until this is implemented, you
-can manually fix the regression coefficients:
+consistent shift in the latent space. You can either use
+`align_by_grouping` / `align_harmony` to correct for this effect or
+manually fix the regression coefficient to zero:
 
 ``` r
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
@@ -356,7 +361,7 @@ sessionInfo()
 #> locale:
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 #> 
-#> time zone: Europe/Berlin
+#> time zone: Pacific/Honolulu
 #> tzcode source: internal
 #> 
 #> attached base packages:

@@ -19,7 +19,7 @@ Imports:
     SummarizedExperiment,
     rlang,
     vctrs,
-    glmGamPoi (>= 1.11.6),
+    glmGamPoi (>= 1.12.0),
     BiocGenerics,
     S4Vectors,
     Matrix,
