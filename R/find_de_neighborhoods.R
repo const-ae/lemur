@@ -65,6 +65,9 @@ find_de_neighborhoods <- function(fit,
                                   include_complement = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
+  if(! all(metadata(fit)$row_mask == TRUE)){
+    stop("The 'fit' argument of 'find_de_neighborhoods' must not be subsetted.")
+  }
   test_method <- match.arg(test_method)
   selection_procedure <- match.arg(selection_procedure)
   skip_independent_test <- is.null(test_data) || test_method == "none"

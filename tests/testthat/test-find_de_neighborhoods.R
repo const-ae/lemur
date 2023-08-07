@@ -266,3 +266,17 @@ test_that("find_de_neighborhoods works with alignemnt_design != design", {
 })
 
 
+test_that("find_de_neighborhoods throws an appropriate error for subsetted data", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  counts(dat) <- matrix(rpois(nrow(dat) * ncol(dat), lambda = 2), nrow = nrow(dat), ncol = ncol(dat), dimnames = dimnames(dat))
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore", test_method = "glmGamPoi", verbose = FALSE)
+
+  fit_subset <- fit[1:10,]
+  expect_error(find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore", test_method = "glmGamPoi", verbose = FALSE))
+})
+
+
