@@ -385,7 +385,8 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     rownames(counts) <- paste0("feature_", seq_len(nrow(counts)))
   }
   masked_counts <- as(counts[de_regions$name,,drop=FALSE] * mask, "CsparseMatrix")
-  masked_size_factors <- Matrix::sparseMatrix(i = mask@i, j = mask@j, x = mask@x * MatrixGenerics::colSums2(counts)[mask@j + 1L], index1 = FALSE, repr = "C")
+  masked_size_factors <- Matrix::sparseMatrix(i = mask@i, j = mask@j, x = mask@x * MatrixGenerics::colSums2(counts)[mask@j + 1L],
+                                              dims = dim(mask), index1 = FALSE, repr = "C")
 
   masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts, masked_size_factors = masked_size_factors),
                                                            colData = col_data)
