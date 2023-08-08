@@ -81,7 +81,7 @@ find_de_neighborhoods <- function(fit,
     }
   }
 
-  if(skip_independent_test){
+  if(is.null(test_data)){
     projected_indep_data <- matrix(nrow = fit$n_embedding, ncol = 0)
   }else if(use_existing_test_projection){
     projected_indep_data <- fit$embedding[,fit$is_test_data,drop=FALSE]
