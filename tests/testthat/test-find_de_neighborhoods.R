@@ -221,7 +221,7 @@ test_that("find_de_neighborhoods works", {
 })
 
 
-test_that("find_de_regions works with subset", {
+test_that("find_de_neighborhoods works with subset", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
@@ -232,8 +232,26 @@ test_that("find_de_regions works with subset", {
   expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 400), FUN.VALUE = logical(1))))
 })
 
+test_that("find_de_neighborhoods works for subsetted data", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  counts(dat) <- matrix(rpois(nrow(dat) * ncol(dat), lambda = 2), nrow = nrow(dat), ncol = ncol(dat), dimnames = dimnames(dat))
+  dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
-test_that("find_de_regions works reasonably well with counts", {
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+  fit_subset <- fit[1:10,]
+  set.seed(1)
+  nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore",
+                               test_method = "glmGamPoi", include_complement = FALSE, verbose = FALSE)
+  set.seed(1)
+  nei2 <- find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore",
+                                test_method = "glmGamPoi",  include_complement = FALSE, verbose = FALSE)
+  cols <- c("name", "selection", "indices", "n_cells", "sel_statistic", "lfc")
+  expect_equal(nei[1:10, cols], nei2[,cols])
+})
+
+
+test_that("find_de_neighborhoods works reasonably well with counts", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   dat$individual <- sample(paste0("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
   dat$pat <- sample(c("A", "B", "C"), size = ncol(dat), replace = TRUE)
@@ -266,17 +284,16 @@ test_that("find_de_neighborhoods works with alignemnt_design != design", {
 })
 
 
-test_that("find_de_neighborhoods throws an appropriate error for subsetted data", {
+test_that("find_de_neighborhoods works if test_data is NULL", {
   dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
   counts(dat) <- matrix(rpois(nrow(dat) * ncol(dat), lambda = 2), nrow = nrow(dat), ncol = ncol(dat), dimnames = dimnames(dat))
   dat$individual <- sample(c("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
 
   fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
-  nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore", test_method = "glmGamPoi", verbose = FALSE)
-
-  fit_subset <- fit[1:10,]
-  expect_error(find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore", test_method = "glmGamPoi", verbose = FALSE))
+  nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore",
+                               test_data = NULL, verbose = FALSE)
+  expect_equal(nei$independent_indices, I(lapply(1:100, \(i) integer(0L))))
 })
 
 

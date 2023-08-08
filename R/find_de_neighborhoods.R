@@ -65,12 +65,10 @@ find_de_neighborhoods <- function(fit,
                                   include_complement = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
-  if(! all(metadata(fit)$row_mask == TRUE)){
-    stop("The 'fit' argument of 'find_de_neighborhoods' must not be subsetted.")
-  }
   test_method <- match.arg(test_method)
   selection_procedure <- match.arg(selection_procedure)
   skip_independent_test <- is.null(test_data) || test_method == "none"
+  use_existing_test_projection <- identical(test_data, fit$test_data)
   training_fit <- fit$training_data
 
   test_data <- handle_test_data_parameter(fit, test_data, test_data_col_data, continuous_assay_name)
@@ -83,10 +81,19 @@ find_de_neighborhoods <- function(fit,
     }
   }
 
-  attr(design, "ignore_degeneracy") <- TRUE
-  attr(alignment_design, "ignore_degeneracy") <- TRUE
-  projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name,
-                                               design = design, alignment_design = alignment_design, return = "matrix")
+  if(skip_independent_test){
+    projected_indep_data <- matrix(nrow = fit$n_embedding, ncol = 0)
+  }else if(use_existing_test_projection){
+    projected_indep_data <- fit$embedding[,fit$is_test_data,drop=FALSE]
+  }else{
+    if(! all(metadata(fit)$row_mask == TRUE)){
+      stop("The 'fit' argument of 'find_de_neighborhoods' must not be subsetted.")
+    }
+    attr(design, "ignore_degeneracy") <- TRUE
+    attr(alignment_design, "ignore_degeneracy") <- TRUE
+    projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name,
+                                                 design = design, alignment_design = alignment_design, return = "matrix")
+  }
 
 
   if(is.character(directions)){
