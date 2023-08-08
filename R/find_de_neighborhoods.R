@@ -114,9 +114,10 @@ find_de_neighborhoods <- function(fit,
     }
   }else{
     stopifnot(is.matrix(directions))
-    stopifnot(nrow(directions) == nrow(fit) && ncol(directions) == fit$n_embedding)
     dirs <- directions
   }
+  stopifnot(nrow(dirs) == nrow(fit) && ncol(dirs) == fit$n_embedding)
+
 
   if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
   if(selection_procedure == "zscore"){
@@ -224,6 +225,9 @@ select_directions_from_contrast <- function(fit, contrast){
   dirs <- evaluate_contrast_tree(cntrst, cntrst, \(x, .){
     grassmann_map(sum_tangent_vectors(fit$coefficients, x), fit$base_point)
   })
+  # Subset to available genes
+  dirs <- dirs[metadata(fit)[["row_mask"]],,drop=FALSE]
+  # Make each row unit length
   t(apply(dirs, 1, \(row) row / sqrt(sum(row^2))))
 }
 
