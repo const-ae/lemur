@@ -111,6 +111,7 @@ test_that("neighborhood_normal_test works", {
   n_obs <- 100
   n_genes <- 1
   y <- matrix(rnorm(n_genes * n_obs), nrow = n_genes, ncol = n_obs)
+  y[sample.int(n_genes * n_obs, size = 35)] <- 0
   dat <- data.frame(id = seq_len(n_obs),
                     patient = sample(paste0("pat_", seq_len(6)), size = n_obs, replace = TRUE))
   dat$condition <- ifelse(dat$patient <= "pat_3", "ctrl", "trt")
@@ -144,6 +145,12 @@ test_that("neighborhood_normal_test works", {
   expect_equal(test_res$t_statistic, drop(t_stat))
   expect_equal(test_res$pval, drop(2 * pt(-abs(t_stat), df = lm_fit$df.residual)))
   expect_equal(test_res$lfc, drop(lm_fit$coefficients %*% t(contrast)))
+
+  # Compare with bulked_recursive_least_squares_contrast
+  order <- c(de_regions$indices[[1]], setdiff(seq_len(100), de_regions$indices[[1]]))
+  res <- bulked_recursive_least_squares_contrast(c(y)[order], form$design_matrix[order,],
+                                                 groups[order], contrast = contrast, ridge_penalty = 1e-6)
+  expect_equal(test_res$t_statistic, res$t_stat[length(de_regions$indices[[1]])], tolerance = 1e-4)
 })
 
 test_that("find_de_neighborhoods_with_contrast works", {
@@ -242,10 +249,12 @@ test_that("find_de_neighborhoods works for subsetted data", {
   fit_subset <- fit[1:10,]
   set.seed(1)
   nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore",
-                               test_method = "glmGamPoi", include_complement = FALSE, verbose = FALSE)
+                               test_method = "limma", include_complement = FALSE, verbose = FALSE)
   set.seed(1)
-  nei2 <- find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore",
-                                test_method = "glmGamPoi",  include_complement = FALSE, verbose = FALSE)
+  suppressWarnings({
+    nei2 <- find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore",
+                                  test_method = "limma",  include_complement = FALSE, verbose = FALSE)
+  })
   cols <- c("name", "selection", "indices", "n_cells", "sel_statistic", "lfc")
   expect_equal(nei[1:10, cols], nei2[,cols])
 })

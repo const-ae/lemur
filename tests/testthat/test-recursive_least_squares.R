@@ -17,12 +17,6 @@ test_that("recursive least squares works", {
   y <- rnorm(30)
   group <- c(rep(1:6, times = 5))
 
-  manual_res <- sapply(seq_len(n), \(idx){
-    lm.fit(mm[1:min(6, idx),,drop=FALSE], tapply(y[seq_len(idx)], group[seq_len(idx)], mean))$coefficients
-  })
-
-
-
   # Contrast
   contr <-  matrix(c(1, 0, -1), nrow = 1)
   res <- bulked_recursive_least_squares_contrast(y, mm, group, contrast = contr)
@@ -40,12 +34,18 @@ test_that("recursive least squares works", {
   # expect_equal(min(pval, 1 - pval) * 2,  summary(multcomp::glht(lm_fit, contr))$test$pvalues,
   #              ignore_attr = "error")
 
+  manual_res <- sapply(seq_len(n), \(idx){
+    lm.fit(mm[1:min(6, idx),,drop=FALSE], tapply(y[seq_len(idx)], group[seq_len(idx)], mean))$coefficients
+  })
+  expect_equal(res$coef[,-c(1:5)], unname(manual_res[,-c(1:5)]), tolerance = 1e-3)
+
 
   # Comparison with C++ implementation
   cpp_res <- cum_brls_which_abs_max(y, mm, group, contrast = contr, penalty = 1e-6, min_neighborhood_size = 0)
   expect_equal(cpp_res$idx, which.max(abs(res$t_stat)))
   expect_equal(cpp_res$max, res$t_stat[which.max(abs(res$t_stat))])
 })
+
 
 test_that("min_neighborhood_size argument of cum_brls_which_abs_max works", {
   mm <- duplicate_rows(matrix(rnorm(3 * 3), nrow = 3, ncol = 3), times = 10)

@@ -387,20 +387,15 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     mask[idx,indices[[idx]]] <- 1
   }
 
-  mask <- if(utils::packageVersion("Matrix") >= "1.4.2"){
-    # See email from Martin Maechler from 2022-08-12
-    as(as(as(mask, "dMatrix"), "generalMatrix"), "TsparseMatrix")
-  }else{
-    # This approach is deprecated since 1.4.2 and triggers warnings
-    as(mask, "dgTMatrix")
-  }
 
   if(is.null(rownames(counts))){
     rownames(counts) <- paste0("feature_", seq_len(nrow(counts)))
   }
-  masked_counts <- as(counts[de_regions$name,,drop=FALSE] * mask, "CsparseMatrix")
-  masked_size_factors <- Matrix::sparseMatrix(i = mask@i, j = mask@j, x = mask@x * MatrixGenerics::colSums2(counts)[mask@j + 1L],
-                                              dims = dim(mask), index1 = FALSE, repr = "C")
+  masked_counts <- as.matrix(counts[de_regions$name,,drop=FALSE]) * mask
+  if(is.null(cell_size_factors)){
+    cell_size_factors <- MatrixGenerics::colSums2(counts)
+  }
+  masked_size_factors <- t(t(mask) * cell_size_factors)
 
   masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts, masked_size_factors = masked_size_factors),
                                                            colData = col_data)
@@ -456,13 +451,6 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
     mask[idx,indices[[idx]]] <- 1
   }
 
-  mask <- if(utils::packageVersion("Matrix") >= "1.4.2"){
-    # See email from Martin Maechler from 2022-08-12
-    as(as(as(mask, "dMatrix"), "generalMatrix"), "TsparseMatrix")
-  }else{
-    # This approach is deprecated since 1.4.2 and triggers warnings
-    as(mask, "dgTMatrix")
-  }
   if(is.null(rownames(values))){
     if(nrow(values) == nrow(de_regions)){
       rownames(values) <- de_regions$name
@@ -471,7 +459,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
            "in 'de_regions'. Thus the matching between 'de_regions' and 'values' is ambiguous.")
     }
   }
-  masked_values <- as(values[de_regions$name,,drop=FALSE] * mask, "CsparseMatrix")
+  masked_values <- as.matrix(values[de_regions$name,,drop=FALSE]) * mask
   if(verbose) message("Form pseudobulk (averaging values)")
   groups <- lapply(group_by, rlang::eval_tidy, data = as.data.frame(col_data))
   if(is.null(groups)){
@@ -488,7 +476,6 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   if(! is_contrast_estimable(cntrst, model_matrix)){
     stop("The contrast is not estimable from the model_matrix")
   }
-
   if(verbose) message("Fit limma model")
   suppressWarnings({
     # limma warns about missing values. Here we expect missing values though.
