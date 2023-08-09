@@ -224,18 +224,18 @@ as_tibble(neighborhoods) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
   dplyr::select(name, symbol, n_cells, pval, adj_pval)
 #> # A tibble: 300 × 5
-#>    name            symbol n_cells      pval adj_pval
-#>    <chr>           <chr>    <int>     <dbl>    <dbl>
-#>  1 ENSG00000147588 PMP2      3951 0.0000541   0.0127
-#>  2 ENSG00000113889 KNG1      4437 0.0000845   0.0127
-#>  3 ENSG00000187193 MT1X      1833 0.000198    0.0198
-#>  4 ENSG00000245532 NEAT1     3371 0.000387    0.0290
-#>  5 ENSG00000177700 POLR2L    3591 0.000790    0.0474
-#>  6 ENSG00000132002 DNAJB1    2841 0.00117     0.0508
-#>  7 ENSG00000156508 EEF1A1    3748 0.00168     0.0508
-#>  8 ENSG00000198668 CALM1     2692 0.00169     0.0508
-#>  9 ENSG00000125148 MT2A      3174 0.00198     0.0508
-#> 10 ENSG00000120885 CLU       3270 0.00200     0.0508
+#>    name            symbol n_cells       pval adj_pval
+#>    <chr>           <chr>    <int>      <dbl>    <dbl>
+#>  1 ENSG00000187193 MT1X      3457 0.00000553  0.00166
+#>  2 ENSG00000125148 MT2A      3340 0.000109    0.0140 
+#>  3 ENSG00000245532 NEAT1     4506 0.000140    0.0140 
+#>  4 ENSG00000113889 KNG1      4415 0.000210    0.0158 
+#>  5 ENSG00000177700 POLR2L    3841 0.000298    0.0161 
+#>  6 ENSG00000147588 PMP2      3505 0.000322    0.0161 
+#>  7 ENSG00000120885 CLU       2540 0.000405    0.0174 
+#>  8 ENSG00000198668 CALM1     4377 0.000631    0.0237 
+#>  9 ENSG00000069275 NUCKS1    4154 0.000833    0.0262 
+#> 10 ENSG00000198258 UBL5      3048 0.000873    0.0262 
 #> # ℹ 290 more rows
 ```
 
@@ -361,7 +361,7 @@ sessionInfo()
 #> locale:
 #> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 #> 
-#> time zone: Pacific/Honolulu
+#> time zone: Europe/Berlin
 #> tzcode source: internal
 #> 
 #> attached base packages:
@@ -379,7 +379,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
-#> [21] lemur_0.0.22               
+#> [21] lemur_0.0.24               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
