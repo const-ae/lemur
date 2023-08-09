@@ -31,6 +31,10 @@ glmGamPoi::vars
 #'   forming the pseudobulk. If `test_method == "limma"`, only the continuous assay is needed. \cr
 #'   The arguments defaults to the test data split of when calling `lemur()`.
 #' @param test_data_col_data additional column data for the `test_data` argument.
+#' @param test_data_cell_size_factors Set the size factor per cell of the `test_data`. This argument
+#'   is only relevant if `test_method` is `"glmGamPoi"` or `"edgeR"`. If `fit` is subsetted, this argument
+#'   ensures that a reasonable sequencing depth per cell is used. Default: `NULL` which means that
+#'   `colSums(assay(fit$test_data, count_assay_name))` is used.
 #' @param test_method choice of test for the pseudobulked differential expression.
 #'   [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/) and
 #'   [edgeR](https://bioconductor.org/packages/edgeR/) work on an count assay.
@@ -57,6 +61,7 @@ find_de_neighborhoods <- function(fit,
                                   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
                                   test_data = fit$test_data,
                                   test_data_col_data = NULL,
+                                  test_data_cell_size_factors = NULL,
                                   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
                                   continuous_assay_name = fit$use_assay,
                                   count_assay_name = "counts",
@@ -162,9 +167,15 @@ find_de_neighborhoods <- function(fit,
           "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(test_data), collapse = ", "),
              ") of the 'independent_data' object.")
       }
+      if(verbose & is.null(test_data_cell_size_factors) & mean(metadata(fit)[["row_mask"]]) < 0.1){
+        warning("The fit object was subset to less than 10% of the genes. This will make the size factor estimation unreliable. ",
+                "Consider setting 'test_data_cell_size_factors' with the appropriate sequencing depth per cell.")
+      }
+
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc")
       de_regions <- neighborhood_count_test(de_regions, counts = assay(test_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = colData(test_data), method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
+                              design = design, col_data = colData(test_data), cell_size_factors = test_data_cell_size_factors,
+                              method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
     }else{
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
       de_regions <- neighborhood_normal_test(de_regions, values = assay(test_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
@@ -379,7 +390,8 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
 
 
-neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data, method = c("glmGamPoi", "edgeR"),
+neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data,
+                                    cell_size_factors = NULL, method = c("glmGamPoi", "edgeR"),
                                     de_region_index_name = "indices", verbose = TRUE){
   method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))

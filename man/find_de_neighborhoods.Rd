@@ -13,6 +13,7 @@ find_de_neighborhoods(
   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
   test_data = fit$test_data,
   test_data_col_data = NULL,
+  test_data_cell_size_factors = NULL,
   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
   continuous_assay_name = fit$use_assay,
   count_assay_name = "counts",
@@ -57,6 +58,11 @@ forming the pseudobulk. If \code{test_method == "limma"}, only the continuous as
 The arguments defaults to the test data split of when calling \code{lemur()}.}
 
 \item{test_data_col_data}{additional column data for the \code{test_data} argument.}
+
+\item{test_data_cell_size_factors}{Set the size factor per cell of the \code{test_data}. This argument
+is only relevant if \code{test_method} is \code{"glmGamPoi"} or \code{"edgeR"}. If \code{fit} is subsetted, this argument
+ensures that a reasonable sequencing depth per cell is used. Default: \code{NULL} which means that
+\code{colSums(assay(fit$test_data, count_assay_name))} is used.}
 
 \item{test_method}{choice of test for the pseudobulked differential expression.
 \href{https://bioconductor.org/packages/glmGamPoi/}{glmGamPoi} and
