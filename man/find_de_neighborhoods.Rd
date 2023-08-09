@@ -10,6 +10,7 @@ find_de_neighborhoods(
   contrast = fit$contrast,
   selection_procedure = c("zscore", "contrast"),
   directions = c("random", "contrast", "axis_parallel"),
+  min_neighborhood_size = 50,
   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
   test_data = fit$test_data,
   test_data_col_data = NULL,
@@ -43,6 +44,8 @@ which the cells are projected before searching for the neighborhood.
 has usually more power. \cr
 Alternatively, this can also be a matrix with one direction for each gene
 (i.e., a matrix of size \code{nrow(fit) * fit$n_embedding}).}
+
+\item{min_neighborhood_size}{the minimum number of cells per neighborhood. Default: \code{50}.}
 
 \item{de_mat}{the matrix with the differential expression values and is only relevant if
 \code{selection_procedure = "zscore"} or \code{directions = "random"}. Defaults

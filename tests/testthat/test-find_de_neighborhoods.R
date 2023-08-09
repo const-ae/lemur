@@ -182,7 +182,7 @@ test_that("find_de_neighborhoods_with_contrast works", {
   set.seed(1)
   nei2 <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
                                              contrast = cond(condition = "a") - cond(condition = "b"),
-                                             include_complement = TRUE, ridge_penalty = 1e-6, min_neighborhood_size = 10, verbose = FALSE)
+                                             include_complement = TRUE, ridge_penalty = 1e-6, verbose = FALSE)
   expect_equal(nrow(nei2), 100)
   expect_equal(nei, nei2[1:50,])
   expect_true(all(abs(nei2$sel_statistic[1:50]) > abs(nei2$sel_statistic[51:100]), na.rm = TRUE))

@@ -19,6 +19,7 @@ glmGamPoi::vars
 #'   has usually more power. \cr
 #'   Alternatively, this can also be a matrix with one direction for each gene
 #'   (i.e., a matrix of size `nrow(fit) * fit$n_embedding`).
+#' @param min_neighborhood_size the minimum number of cells per neighborhood. Default: `50`.
 #' @param de_mat the matrix with the differential expression values and is only relevant if
 #'   `selection_procedure = "zscore"` or `directions = "random"`. Defaults
 #'   to an assay called `"DE"` that is produced by `lemur::test_de()`.
@@ -58,6 +59,7 @@ find_de_neighborhoods <- function(fit,
                                   contrast = fit$contrast,
                                   selection_procedure = c("zscore", "contrast"),
                                   directions = c("random", "contrast", "axis_parallel"),
+                                  min_neighborhood_size = 50,
                                   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
                                   test_data = fit$test_data,
                                   test_data_col_data = NULL,
@@ -132,11 +134,11 @@ find_de_neighborhoods <- function(fit,
     stopifnot(all(dim(de_mat) == dim(fit)))
     de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
                                                      independent_embedding = projected_indep_data,
-                                                     include_complement = include_complement, verbose = verbose)
+                                                     include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, verbose = verbose)
   }else if(selection_procedure == "contrast"){
     de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
                                                       independent_embedding = projected_indep_data,
-                                                      include_complement = include_complement, ..., verbose = verbose)
+                                                      include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, ..., verbose = verbose)
   }else if(selection_procedure == "likelihood"){
     # Implement one of Wolfgang's suggestions for the selection procedure
     # de_regions <- find_de_neighborhoods_with_likelihood_ratio(training_fit, dirs, de_mat, include_complement = include_complement)
@@ -253,7 +255,7 @@ select_directions_from_canonical_correlation <- function(embedding, de_mat){
 
 find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_embedding = NULL,
                                                include_complement = TRUE,
-                                               min_neighborhood_size = 10,
+                                               min_neighborhood_size = 50,
                                                verbose = TRUE){
   n_genes <- nrow(fit)
   stopifnot(ncol(fit) == ncol(de_mat))
@@ -314,7 +316,7 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
 }
 
 find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, independent_embedding = NULL,
-                                                include_complement = TRUE, ridge_penalty = 0.1, min_neighborhood_size = 10,
+                                                include_complement = TRUE, ridge_penalty = 0.1, min_neighborhood_size = 50,
                                                 verbose = TRUE){
   n_genes <- nrow(fit)
   contrast <- parse_contrast({{contrast}}, formula = fit$design)
