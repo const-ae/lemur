@@ -1,3 +1,11 @@
+# v0.0.24
+
+* Fix bug in `find_de_neighborhoods` that meant that accidentally additionally zeros where included in each
+neighborhood pseudobulk. The test should have more power now.
+* Expose `min_neighborhood_size` argument in `find_de_neighborhoods`.
+* Add `test_data_cell_size_factors` argument to `find_de_neighborhoods` which is useful if the function is called
+with a subsetted `fit` argument.
+
 # v0.0.23
 
 * Improve alignment functions: simplify algorithm, find linear approximation to Harmony's steps,
