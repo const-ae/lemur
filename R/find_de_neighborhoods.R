@@ -403,12 +403,12 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
   for(idx in seq_len(nrow(de_regions))){
     mask[idx,indices[[idx]]] <- 1
   }
-
+  mask <- as_dgTMatrix(mask)
 
   if(is.null(rownames(counts))){
     rownames(counts) <- paste0("feature_", seq_len(nrow(counts)))
   }
-  masked_counts <- as.matrix(counts[de_regions$name,,drop=FALSE]) * mask
+  masked_counts <- counts[de_regions$name,,drop=FALSE] * mask
   if(is.null(cell_size_factors)){
     cell_size_factors <- MatrixGenerics::colSums2(counts)
   }
@@ -462,11 +462,13 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   }
   cntrst <- parse_contrast({{contrast}}, formula = design)
   cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
-  mask <- matrix(NA, nrow = nrow(de_regions),  ncol = ncol(values))
+  mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(values))
   indices <- de_regions[[de_region_index_name]]
   for(idx in seq_len(nrow(de_regions))){
     mask[idx,indices[[idx]]] <- 1
   }
+  mask <- as_dgTMatrix(mask)
+
 
   if(is.null(rownames(values))){
     if(nrow(values) == nrow(de_regions)){
@@ -476,7 +478,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
            "in 'de_regions'. Thus the matching between 'de_regions' and 'values' is ambiguous.")
     }
   }
-  masked_values <- as.matrix(values[de_regions$name,,drop=FALSE]) * mask
+  masked_values <- values[de_regions$name,,drop=FALSE] * mask
   if(verbose) message("Form pseudobulk (averaging values)")
   groups <- lapply(group_by, rlang::eval_tidy, data = as.data.frame(col_data))
   if(is.null(groups)){
@@ -487,7 +489,8 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   group_split <- split_res$loc
   names(group_split) <- do.call(paste, c(split_res$key, sep = "."))
 
-  M <- aggregate_matrix(masked_values, group_split, MatrixGenerics::rowMeans2, na.rm = TRUE)
+  M <- aggregate_matrix(masked_values, group_split, MatrixGenerics::rowSums2) /
+    aggregate_matrix(mask, group_split, MatrixGenerics::rowSums2)
   model_matrix <- model.matrix(design, data = split_res$key)
 
   if(! is_contrast_estimable(cntrst, model_matrix)){

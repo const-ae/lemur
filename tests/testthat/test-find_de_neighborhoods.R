@@ -110,7 +110,7 @@ test_that("neighborhood_normal_test works", {
   set.seed(1)
   n_obs <- 100
   n_genes <- 1
-  y <- matrix(rnorm(n_genes * n_obs), nrow = n_genes, ncol = n_obs)
+  y <- as(matrix(rnorm(n_genes * n_obs), nrow = n_genes, ncol = n_obs), "dgCMatrix")
   y[sample.int(n_genes * n_obs, size = 35)] <- 0
   dat <- data.frame(id = seq_len(n_obs),
                     patient = sample(paste0("pat_", seq_len(6)), size = n_obs, replace = TRUE))
@@ -148,7 +148,7 @@ test_that("neighborhood_normal_test works", {
 
   # Compare with bulked_recursive_least_squares_contrast
   order <- c(de_regions$indices[[1]], setdiff(seq_len(100), de_regions$indices[[1]]))
-  res <- bulked_recursive_least_squares_contrast(c(y)[order], form$design_matrix[order,],
+  res <- bulked_recursive_least_squares_contrast(c(as.matrix(y))[order], form$design_matrix[order,],
                                                  groups[order], contrast = contrast, ridge_penalty = 1e-6)
   expect_equal(test_res$t_statistic, res$t_stat[length(de_regions$indices[[1]])], tolerance = 1e-4)
 })

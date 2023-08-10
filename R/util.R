@@ -371,3 +371,15 @@ pseudoinverse <- function(X){
   res
 }
 
+
+
+as_dgTMatrix <- function(x){
+  if(utils::packageVersion("Matrix") >= "1.4.2"){
+    # See email from Martin Maechler from 2022-08-12
+    as(as(as(x, "dMatrix"), "generalMatrix"), "TsparseMatrix")
+  }else{
+    # This approach is deprecated since 1.4.2 and triggers warnings
+    as(x, "dgTMatrix")
+  }
+}
+
