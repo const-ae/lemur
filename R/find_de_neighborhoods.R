@@ -258,6 +258,7 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
                                                min_neighborhood_size = 50,
                                                verbose = TRUE){
   n_genes <- nrow(fit)
+  n_cells <- ncol(fit)
   stopifnot(ncol(fit) == ncol(de_mat))
   stopifnot(nrow(fit) == nrow(de_mat))
   show_progress_bar <- verbose && interactive()
@@ -277,8 +278,8 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
     pr <- proj[gene_idx,]
     ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
-    max_idx <- cumz_which_abs_max(de_mat[gene_idx,order_pr], min_neighborhood_size = min_neighborhood_size)
-    rev_max_idx <- cumz_which_abs_max(rev(de_mat[gene_idx,order_pr]), min_neighborhood_size = min_neighborhood_size)
+    max_idx <- cumz_which_abs_max(de_mat[gene_idx,order_pr], min_neighborhood_size = min(n_cells, min_neighborhood_size))
+    rev_max_idx <- cumz_which_abs_max(rev(de_mat[gene_idx,order_pr]), min_neighborhood_size = min(n_cells, min_neighborhood_size))
     if(abs(max_idx$max) > abs(rev_max_idx$max)){
       data.frame(indices = I(list(unname(which(pr <= pr[order_pr][max_idx$idx])))),
                  independent_indices = I(list(unname(which(ipr <= pr[order_pr][max_idx$idx])))),
@@ -319,6 +320,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
                                                 include_complement = TRUE, ridge_penalty = 0.1, min_neighborhood_size = 50,
                                                 verbose = TRUE){
   n_genes <- nrow(fit)
+  n_cells <- ncol(fit)
   contrast <- parse_contrast({{contrast}}, formula = fit$design)
   cntrst <- evaluate_contrast_tree(contrast, contrast, \(x, .){
     x
@@ -351,9 +353,9 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
     ipr <- indep_proj[gene_idx,]
     order_pr <- order(pr)
     max_idx <- cum_brls_which_abs_max(Y[gene_idx, order_pr], design_mat[order_pr,], group = group[order_pr],
-                                      contrast = cntrst, penalty = ridge_penalty, min_neighborhood_size = min_neighborhood_size)
+                                      contrast = cntrst, penalty = ridge_penalty, min_neighborhood_size = min(n_cells, min_neighborhood_size))
     rev_max_idx <- cum_brls_which_abs_max(Y[gene_idx, rev(order_pr)], design_mat[rev(order_pr),], group = group[rev(order_pr)],
-                                          contrast = cntrst, penalty = ridge_penalty, min_neighborhood_size = min_neighborhood_size)
+                                          contrast = cntrst, penalty = ridge_penalty, min_neighborhood_size = min(n_cells, min_neighborhood_size))
     if(abs(max_idx$max) > abs(rev_max_idx$max)){
       # Add small number because equality test is unreliable for floats
       thres <- pr[order_pr][max_idx$idx] + 1e-12
