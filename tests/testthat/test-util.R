@@ -133,3 +133,15 @@ test_that("update_values works", {
   expect_equal(df1 %update_values% df2, S4Vectors::DataFrame(x = df2$x, y = df1$y, a = df2$a, b = df2$b))
 })
 
+
+test_that("aggregate_matrix works", {
+  mat <- matrix(rnorm(10 * 5), nrow = 10, ncol = 5)
+  res <- aggregate_matrix(mat, group_split = list(c(1,3), c(2,4,5)),
+                   aggr_fnc = MatrixGenerics::rowSums2)
+  expect_equal(res, cbind(rowSums(mat[,c(1,3)]), rowSums(mat[,c(2,4,5)])))
+
+  res <- aggregate_matrix(as(mat, "dgCMatrix"), group_split = list(c(1,3), c(2,4,5)),
+                          aggr_fnc = MatrixGenerics::rowSums2)
+  expect_equal(res, cbind(rowSums(mat[,c(1,3)]), rowSums(mat[,c(2,4,5)])))
+})
+

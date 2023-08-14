@@ -286,10 +286,24 @@ which_extreme <- function(x, ignore = NULL){
 }
 
 
-aggregate_matrix <- function(mat, group_split, aggr_fnc, ...){
-  new_data_mat <- t(mply_dbl(group_split, \(idx){
-    aggr_fnc(mat[,idx,drop=FALSE], ...)
-  }, ncol = nrow(mat)))
+aggregate_matrix <- function(mat, group_split, aggr_fnc, col_sel = TRUE, ...){
+  group_split_lgl <- lapply(group_split, \(idx){
+    lgl <- rep(FALSE, ncol(mat))
+    lgl[idx] <- TRUE
+    lgl
+  })
+  if(all(col_sel == TRUE)){
+    new_data_mat <- t(mply_dbl(group_split_lgl, \(split_sel){
+      aggr_fnc(mat, cols = split_sel, ...)
+    }, ncol = nrow(mat)))
+  }else{
+    if(! is.logical(col_sel) && length(col_sel) == ncol(mat)){
+      stop("Illegal 'col_sel' argument")
+    }
+    new_data_mat <- t(mply_dbl(group_split_lgl, \(split_sel){
+      aggr_fnc(mat, cols = split_sel & col_sel, ...)
+    }, ncol = nrow(mat)))
+  }
   rownames(new_data_mat) <- rownames(mat)
   new_data_mat
 }
