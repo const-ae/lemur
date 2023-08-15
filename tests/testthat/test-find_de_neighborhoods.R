@@ -306,3 +306,80 @@ test_that("find_de_neighborhoods works if test_data is NULL", {
 })
 
 
+test_that("pseudobulk size factor calculation works for arbitrary neighborhoods", {
+  n_genes <- 100
+  n_cells <- 5000
+  counts <- matrix(rpois(n = n_genes * n_cells, lambda = 0.01), nrow = n_genes, ncol = n_cells)
+  col_data <- data.frame(sample = sample(letters[1:4], size = n_cells, replace = TRUE),
+                         condition = sample(c("ctrl", "trt"), size = n_cells, replace = TRUE))
+  group <- vars(sample, condition)
+
+
+  # Check that 'normed_sum' works correctly
+
+  ## Include all cells
+  mask <- matrix(1, nrow = n_genes, ncol = n_cells)
+  sf <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = "normed_sum")
+  pseudo <- glmGamPoi::pseudobulk(counts, group_by = group, col_data = col_data, verbose = FALSE)
+  cs <- colSums(counts(pseudo))
+  expect_equal(sf[1,], cs / mean(cs))
+  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+
+  ## Include half the cells
+  mask <- matrix(0, nrow = n_genes, ncol = n_cells)
+  sel <- rbinom(n = n_cells, size = 1, prob = 0.5) == 1
+  mask[,sel] <- 1
+
+  sf <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = "normed_sum")
+  pseudo <- glmGamPoi::pseudobulk(counts[,sel], group_by = group, col_data = col_data[sel,], verbose = FALSE)
+  cs <- colSums(counts(pseudo))
+  expect_equal(sf[1,colnames(pseudo)], cs / mean(cs))
+  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+
+
+  # Check that a vector works
+  sf2 <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = colSums(counts))
+  expect_equal(sf, sf2)
+
+
+  # Check that 'ratio' works correctly
+
+  ## Include all cells
+  mask <- matrix(1, nrow = n_genes, ncol = n_cells)
+  sf <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = "ratio")
+  pseudo <- glmGamPoi::pseudobulk(counts, group_by = group, col_data = col_data, verbose = FALSE)
+  fit <- glmGamPoi::glm_gp(pseudo, design = ~ 1, size_factors = "ratio", overdispersion = FALSE)
+  scaling_fct <- sf[1,1] / fit$size_factors[1]
+  expect_equal(sf[1,], fit$size_factors * scaling_fct)
+
+  ## Include half the cells
+  mask <- matrix(0, nrow = n_genes, ncol = n_cells)
+  sel <- rbinom(n = n_cells, size = 1, prob = 0.5) == 1
+  mask[,sel] <- 1
+  sf <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = "ratio")
+
+  pseudo <- glmGamPoi::pseudobulk(counts[,sel], group_by = group, col_data = col_data[sel,], verbose = FALSE)
+  fit <- glmGamPoi::glm_gp(pseudo, design = ~ 1, size_factors = "ratio", overdispersion = FALSE)
+  scaling_fct <- sf[1,colnames(pseudo)[1]] / fit$size_factors[1]
+  expect_equal(sf[1,colnames(pseudo)], fit$size_factors * scaling_fct)
+  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+
+
+  ## Include random set of cells
+  mask <- matrix(0, nrow = n_genes, ncol = n_cells)
+  mask[1, sample.int(ncol(counts), size = 1)] <- 1
+  counts[5, mask[1,] == 1] <- 7
+
+  mask[2, sample.int(ncol(counts), size = 3)] <- 1
+  mask[3, sample.int(ncol(counts), size = 30)] <- 1
+  mask[4, sample.int(ncol(counts), size = 300)] <- 1
+  sf <- pseudobulk_size_factors_for_neighborhoods(counts, mask, col_data,
+                                                  group_by = group, method = "ratio")
+  expect_equal(sum(sf[1,]), 8)
+})
+

@@ -32,10 +32,10 @@ glmGamPoi::vars
 #'   forming the pseudobulk. If `test_method == "limma"`, only the continuous assay is needed. \cr
 #'   The arguments defaults to the test data split of when calling `lemur()`.
 #' @param test_data_col_data additional column data for the `test_data` argument.
-#' @param test_data_cell_size_factors Set the size factor per cell of the `test_data`. This argument
-#'   is only relevant if `test_method` is `"glmGamPoi"` or `"edgeR"`. If `fit` is subsetted, this argument
-#'   ensures that a reasonable sequencing depth per cell is used. Default: `NULL` which means that
-#'   `colSums(assay(fit$test_data, count_assay_name))` is used.
+#' @param size_factor_method Set the procedure to calculate the size factor after pseudobulking. This argument
+#'   is only relevant if `test_method` is `"glmGamPoi"` or `"edgeR"`. If `fit` is subsetted, using a
+#'   vector with the sequencing depth per cell ensures reasonable results.
+#'   Default: `NULL` which means that `colSums(assay(fit$test_data, count_assay_name))` is used.
 #' @param test_method choice of test for the pseudobulked differential expression.
 #'   [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/) and
 #'   [edgeR](https://bioconductor.org/packages/edgeR/) work on an count assay.
@@ -63,10 +63,10 @@ find_de_neighborhoods <- function(fit,
                                   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
                                   test_data = fit$test_data,
                                   test_data_col_data = NULL,
-                                  test_data_cell_size_factors = NULL,
                                   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
                                   continuous_assay_name = fit$use_assay,
                                   count_assay_name = "counts",
+                                  size_factor_method = NULL,
                                   design = fit$design,
                                   alignment_design = fit$alignment_design,
                                   include_complement = TRUE,
@@ -169,14 +169,14 @@ find_de_neighborhoods <- function(fit,
           "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(test_data), collapse = ", "),
              ") of the 'independent_data' object.")
       }
-      if(verbose & is.null(test_data_cell_size_factors) & mean(metadata(fit)[["row_mask"]]) < 0.1){
+      if(verbose & ! is.numeric(size_factor_method) & mean(metadata(fit)[["row_mask"]]) < 0.1){
         warning("The fit object was subset to less than 10% of the genes. This will make the size factor estimation unreliable. ",
-                "Consider setting 'test_data_cell_size_factors' with the appropriate sequencing depth per cell.")
+                "Consider setting 'size_factor_method' to a vector with the appropriate sequencing depth per cell.")
       }
 
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc")
       de_regions <- neighborhood_count_test(de_regions, counts = assay(test_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = colData(test_data), cell_size_factors = test_data_cell_size_factors,
+                              design = design, col_data = colData(test_data), size_factor_method = size_factor_method,
                               method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
     }else{
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
@@ -395,7 +395,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
 
 neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data,
-                                    cell_size_factors = NULL, method = c("glmGamPoi", "edgeR"),
+                                    size_factor_method = NULL, method = c("glmGamPoi", "edgeR"),
                                     de_region_index_name = "indices", verbose = TRUE){
   method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))
@@ -403,28 +403,26 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
   for(idx in seq_len(nrow(de_regions))){
     mask[idx,indices[[idx]]] <- 1
   }
-  mask <- as_dgTMatrix(mask)
 
   if(is.null(rownames(counts))){
     rownames(counts) <- paste0("feature_", seq_len(nrow(counts)))
   }
   masked_counts <- counts[de_regions$name,,drop=FALSE] * mask
-  if(is.null(cell_size_factors)){
-    cell_size_factors <- MatrixGenerics::colSums2(counts)
-  }
-  masked_size_factors <- t(t(mask) * cell_size_factors)
 
-  masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts, masked_size_factors = masked_size_factors),
-                                                           colData = col_data)
+  masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts), colData = col_data)
   if(verbose) message("Form pseudobulk (summing counts)")
   region_psce <- glmGamPoi::pseudobulk(masked_sce, group_by = {{group_by}},
-                                       aggregation_functions = list("masked_counts" = "rowSums2",
-                                                                    "masked_size_factors" = "rowSums2"),
+                                       aggregation_functions = list("masked_counts" = "rowSums2"),
                                        verbose = verbose)
+  if(verbose) message("Calculate size factors for each gene")
+  size_factor_matrix <- pseudobulk_size_factors_for_neighborhoods(counts, mask = mask, col_data = col_data,
+                                                        group_by = {{group_by}}, method = size_factor_method, verbose = verbose)
+  size_factor_matrix <- size_factor_matrix[, colnames(region_psce)]  # The column order differs
+
   if(method == "glmGamPoi"){
     if(verbose) message("Fit glmGamPoi model on pseudobulk data")
     glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = verbose,
-                                     offset = log(assay(region_psce, "masked_size_factors") + 1e-10),
+                                     offset = log(size_factor_matrix + 1e-10),
                                      size_factors = FALSE, overdispersion = TRUE)
     de_res <- glmGamPoi::test_de(glm_regions, contrast = {{contrast}})
   }else if(method == "edgeR"){
@@ -443,7 +441,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
 
     edger_y <- edgeR::DGEList(counts = assay(region_psce, "masked_counts"))
-    edger_y <- edgeR::scaleOffset(edger_y, offset = log(assay(region_psce, "masked_size_factors") + 1e-10))
+    edger_y <- edgeR::scaleOffset(edger_y, offset = log(size_factor_matrix + 1e-10))
     edger_y <- edgeR::estimateDisp(edger_y, design_matrix)
     edger_fit <- edgeR::glmQLFit(edger_y, design_matrix, abundance.trend = TRUE, robust = TRUE)
     edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
@@ -522,4 +520,79 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   }
   cbind(de_regions, pval = tt$P.Value, adj_pval = tt$adj.P.Val, t_statistic = tt$t, lfc = tt$logFC)
 }
+
+
+
+
+pseudobulk_size_factors_for_neighborhoods <- function(counts, mask, col_data, group_by,
+                                                      method = c("normed_sum", "ratio"), verbose = TRUE){
+  if(is.numeric(method)){
+    cell_size_factors <- method
+    method <- "cell_size_factors_provided"
+  }else if(is.null(method)){
+    method <- "normed_sum"
+  }else{
+    method <- match.arg(method)
+  }
+
+  # Evaluate group_by argument
+  groups <- lapply(group_by, rlang::eval_tidy, data = as.data.frame(col_data))
+  split_res <- vctrs::vec_group_loc(as.data.frame(groups))
+  group_split <- split_res$loc
+
+  if(method == "cell_size_factors_provided"){
+    masked_size_factors <- t(t(mask) * cell_size_factors)
+    size_factors <- aggregate_matrix(masked_size_factors, group_split, MatrixGenerics::rowSums2)
+  }else if(method == "normed_sum"){
+    cell_col_sums <- MatrixGenerics::colSums2(counts)
+    masked_size_factors <- t(t(mask) * cell_col_sums)
+    size_factors <- aggregate_matrix(masked_size_factors, group_split, MatrixGenerics::rowSums2)
+  }else if(method == "ratio"){
+    n_genes <- nrow(mask)
+    show_progress_bar <- verbose && interactive()
+    if(show_progress_bar){
+      progress_bar <- txtProgressBar(min = 0, max = n_genes, style = 3)
+    }
+
+    cell_col_sums <- MatrixGenerics::colSums2(counts)
+    # 200 genes are often enough to get a good estimate and it speeds up the calculation by a lot!
+    top_expressed_genes <- counts[order(-MatrixGenerics::rowMeans2(counts))[seq_len(min(nrow(counts), 200))], ,drop = FALSE]
+
+    size_factors <- mply_dbl(seq_len(n_genes), \(idx){
+      if(show_progress_bar && idx %% 10 == 0){
+        setTxtProgressBar(progress_bar, value = idx)
+      }
+      mask_row <- mask[idx, ]
+      absent_sample <- vapply(group_split, \(sel) sum(mask_row[sel]) == 0, FUN.VALUE = logical(1L))
+      sf <- rep(0, length(group_split))
+      if(all(absent_sample)){
+        sf
+      }else{
+        Y <- aggregate_matrix(top_expressed_genes, group_split[!absent_sample], MatrixGenerics::rowSums2, col_sel = mask_row == 1)
+        log_geo_means <- DelayedMatrixStats::rowMeans2(log(Y))
+        sf[! absent_sample] <- apply(Y, 2, function(cnts) {
+          exp(median((log(cnts) - log_geo_means)[is.finite(log_geo_means) & cnts > 0]))
+        })
+        if(any(! is.finite(sf))){
+          # Something went wrong (maybe the data was too sparse), fall back to "normed_sum"
+          drop(aggregate_matrix(matrix(cell_col_sums * mask_row, nrow = 1), group_split, MatrixGenerics::rowSums2))
+        }else{
+          sf
+        }
+      }
+    }, ncol = length(group_split))
+    if(show_progress_bar){
+      close(progress_bar)
+    }
+  }else{
+    stop("Illegal method argument")
+  }
+
+  sf_center <- rowMeans(size_factors)
+  size_factors <- size_factors / pmax(1e-5, sf_center)
+  colnames(size_factors) <- do.call(paste, c(split_res$key, sep = "."))
+  size_factors
+}
+
+
 

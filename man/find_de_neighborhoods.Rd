@@ -14,10 +14,10 @@ find_de_neighborhoods(
   de_mat = SummarizedExperiment::assays(fit)[["DE"]],
   test_data = fit$test_data,
   test_data_col_data = NULL,
-  test_data_cell_size_factors = NULL,
   test_method = c("glmGamPoi", "edgeR", "limma", "none"),
   continuous_assay_name = fit$use_assay,
   count_assay_name = "counts",
+  size_factor_method = NULL,
   design = fit$design,
   alignment_design = fit$alignment_design,
   include_complement = TRUE,
@@ -62,17 +62,17 @@ The arguments defaults to the test data split of when calling \code{lemur()}.}
 
 \item{test_data_col_data}{additional column data for the \code{test_data} argument.}
 
-\item{test_data_cell_size_factors}{Set the size factor per cell of the \code{test_data}. This argument
-is only relevant if \code{test_method} is \code{"glmGamPoi"} or \code{"edgeR"}. If \code{fit} is subsetted, this argument
-ensures that a reasonable sequencing depth per cell is used. Default: \code{NULL} which means that
-\code{colSums(assay(fit$test_data, count_assay_name))} is used.}
-
 \item{test_method}{choice of test for the pseudobulked differential expression.
 \href{https://bioconductor.org/packages/glmGamPoi/}{glmGamPoi} and
 \href{https://bioconductor.org/packages/edgeR/}{edgeR} work on an count assay.
 \href{http://bioconductor.org/packages/limma/}{limma} works on the continuous assay.}
 
 \item{continuous_assay_name, count_assay_name}{the assay or list names of \code{independent_data}.}
+
+\item{size_factor_method}{Set the procedure to calculate the size factor after pseudobulking. This argument
+is only relevant if \code{test_method} is \code{"glmGamPoi"} or \code{"edgeR"}. If \code{fit} is subsetted, using a
+vector with the sequencing depth per cell ensures reasonable results.
+Default: \code{NULL} which means that \code{colSums(assay(fit$test_data, count_assay_name))} is used.}
 
 \item{design, alignment_design}{the design to use for the fit. Default: \code{fit$design}}
 
