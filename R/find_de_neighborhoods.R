@@ -413,7 +413,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
   if(verbose) message("Form pseudobulk (summing counts)")
   region_psce <- glmGamPoi::pseudobulk(masked_sce, group_by = {{group_by}},
                                        aggregation_functions = list("masked_counts" = "rowSums2"),
-                                       verbose = verbose)
+                                       verbose = FALSE)
   if(verbose) message("Calculate size factors for each gene")
   size_factor_matrix <- pseudobulk_size_factors_for_neighborhoods(counts, mask = mask, col_data = col_data,
                                                         group_by = {{group_by}}, method = size_factor_method, verbose = verbose)
@@ -421,7 +421,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
 
   if(method == "glmGamPoi"){
     if(verbose) message("Fit glmGamPoi model on pseudobulk data")
-    glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = verbose,
+    glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = FALSE,
                                      offset = log(size_factor_matrix + 1e-10),
                                      size_factors = FALSE, overdispersion = TRUE)
     de_res <- glmGamPoi::test_de(glm_regions, contrast = {{contrast}})
