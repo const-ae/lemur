@@ -383,3 +383,23 @@ test_that("pseudobulk size factor calculation works for arbitrary neighborhoods"
   expect_equal(sum(sf[1,]), 8)
 })
 
+
+
+test_that("nulling confounded neighborhoods works", {
+  dat <- make_synthetic_data(n_centers = 3, n_genes = 50)
+  dat$individual <- sample(paste0("pat_", seq_len(4)), size = ncol(dat), replace = TRUE)
+  dat$pat <- sample(c("A", "B", "C"), size = ncol(dat), replace = TRUE)
+  fit <- lemur(dat, ~ condition, n_embedding = 15, verbose = FALSE)
+  fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
+
+  dirs <- select_directions_from_contrast(fit, fit$contrast)
+  de_regions <- find_de_neighborhoods_with_contrast(fit, dirs, group_by = vars(condition, individual), contrast = fit$contrast, use_assay = "logcounts",
+                                                    independent_embedding = fit$embedding, include_complement = FALSE, verbose = FALSE)
+
+  de_regions$independent_indices[[1]] <- c(which(dat$cell_type == "A" & dat$condition == "a"), which(dat$cell_type == "C" & dat$condition == "b"))
+  res <- null_confounded_neighborhoods(fit$embedding, de_regions$independent_indices, fit$contrast, fit$design, colData(fit),
+                                       normal_quantile = 0.8, verbose = FALSE)
+  expect_true(is.list(res))
+  expect_true(any(attr(res, "is_neighborhood_confounded")))
+})
+

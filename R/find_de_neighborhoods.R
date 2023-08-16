@@ -44,6 +44,10 @@ glmGamPoi::vars
 #' @param design,alignment_design the design to use for the fit. Default: `fit$design`
 #' @param include_complement a boolean to specify if the complement of the identified per gene
 #'   neighborhood is also returned. It will be marked in the output by `selection = FALSE`.
+#' @param skip_confounded_neighborhoods Sometimes the inferred neighborhoods are not limited to
+#'   a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
+#'   are unequally distributed between the cell states. Default: `TRUE` means
+#'   that those imbalanced neighborhood are not considered for differential expression testing.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param ... additional parameters passed to underlying functions.
 #'
@@ -70,6 +74,7 @@ find_de_neighborhoods <- function(fit,
                                   design = fit$design,
                                   alignment_design = fit$alignment_design,
                                   include_complement = TRUE,
+                                  skip_confounded_neighborhoods = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
   test_method <- match.arg(test_method)
@@ -149,6 +154,7 @@ find_de_neighborhoods <- function(fit,
     stopifnot(c("name", "selection", "indices", "independent_indices", "sel_statistic") %in% colnames(selection_procedure))
     de_regions <- selection_procedure
   }
+
   if(skip_independent_test){
     colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic")
   }else{
@@ -169,6 +175,13 @@ find_de_neighborhoods <- function(fit,
     }, error = function(e){
       # Do nothing. The 'contrast' is probably an unquoted expression
     })
+
+    # Check if neighborhood is balanced between the conditions
+    if(skip_confounded_neighborhoods){
+      de_regions[["independent_indices"]] <- null_confounded_neighborhoods(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
+                                                                           design = fit$design, col_data = colData(test_data), verbose = verbose)
+    }
+
     if(test_method != "limma"){
       if(! count_assay_name %in% assayNames(test_data)){
         stop("Trying to execute count-based differential expression analysis on the test data because 'test_method=\"", test_method, "\"'. However, ",
@@ -187,7 +200,8 @@ find_de_neighborhoods <- function(fit,
     }else{
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
       de_regions <- neighborhood_normal_test(de_regions, values = assay(test_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
-                               design = design, col_data = colData(test_data), shrink = TRUE, de_region_index_name = "independent_indices",  verbose = verbose)
+                                             design = design, col_data = colData(test_data), shrink = TRUE,
+                                             de_region_index_name = "independent_indices",  verbose = verbose)
     }
   }
 
@@ -195,8 +209,14 @@ find_de_neighborhoods <- function(fit,
     # Merge columns
     test_idx <- which(fit$is_test_data)
     train_idx <- which(!fit$is_test_data)
+    skipped <- attr(de_regions[["independent_indices"]], "is_neighborhood_confounded")
+    if(is.null(skipped)) skipped <- rep(FALSE, nrow(de_regions))
     de_regions$indices <- lapply(seq_len(nrow(de_regions)), \(row){
-      c(train_idx[de_regions$indices[[row]]], test_idx[de_regions$independent_indices[[row]]])
+      if(skipped[row]){
+        integer(0L)
+      }else{
+        c(train_idx[de_regions$indices[[row]]], test_idx[de_regions$independent_indices[[row]]])
+      }
     })
     de_regions$independent_indices <- NULL
   }else{
@@ -601,4 +621,30 @@ pseudobulk_size_factors_for_neighborhoods <- function(counts, mask, col_data, gr
 }
 
 
+null_confounded_neighborhoods <- function(embedding, indices, contrast, design, col_data, normal_quantile = 0.99, verbose = TRUE){
+  cntrst <- parse_contrast({{contrast}}, formula = design)
+  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+  design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
+  condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 
+  means_cond1 <- lemur:::aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 1)
+  means_cond2 <- lemur:::aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 2)
+
+  dist <- sqrt(matrixStats::colSums2((means_cond1 - means_cond2)^2))
+  neighborhood_sizes <- lengths(indices)
+
+  # Fit a straight line to the larger half (the lower bits are very unreliable)
+  large_neighborhood <- neighborhood_sizes > median(neighborhood_sizes)
+  dist_fit <- lm(dist ~ neighborhood_sizes, subset = large_neighborhood)
+
+  limit <- sd(residuals(dist_fit)) * qnorm(p = normal_quantile)
+  all_residuals <- dist - predict(dist_fit, newdata = data.frame(neighborhood_sizes = neighborhood_sizes))
+  skip <- all_residuals > limit
+  skip[is.na(skip)] <- TRUE # NA's occurs if a condition is completely empty
+
+  if(sum(skip > 0) && verbose) message("Skipping ", sum(skip > 0), " neighborhoods which contain unbalanced cell states")
+
+  indices[skip] <- lapply(seq_len(sum(skip)), \(i) integer(0L))
+  attr(indices, "is_neighborhood_confounded") <- skip
+  indices
+}

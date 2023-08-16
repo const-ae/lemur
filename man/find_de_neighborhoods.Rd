@@ -21,6 +21,7 @@ find_de_neighborhoods(
   design = fit$design,
   alignment_design = fit$alignment_design,
   include_complement = TRUE,
+  skip_confounded_neighborhoods = TRUE,
   verbose = TRUE,
   ...
 )
@@ -78,6 +79,11 @@ Default: \code{NULL} which means that \code{colSums(assay(fit$test_data, count_a
 
 \item{include_complement}{a boolean to specify if the complement of the identified per gene
 neighborhood is also returned. It will be marked in the output by \code{selection = FALSE}.}
+
+\item{skip_confounded_neighborhoods}{Sometimes the inferred neighborhoods are not limited to
+a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
+are unequally distributed between the cell states. Default: \code{TRUE} means
+that those imbalanced neighborhood are not considered for differential expression testing.}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
