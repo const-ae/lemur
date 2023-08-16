@@ -73,7 +73,6 @@ find_de_neighborhoods <- function(fit,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
   test_method <- match.arg(test_method)
-  selection_procedure <- match.arg(selection_procedure)
   skip_independent_test <- is.null(test_data) || test_method == "none"
   use_empty_test_projection <- is.null(test_data)
   use_existing_test_projection <- identical(test_data, fit$test_data)
@@ -126,22 +125,29 @@ find_de_neighborhoods <- function(fit,
   }
   stopifnot(nrow(dirs) == nrow(fit) && ncol(dirs) == fit$n_embedding)
 
-
-  if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
-  if(selection_procedure == "zscore"){
-    if(is.null(de_mat)) stop("'selection_procedure = \"zscore\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
-                             "argument or call 'fit <- test_de(fit, ...)'")
-    stopifnot(all(dim(de_mat) == dim(fit)))
-    de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
-                                                     independent_embedding = projected_indep_data,
-                                                     include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, verbose = verbose)
-  }else if(selection_procedure == "contrast"){
-    de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
-                                                      independent_embedding = projected_indep_data,
-                                                      include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, ..., verbose = verbose)
-  }else if(selection_procedure == "likelihood"){
-    # Implement one of Wolfgang's suggestions for the selection procedure
-    # de_regions <- find_de_neighborhoods_with_likelihood_ratio(training_fit, dirs, de_mat, include_complement = include_complement)
+  if(is.character(selection_procedure)){
+    selection_procedure <- match.arg(selection_procedure)
+    if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
+    if(selection_procedure == "zscore"){
+      if(is.null(de_mat)) stop("'selection_procedure = \"zscore\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
+                               "argument or call 'fit <- test_de(fit, ...)'")
+      stopifnot(all(dim(de_mat) == dim(fit)))
+      de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
+                                                       independent_embedding = projected_indep_data, include_complement = include_complement,
+                                                       min_neighborhood_size = min_neighborhood_size, verbose = verbose)
+    }else if(selection_procedure == "contrast"){
+      de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
+                                                        use_assay = continuous_assay_name, independent_embedding = projected_indep_data,
+                                                        include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, ...,
+                                                        verbose = verbose)
+    }else if(selection_procedure == "likelihood"){
+      # Implement one of Wolfgang's suggestions for the selection procedure
+      # de_regions <- find_de_neighborhoods_with_likelihood_ratio(training_fit, dirs, de_mat, include_complement = include_complement)
+    }
+  }else{
+    stopifnot(is.data.frame(selection_procedure))
+    stopifnot(c("name", "selection", "indices", "independent_indices", "sel_statistic") %in% colnames(selection_procedure))
+    de_regions <- selection_procedure
   }
   if(skip_independent_test){
     colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic")
