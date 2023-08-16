@@ -322,7 +322,7 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
   }
 }
 
-find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, independent_embedding = NULL,
+find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, use_assay = fit$use_assay, independent_embedding = NULL,
                                                 include_complement = TRUE, ridge_penalty = 0.1, min_neighborhood_size = 50,
                                                 verbose = TRUE){
   n_genes <- nrow(fit)
@@ -335,7 +335,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, i
 
 
   # Prepare values
-  Y <- assay(fit, fit$use_assay)
+  Y <- assay(fit, use_assay)
   if(rlang::quo_is_null(rlang::enquo(group_by))){
     stop("The 'group_by' argument is NULL. Please provide the names from the column data should be used for aggregating the data.\n",
          "For example, 'group_by = vars(", paste0(head(colnames(fit$colData), n = 2), collapse = ","), ")'")
