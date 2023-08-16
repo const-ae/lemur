@@ -1,3 +1,9 @@
+# v0.0.25
+
+* Detect problematic neighborhoods and skip them.
+* Replace `test_data_cell_size_factors` by `size_factor_method`, which is more flexibel. Setting `size_factor_method = "ratio"` uses the size factor method described in the original DESeq paper
+
+
 # v0.0.24
 
 * Fix bug in `find_de_neighborhoods` that meant that accidentally additionally zeros where included in each
