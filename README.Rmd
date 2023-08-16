@@ -79,9 +79,9 @@ Initially, the data separates by the known covariates `patient_id` and `conditio
 ```{r raw_umap}
 orig_umap <- uwot::umap(as.matrix(t(logcounts(glioblastoma_example_data))))
 
-as_tibble(orig_umap) %>%
-  bind_cols(as_tibble(colData(glioblastoma_example_data))) %>%
-  ggplot(aes(x = V1, y = V2)) +
+as_tibble(colData(glioblastoma_example_data)) %>%
+  mutate(umap = orig_umap) %>%
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
     labs(title = "UMAP of logcounts")
 ```
@@ -92,7 +92,7 @@ The `test_fraction` argument sets the fraction of cells which are exclusively us
 
 ```{r fit_lemur}
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
-             n_embedding = 15, test_fraction = 0.2, verbose = FALSE)
+             n_embedding = 15, test_fraction = 0.5)
 
 # Optionally, align cell positions across conditions
 # Either with manual annotation by calling `align_by_grouping` or
@@ -107,9 +107,9 @@ The `lemur()` function returns an object that extends `SingleCellExperiment` and
 ```{r lemur_umap}
 umap <- uwot::umap(t(fit$embedding))
 
-as_tibble(umap) %>%
-  bind_cols(as_tibble(fit$colData)) %>%
-  ggplot(aes(x = V1, y = V2)) +
+as_tibble(fit$colData) %>%
+  mutate(umap = umap) %>%
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
     labs(title = "UMAP of latent space from LEMUR")
 ```
@@ -126,9 +126,9 @@ We can pick any gene and show the differential expression pattern on the UMAP pl
 # EEF1A1
 sel_gene <- "ENSG00000156508"
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
@@ -140,7 +140,7 @@ The `group_by` argument determines how the pseudobulk samples are formed. It spe
 
 ```{r de_neighborhoods}
 neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
-                                      include_complement = FALSE, verbose = FALSE)
+                                      include_complement = FALSE)
 
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
@@ -154,27 +154,27 @@ We can now specifically select regions with significant differential expression:
 # HLA-DRB1
 sel_gene <- "ENSG00000196126"
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
 ```
 
-To plot the boundaries of the differential expression neighborhood, we create a helper dataframe and use the `geom_density2d` function from `ggplot2`. To avoid the cutting of the boundary to the extremes of the cell coordinates, add `lims` to the plot with an appropriately large limits.
+To plot the boundaries of the differential expression neighborhood, we create a helper dataframe and use the `geom_density2d` function from `ggplot2`. To avoid the cutting of the boundary to the extremes of the cell coordinates, add `lims` to the plot with an appropriately large limit.
 
 ```{r umap_de3}
 neighborhood_coordinates <- neighborhoods %>%
   dplyr::filter(selection & name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
-  left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
-  dplyr::select(name, cell_id, V1, V2)
+  left_join(tibble(cell_id = rownames(umap), umap), by = "cell_id") %>%
+  dplyr::select(name, cell_id, umap)
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     geom_density2d(data = neighborhood_coordinates, breaks = 0.1, 
@@ -199,24 +199,36 @@ neighborhoods %>%
 
 # FAQ
 
-> I have already integrated my data using Harmony / MNN / Seurat. Can I call `lemur` directly with the aligned data?
+##### I have already integrated my data using Harmony / MNN / Seurat. Can I call `lemur` directly with the aligned data?
 
 No. You need to call `lemur` with the unaligned data so that it can learn how much the expression of each gene changes between conditions.
 
-> Can I call lemur with [sctransformed](https://github.com/satijalab/sctransform) instead of log-transformed data?
+##### Can I call lemur with [sctransformed](https://github.com/satijalab/sctransform) instead of log-transformed data?
 
 Yes. You can call lemur with any variance stabilized count matrix. Based on a [previous project](https://www.biorxiv.org/content/10.1101/2021.06.24.449781v4), I recommend to use log-transformation, but other methods will work just fine.
 
-> My data appears less integrated after calling `lemur()` than before. What is happening?!
+##### My data appears less integrated after calling `lemur()` than before. What is happening?!
 
 This is a known issue and can be caused if the data has large compositional shifts (for example, if one cell type disappears). The problem is that the initial linear regression step, which centers the conditions relative to each other, overcorrects and introduces a consistent shift in the latent space. You can either use `align_by_grouping` / `align_harmony` to correct for this effect or manually fix the regression coefficient to zero:
+
 ```{r fix_linear_coef, message=FALSE, warning=FALSE}
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
 ```
 
-> The conditions still separate if I plot the data using UMAP / tSNE. Even after calling `align_harmony` / `align_neighbors`. What should I do?
+##### The conditions still separate if I plot the data using UMAP / tSNE. Even after calling `align_harmony` / `align_neighbors`. What should I do?
 
 You can try to increase `n_embedding`. If this still does not help, there is little use in inferring differential expression neighborhoods. But as I haven't encountered such a dataset yet, I would like to try it out myself. If you can share the data publicly, please open an issue.
+
+##### How do I make `lemur` faster?
+
+Several parameters influence the duration to fit the LEMUR model and find differentially expressed neighborhoods:
+
+-   Make sure that your data is stored in memory (not a `DelayedArray`) either as a sparse dgCMatrix or dense matrix.
+-   A larger `test_fraction` means fewer cells are used to fit the model (and more cells are used for the DE test), which speeds up many steps.
+-   A smaller `n_embedding` reduces the latent dimensions of the fit, which makes the model less flexible, but speeds up the `lemur()` call.
+-   Providing a pre-calculated set of matching cells and calling `align_grouping` is faster than `align_harmony`.
+-   Setting `selection_procedure = "contrast"` in `find_de_neighborhoods` often produces better neighborhoods, but is a lot slower than `selection_procedure = "zscore"`.
+-   Setting `size_factor_method = "ratio"` in `find_de_neighborhoods` makes the DE more powerful, but is a lot slower than `size_factor_method = "normed_sum"`.
 
 # Session Info
 

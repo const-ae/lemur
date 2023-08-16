@@ -99,17 +99,11 @@ Initially, the data separates by the known covariates `patient_id` and
 ``` r
 orig_umap <- uwot::umap(as.matrix(t(logcounts(glioblastoma_example_data))))
 
-as_tibble(orig_umap) %>%
-  bind_cols(as_tibble(colData(glioblastoma_example_data))) %>%
-  ggplot(aes(x = V1, y = V2)) +
+as_tibble(colData(glioblastoma_example_data)) %>%
+  mutate(umap = orig_umap) %>%
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
     labs(title = "UMAP of logcounts")
-#> Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if
-#> `.name_repair` is omitted as of tibble 2.0.0.
-#> ℹ Using compatibility `.name_repair`.
-#> This warning is displayed once every 8 hours.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-#> generated.
 ```
 
 <img src="man/figures/README-raw_umap-1.png" width="100%" />
@@ -131,7 +125,14 @@ differentially expressed genes.
 
 ``` r
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, 
-             n_embedding = 15, test_fraction = 0.2, verbose = FALSE)
+             n_embedding = 15, test_fraction = 0.5)
+#> Storing 50% of the data (2500 cells) as test data.
+#> Regress out global effects using linear method.
+#> Find base point for differential embedding
+#> Fit differential embedding model
+#> Initial error: 1.78e+06
+#> ---Fit Grassmann linear model
+#> Final error: 1.11e+06
 
 # Optionally, align cell positions across conditions
 # Either with manual annotation by calling `align_by_grouping` or
@@ -164,9 +165,9 @@ low-dimensional embedding can be accessed using `fit$embedding`:
 ``` r
 umap <- uwot::umap(t(fit$embedding))
 
-as_tibble(umap) %>%
-  bind_cols(as_tibble(fit$colData)) %>%
-  ggplot(aes(x = V1, y = V2)) +
+as_tibble(fit$colData) %>%
+  mutate(umap = umap) %>%
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
     labs(title = "UMAP of latent space from LEMUR")
 ```
@@ -193,9 +194,9 @@ UMAP plot:
 # EEF1A1
 sel_gene <- "ENSG00000156508"
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
@@ -217,25 +218,31 @@ experimental design plus the sample id (in this case `patient_id`).
 
 ``` r
 neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
-                                      include_complement = FALSE, verbose = FALSE)
+                                      include_complement = FALSE)
+#> Find optimal neighborhood using zscore.
+#> Validate neighborhoods using test data
+#> Skipping 46 neighborhoods which contain unbalanced cell states
+#> Form pseudobulk (summing counts)
+#> Calculate size factors for each gene
+#> Fit glmGamPoi model on pseudobulk data
 
 as_tibble(neighborhoods) %>%
   arrange(pval) %>%
   left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
   dplyr::select(name, symbol, n_cells, pval, adj_pval)
 #> # A tibble: 300 × 5
-#>    name            symbol n_cells       pval adj_pval
-#>    <chr>           <chr>    <int>      <dbl>    <dbl>
-#>  1 ENSG00000187193 MT1X      3457 0.00000553  0.00166
-#>  2 ENSG00000125148 MT2A      3340 0.000109    0.0140 
-#>  3 ENSG00000245532 NEAT1     4506 0.000140    0.0140 
-#>  4 ENSG00000113889 KNG1      4415 0.000210    0.0158 
-#>  5 ENSG00000177700 POLR2L    3841 0.000298    0.0161 
-#>  6 ENSG00000147588 PMP2      3505 0.000322    0.0161 
-#>  7 ENSG00000120885 CLU       2540 0.000405    0.0174 
-#>  8 ENSG00000198668 CALM1     4377 0.000631    0.0237 
-#>  9 ENSG00000069275 NUCKS1    4154 0.000833    0.0262 
-#> 10 ENSG00000198258 UBL5      3048 0.000873    0.0262 
+#>    name            symbol n_cells      pval adj_pval
+#>    <chr>           <chr>    <int>     <dbl>    <dbl>
+#>  1 ENSG00000125148 MT2A      1690 0.0000973   0.0148
+#>  2 ENSG00000245532 NEAT1     4231 0.000133    0.0148
+#>  3 ENSG00000198668 CALM1     3135 0.000148    0.0148
+#>  4 ENSG00000177700 POLR2L    3703 0.000226    0.0153
+#>  5 ENSG00000147588 PMP2      4074 0.000255    0.0153
+#>  6 ENSG00000069275 NUCKS1    3941 0.000810    0.0371
+#>  7 ENSG00000154518 ATP5G3    3533 0.000866    0.0371
+#>  8 ENSG00000113558 SKP1      3078 0.00160     0.0592
+#>  9 ENSG00000156508 EEF1A1    3270 0.00178     0.0592
+#> 10 ENSG00000132002 DNAJB1    1883 0.00246     0.0695
 #> # ℹ 290 more rows
 ```
 
@@ -246,9 +253,9 @@ expression:
 # HLA-DRB1
 sel_gene <- "ENSG00000196126"
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
@@ -260,19 +267,19 @@ To plot the boundaries of the differential expression neighborhood, we
 create a helper dataframe and use the `geom_density2d` function from
 `ggplot2`. To avoid the cutting of the boundary to the extremes of the
 cell coordinates, add `lims` to the plot with an appropriately large
-limits.
+limit.
 
 ``` r
 neighborhood_coordinates <- neighborhoods %>%
   dplyr::filter(selection & name == sel_gene) %>%
   mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
   unnest(c(indices, cell_id)) %>%
-  left_join(as_tibble(umap, rownames = "cell_id"), by = "cell_id") %>%
-  dplyr::select(name, cell_id, V1, V2)
+  left_join(tibble(cell_id = rownames(umap), umap), by = "cell_id") %>%
+  dplyr::select(name, cell_id, umap)
 
-as_tibble(umap) %>%
+tibble(umap = umap) %>%
   mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
-  ggplot(aes(x = V1, y = V2)) +
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = expr)) +
     scale_color_gradient2() +
     geom_density2d(data = neighborhood_coordinates, breaks = 0.1, 
@@ -306,15 +313,12 @@ neighborhoods %>%
 
 # FAQ
 
-> I have already integrated my data using Harmony / MNN / Seurat. Can I
-> call `lemur` directly with the aligned data?
+##### I have already integrated my data using Harmony / MNN / Seurat. Can I call `lemur` directly with the aligned data?
 
 No. You need to call `lemur` with the unaligned data so that it can
 learn how much the expression of each gene changes between conditions.
 
-> Can I call lemur with
-> [sctransformed](https://github.com/satijalab/sctransform) instead of
-> log-transformed data?
+##### Can I call lemur with [sctransformed](https://github.com/satijalab/sctransform) instead of log-transformed data?
 
 Yes. You can call lemur with any variance stabilized count matrix. Based
 on a [previous
@@ -322,8 +326,7 @@ project](https://www.biorxiv.org/content/10.1101/2021.06.24.449781v4), I
 recommend to use log-transformation, but other methods will work just
 fine.
 
-> My data appears less integrated after calling `lemur()` than before.
-> What is happening?!
+##### My data appears less integrated after calling `lemur()` than before. What is happening?!
 
 This is a known issue and can be caused if the data has large
 compositional shifts (for example, if one cell type disappears). The
@@ -337,14 +340,32 @@ manually fix the regression coefficient to zero:
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
 ```
 
-> The conditions still separate if I plot the data using UMAP / tSNE.
-> Even after calling `align_harmony` / `align_neighbors`. What should I
-> do?
+##### The conditions still separate if I plot the data using UMAP / tSNE. Even after calling `align_harmony` / `align_neighbors`. What should I do?
 
 You can try to increase `n_embedding`. If this still does not help,
 there is little use in inferring differential expression neighborhoods.
 But as I haven’t encountered such a dataset yet, I would like to try it
 out myself. If you can share the data publicly, please open an issue.
+
+##### How do I make `lemur` faster?
+
+Several parameters influence the duration to fit the LEMUR model and
+find differentially expressed neighborhoods:
+
+- Make sure that your data is stored in memory (not a `DelayedArray`)
+  either as a sparse dgCMatrix or dense matrix.
+- A larger `test_fraction` means fewer cells are used to fit the model
+  (and more cells are used for the DE test), which speeds up many steps.
+- A smaller `n_embedding` reduces the latent dimensions of the fit,
+  which makes the model less flexible, but speeds up the `lemur()` call.
+- Providing a pre-calculated set of matching cells and calling
+  `align_grouping` is faster than `align_harmony`.
+- Setting `selection_procedure = "contrast"` in `find_de_neighborhoods`
+  often produces better neighborhoods, but is a lot slower than
+  `selection_procedure = "zscore"`.
+- Setting `size_factor_method = "ratio"` in `find_de_neighborhoods`
+  makes the DE more powerful, but is a lot slower than
+  `size_factor_method = "normed_sum"`.
 
 # Session Info
 
@@ -388,10 +409,10 @@ sessionInfo()
 #>  [7] bitops_1.0-7              generics_0.1.3           
 #>  [9] fansi_1.0.4               highr_0.10               
 #> [11] pkgconfig_2.0.3           Matrix_1.5-4.1           
-#> [13] sparseMatrixStats_1.12.0  lifecycle_1.0.3          
+#> [13] sparseMatrixStats_1.13.4  lifecycle_1.0.3          
 #> [15] GenomeInfoDbData_1.2.10   farver_2.1.1             
 #> [17] compiler_4.3.0            munsell_0.5.0            
-#> [19] codetools_0.2-19          glmGamPoi_1.13.0         
+#> [19] codetools_0.2-19          glmGamPoi_1.13.2         
 #> [21] htmltools_0.5.5           RCurl_1.98-1.12          
 #> [23] yaml_2.3.7                pillar_1.9.0             
 #> [25] crayon_1.5.2              MASS_7.3-60              
