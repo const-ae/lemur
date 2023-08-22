@@ -7,7 +7,7 @@
 #' @importFrom SummarizedExperiment assayNames assay `assay<-` colData `colData<-` rowData `rowData<-`
 #' @importFrom SingleCellExperiment reducedDims
 #' @importFrom BiocGenerics design
-#' @importFrom utils .DollarNames capture.output head
+#' @importFrom utils .DollarNames capture.output head txtProgressBar setTxtProgressBar
 #' @importFrom Matrix t
 NULL
 
