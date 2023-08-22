@@ -8,7 +8,7 @@ Description: Fit a rotation regression on the latent spaces of each condition of
     a multivariate dataset. The coefficient describe how the latent spaces between
     conditions differ.
 URL: https://github.com/const-ae/lemur
-License: GPL-3
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
@@ -29,7 +29,8 @@ Imports:
     matrixStats,
     Rcpp,
     harmony,
-    limma
+    limma,
+    BiocNeighbors
 Suggests: 
     testthat (>= 3.0.0),
     edgeR
