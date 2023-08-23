@@ -1,3 +1,9 @@
+# v0.0.26
+
+* Make the neighborhoods more consistent: (1) include cells which are connected to many cells inside the neighborhood, (2) exclude cells from the neighborhood which are not well connected to the other cells in the neighborhood.
+* Add a `control_parameters` argument to `find_de_neighborhoods`.
+* Add `BiocNeighbor` as a dependency.
+
 # v0.0.25
 
 * Detect problematic neighborhoods and skip them.
