@@ -9,3 +9,7 @@ cum_brls_which_abs_max <- function(y, X, group, contrast, penalty, min_neighborh
     .Call(`_lemur_cum_brls_which_abs_max`, y, X, group, contrast, penalty, min_neighborhood_size)
 }
 
+count_neighbors_fast <- function(knn_mat, indices) {
+    .Call(`_lemur_count_neighbors_fast`, knn_mat, indices)
+}
+

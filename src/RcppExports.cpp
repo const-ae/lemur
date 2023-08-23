@@ -37,10 +37,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// count_neighbors_fast
+IntegerVector count_neighbors_fast(NumericMatrix knn_mat, IntegerVector indices);
+RcppExport SEXP _lemur_count_neighbors_fast(SEXP knn_matSEXP, SEXP indicesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type knn_mat(knn_matSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type indices(indicesSEXP);
+    rcpp_result_gen = Rcpp::wrap(count_neighbors_fast(knn_mat, indices));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lemur_cumz_which_abs_max", (DL_FUNC) &_lemur_cumz_which_abs_max, 2},
     {"_lemur_cum_brls_which_abs_max", (DL_FUNC) &_lemur_cum_brls_which_abs_max, 6},
+    {"_lemur_count_neighbors_fast", (DL_FUNC) &_lemur_count_neighbors_fast, 2},
     {NULL, NULL, 0}
 };
 

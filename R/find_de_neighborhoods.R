@@ -44,6 +44,10 @@ glmGamPoi::vars
 #' @param design,alignment_design the design to use for the fit. Default: `fit$design`
 #' @param include_complement a boolean to specify if the complement of the identified per gene
 #'   neighborhood is also returned. It will be marked in the output by `selection = FALSE`.
+#' @param make_neighborhoods_consistent Include cells from outside the neighborhood if they are
+#'   at least 10 times in the k-nearest neighbors of the cells inside the neighborhood. Secondly,
+#'   remove cells from the neighborhood which are less than 10 times in the k-nearest neighbors of the
+#'   other cells in the neighborhood. Default `TRUE`
 #' @param skip_confounded_neighborhoods Sometimes the inferred neighborhoods are not limited to
 #'   a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
 #'   are unequally distributed between the cell states. Default: `TRUE` means
@@ -74,6 +78,7 @@ find_de_neighborhoods <- function(fit,
                                   design = fit$design,
                                   alignment_design = fit$alignment_design,
                                   include_complement = TRUE,
+                                  make_neighborhoods_consistent = TRUE,
                                   skip_confounded_neighborhoods = TRUE,
                                   verbose = TRUE, ...){
   stopifnot(is(fit, "lemur_fit"))
@@ -176,6 +181,13 @@ find_de_neighborhoods <- function(fit,
       # Do nothing. The 'contrast' is probably an unquoted expression
     })
 
+    # Add cells which neighbor more than 10 cells in the neighborhood,
+    # remove cells which have less than 10 neighbors in the neighborhood.
+      de_regions[["independent_indices"]] <- make_neighborhoods_consistent(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
+                                                                           design = fit$design, col_data = colData(test_data),
+                                                                           knn = control_parameters$make_neighborhoods_consistent.knn,
+                                                                           cell_inclusion_threshold = control_parameters$make_neighborhoods_consistent.cell_inclusion_threshold,
+                                                                           verbose = verbose)
     # Check if neighborhood is balanced between the conditions
     if(skip_confounded_neighborhoods){
       de_regions[["independent_indices"]] <- null_confounded_neighborhoods(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
@@ -621,14 +633,48 @@ pseudobulk_size_factors_for_neighborhoods <- function(counts, mask, col_data, gr
 }
 
 
+make_neighborhoods_consistent <- function(embedding, indices, contrast, design, col_data,
+                                          knn = 25, cell_inclusion_threshold = 10, verbose = TRUE){
+
+  if(verbose) message("Make neighborhoods consistent by adding connected and removing isolated cells")
+  n_genes <- length(indices)
+  stopifnot(cell_inclusion_threshold >= 0)
+  show_progress_bar <- verbose && interactive()
+
+  cntrst <- parse_contrast({{contrast}}, formula = design)
+  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+  design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
+  condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
+
+  knn_mat <- BiocNeighbors::findAnnoy(t(embedding), k = knn, get.distance = FALSE)$index
+
+  if(show_progress_bar){
+    progress_bar <- txtProgressBar(min = 0, max = n_genes, style = 3)
+  }
+
+  cell_freq <- lapply(seq_along(indices), \(gene_idx){
+    if(show_progress_bar && gene_idx %% 10 == 0){
+      setTxtProgressBar(progress_bar, value = gene_idx)
+    }
+    count_neighbors_fast(knn_mat, indices[[gene_idx]])
+  })
+  if(show_progress_bar){
+    close(progress_bar)
+  }
+
+  lapply(seq_along(cell_freq), \(i){
+    which(cell_freq[[i]] >= cell_inclusion_threshold)
+  })
+}
+
 null_confounded_neighborhoods <- function(embedding, indices, contrast, design, col_data, normal_quantile = 0.99, verbose = TRUE){
   cntrst <- parse_contrast({{contrast}}, formula = design)
   cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
   design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
   condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 
-  means_cond1 <- lemur:::aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 1)
-  means_cond2 <- lemur:::aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 2)
+  means_cond1 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 1)
+  means_cond2 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 2)
 
   dist <- sqrt(matrixStats::colSums2((means_cond1 - means_cond2)^2))
   neighborhood_sizes <- lengths(indices)

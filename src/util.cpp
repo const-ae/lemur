@@ -113,6 +113,21 @@ List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const Int
 }
 
 
+// [[Rcpp::export(rng = FALSE)]]
+IntegerVector count_neighbors_fast(NumericMatrix knn_mat, IntegerVector indices){
+  int n_cells = knn_mat.nrow();
+  int knn = knn_mat.ncol();
+  int n = indices.length();
+  IntegerVector counter(n_cells);
+  for(int i = 0; i < n; ++i){
+    for(int k = 0; k < knn; ++k){
+      counter(knn_mat(indices(i)-1, k)-1) += 1;
+    }
+  }
+  return counter;
+}
+
+
 /*** R
 
 cum_z_stat2 <- function(x){
