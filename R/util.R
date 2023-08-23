@@ -25,6 +25,21 @@ sym <- function(M){
   }
 }
 
+`%default_to%` <- function(x, y){
+  if(is.null(x) && is.null(y)){
+    NULL
+  }else if(is.null(x)){
+    y
+  }else if(is.null(y)){
+    x
+  }else{
+    for(n in setdiff(names(y), names(x))){
+      x[[n]] <- y[[n]]
+    }
+    x
+  }
+}
+
 
 
 #' Iterating function that returns a matrix

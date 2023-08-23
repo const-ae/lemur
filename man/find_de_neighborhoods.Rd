@@ -21,9 +21,10 @@ find_de_neighborhoods(
   design = fit$design,
   alignment_design = fit$alignment_design,
   include_complement = TRUE,
+  make_neighborhoods_consistent = TRUE,
   skip_confounded_neighborhoods = TRUE,
-  verbose = TRUE,
-  ...
+  control_parameters = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -80,14 +81,19 @@ Default: \code{NULL} which means that \code{colSums(assay(fit$test_data, count_a
 \item{include_complement}{a boolean to specify if the complement of the identified per gene
 neighborhood is also returned. It will be marked in the output by \code{selection = FALSE}.}
 
+\item{make_neighborhoods_consistent}{Include cells from outside the neighborhood if they are
+at least 10 times in the k-nearest neighbors of the cells inside the neighborhood. Secondly,
+remove cells from the neighborhood which are less than 10 times in the k-nearest neighbors of the
+other cells in the neighborhood. Default \code{TRUE}}
+
 \item{skip_confounded_neighborhoods}{Sometimes the inferred neighborhoods are not limited to
 a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
 are unequally distributed between the cell states. Default: \code{TRUE} means
 that those imbalanced neighborhood are not considered for differential expression testing.}
 
-\item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
+\item{control_parameters}{named list with additional parameters passed to underlying functions.}
 
-\item{...}{additional parameters passed to underlying functions.}
+\item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }
 \value{
 a data frame with one entry per gene / neighborhood containing the name

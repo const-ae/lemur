@@ -133,6 +133,16 @@ test_that("update_values works", {
   expect_equal(df1 %update_values% df2, S4Vectors::DataFrame(x = df2$x, y = df1$y, a = df2$a, b = df2$b))
 })
 
+test_that("default_to works", {
+  df1 <- S4Vectors::DataFrame(x = 1:5, y = letters[1:5])
+  df2 <- data.frame(a = 10^(0:4), b = "red", x = letters[10:14])
+
+  expect_equal(NULL %default_to% NULL, NULL)
+  expect_equal(df1 %default_to% NULL, df1)
+  expect_equal(NULL %default_to% df2, df2)
+  expect_equal(df1 %default_to% df2, S4Vectors::DataFrame(x = df1$x, y = df1$y, a = df2$a, b = df2$b))
+})
+
 
 test_that("aggregate_matrix works", {
   mat <- matrix(rnorm(10 * 5), nrow = 10, ncol = 5)

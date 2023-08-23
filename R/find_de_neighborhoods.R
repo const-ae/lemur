@@ -53,7 +53,7 @@ glmGamPoi::vars
 #'   are unequally distributed between the cell states. Default: `TRUE` means
 #'   that those imbalanced neighborhood are not considered for differential expression testing.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
-#' @param ... additional parameters passed to underlying functions.
+#' @param control_parameters named list with additional parameters passed to underlying functions.
 #'
 #' @return a data frame with one entry per gene / neighborhood containing the name
 #'   of the neighborhood, the cell indices included in the neighborhood, the number of
@@ -80,13 +80,20 @@ find_de_neighborhoods <- function(fit,
                                   include_complement = TRUE,
                                   make_neighborhoods_consistent = TRUE,
                                   skip_confounded_neighborhoods = TRUE,
-                                  verbose = TRUE, ...){
+                                  control_parameters = NULL,
+                                  verbose = TRUE){
   stopifnot(is(fit, "lemur_fit"))
   test_method <- match.arg(test_method)
   skip_independent_test <- is.null(test_data) || test_method == "none"
   use_empty_test_projection <- is.null(test_data)
   use_existing_test_projection <- identical(test_data, fit$test_data)
   training_fit <- fit$training_data
+  control_parameters <- control_parameters %default_to%
+    list(find_de_neighborhoods_with_contrast.ridge_penalty = 0.1,
+         neighborhood_test.shrink = TRUE,
+         make_neighborhoods_consistent.knn = 25, make_neighborhoods_consistent.cell_inclusion_threshold = 10,
+         null_confounded_neighborhoods.normal_quantile = 0.99,
+         merge_indices_columns = NA)
 
   test_data <- handle_test_data_parameter(fit, test_data, test_data_col_data, continuous_assay_name)
   if(nrow(fit) != nrow(test_data)){
@@ -148,7 +155,8 @@ find_de_neighborhoods <- function(fit,
     }else if(selection_procedure == "contrast"){
       de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
                                                         use_assay = continuous_assay_name, independent_embedding = projected_indep_data,
-                                                        include_complement = include_complement, min_neighborhood_size = min_neighborhood_size, ...,
+                                                        include_complement = include_complement, min_neighborhood_size = min_neighborhood_size,
+                                                        ridge_penalty = control_parameters$find_de_neighborhoods_with_contrast.ridge_penalty,
                                                         verbose = verbose)
     }else if(selection_procedure == "likelihood"){
       # Implement one of Wolfgang's suggestions for the selection procedure
@@ -183,15 +191,19 @@ find_de_neighborhoods <- function(fit,
 
     # Add cells which neighbor more than 10 cells in the neighborhood,
     # remove cells which have less than 10 neighbors in the neighborhood.
+    if(make_neighborhoods_consistent){
       de_regions[["independent_indices"]] <- make_neighborhoods_consistent(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
                                                                            design = fit$design, col_data = colData(test_data),
                                                                            knn = control_parameters$make_neighborhoods_consistent.knn,
                                                                            cell_inclusion_threshold = control_parameters$make_neighborhoods_consistent.cell_inclusion_threshold,
                                                                            verbose = verbose)
+    }
     # Check if neighborhood is balanced between the conditions
     if(skip_confounded_neighborhoods){
       de_regions[["independent_indices"]] <- null_confounded_neighborhoods(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
-                                                                           design = fit$design, col_data = colData(test_data), verbose = verbose)
+                                                                           design = fit$design, col_data = colData(test_data),
+                                                                           normal_quantile = control_parameters$null_confounded_neighborhoods.normal_quantile,
+                                                                           verbose = verbose)
     }
 
     if(test_method != "limma"){
@@ -207,17 +219,18 @@ find_de_neighborhoods <- function(fit,
 
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc")
       de_regions <- neighborhood_count_test(de_regions, counts = assay(test_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
-                              design = design, col_data = colData(test_data), size_factor_method = size_factor_method,
-                              method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
+                              design = design, col_data = colData(test_data), shrink = control_parameters$neighborhood_test.shrink,
+                              size_factor_method = size_factor_method, method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
     }else{
       colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
       de_regions <- neighborhood_normal_test(de_regions, values = assay(test_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
-                                             design = design, col_data = colData(test_data), shrink = TRUE,
+                                             design = design, col_data = colData(test_data), shrink = control_parameters$neighborhood_test.shrink,
                                              de_region_index_name = "independent_indices",  verbose = verbose)
     }
   }
 
-  if(identical(test_data, fit$test_data)){
+  if(isTRUE(control_parameters$merge_indices_columns) ||
+     (is.na(control_parameters$merge_indices_columns) && identical(test_data, fit$test_data))){
     # Merge columns
     test_idx <- which(fit$is_test_data)
     train_idx <- which(!fit$is_test_data)
@@ -433,7 +446,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, u
 
 
 neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data,
-                                    size_factor_method = NULL, method = c("glmGamPoi", "edgeR"),
+                                    shrink = TRUE, size_factor_method = NULL, method = c("glmGamPoi", "edgeR"),
                                     de_region_index_name = "indices", verbose = TRUE){
   method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))
@@ -461,7 +474,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     if(verbose) message("Fit glmGamPoi model on pseudobulk data")
     glm_regions <- glmGamPoi::glm_gp(region_psce, design = design, use_assay = "masked_counts", verbose = FALSE,
                                      offset = log(size_factor_matrix + 1e-10),
-                                     size_factors = FALSE, overdispersion = TRUE)
+                                     size_factors = FALSE, overdispersion = TRUE, overdispersion_shrinkage = shrink)
     de_res <- glmGamPoi::test_de(glm_regions, contrast = {{contrast}})
   }else if(method == "edgeR"){
     if(! requireNamespace("edgeR", quietly = TRUE)){

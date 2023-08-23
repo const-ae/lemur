@@ -168,7 +168,8 @@ test_that("find_de_neighborhoods_with_contrast works", {
                                 test_method = "none", selection_procedure = "contrast",
                                 make_neighborhoods_consistent = FALSE, skip_confounded_neighborhoods = FALSE,
                                 directions = dirs, verbose = FALSE,
-                                include_complement = FALSE, ridge_penalty = 1e-6)
+                                include_complement = FALSE,
+                                control_parameters = list(find_de_neighborhoods_with_contrast.ridge_penalty = 1e-6))
   expect_equal(nei_orig$indices, nei_orig$independent_indices)
 
   set.seed(1)
