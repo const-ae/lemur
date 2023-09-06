@@ -89,7 +89,8 @@ find_de_neighborhoods <- function(fit,
   use_existing_test_projection <- identical(test_data, fit$test_data)
   training_fit <- fit$training_data
   control_parameters <- control_parameters %default_to%
-    list(find_de_neighborhoods_with_contrast.ridge_penalty = 0.1,
+    list(select_directions_from_random_points.n_random_directions = 50,
+         find_de_neighborhoods_with_contrast.ridge_penalty = 0.1,
          neighborhood_test.shrink = TRUE,
          make_neighborhoods_consistent.knn = 25, make_neighborhoods_consistent.cell_inclusion_threshold = 10,
          null_confounded_neighborhoods.normal_quantile = 0.99,
@@ -127,7 +128,8 @@ find_de_neighborhoods <- function(fit,
       if(is.null(de_mat)) stop("'directions = \"random\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
                                "argument or call 'fit <- test_de(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
-      dirs <- select_directions_from_random_points(n_random_directions = 50, training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
+      dirs <- select_directions_from_random_points(control_parameters$select_directions_from_random_points.n_random_directions,
+                                                   training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }else if(directions == "contrast"){
       dirs <- select_directions_from_contrast(training_fit, {{contrast}})
     }else if(directions == "axis_parallel"){
