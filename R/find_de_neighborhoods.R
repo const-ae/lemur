@@ -686,29 +686,34 @@ make_neighborhoods_consistent <- function(embedding, indices, contrast, design, 
 }
 
 null_confounded_neighborhoods <- function(embedding, indices, contrast, design, col_data, normal_quantile = 0.99, verbose = TRUE){
-  cntrst <- parse_contrast({{contrast}}, formula = design)
-  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
-  design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
-  condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 
-  means_cond1 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 1)
-  means_cond2 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 2)
-
-  dist <- sqrt(matrixStats::colSums2((means_cond1 - means_cond2)^2))
   neighborhood_sizes <- lengths(indices)
+  large_neighborhood <- neighborhood_sizes >= median(neighborhood_sizes)
 
-  # Fit a straight line to the larger half (the lower bits are very unreliable)
-  large_neighborhood <- neighborhood_sizes > median(neighborhood_sizes)
-  dist_fit <- lm(dist ~ neighborhood_sizes, subset = large_neighborhood)
+  if(diff(range(neighborhood_sizes[large_neighborhood])) < 10){
+    # Do nothing
+  }else{
+    cntrst <- parse_contrast({{contrast}}, formula = design)
+    cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+    design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
+    condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 
-  limit <- sd(residuals(dist_fit)) * qnorm(p = normal_quantile)
-  all_residuals <- dist - predict(dist_fit, newdata = data.frame(neighborhood_sizes = neighborhood_sizes))
-  skip <- all_residuals > limit
-  skip[is.na(skip)] <- TRUE # NA's occurs if a condition is completely empty
+    means_cond1 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 1)
+    means_cond2 <- aggregate_matrix(embedding, indices, MatrixGenerics::rowMeans2, col_sel = condition == 2)
 
-  if(sum(skip > 0) && verbose) message("Skipping ", sum(skip > 0), " neighborhoods which contain unbalanced cell states")
+    dist <- sqrt(matrixStats::colSums2((means_cond1 - means_cond2)^2))
 
-  indices[skip] <- lapply(seq_len(sum(skip)), \(i) integer(0L))
-  attr(indices, "is_neighborhood_confounded") <- skip
+    # Fit a straight line to the larger half (the lower bits are very unreliable)
+    dist_fit <- lm(dist ~ neighborhood_sizes, subset = large_neighborhood)
+    limit <- max(sd(residuals(dist_fit)), 1e-5) * qnorm(p = normal_quantile)
+    all_residuals <- dist - predict(dist_fit, newdata = data.frame(neighborhood_sizes = neighborhood_sizes))
+    skip <- all_residuals > limit
+    skip[is.na(skip)] <- TRUE # NA's occurs if a condition is completely empty
+
+    if(sum(skip > 0) && verbose) message("Skipping ", sum(skip > 0), " neighborhoods which contain unbalanced cell states")
+
+    indices[skip] <- lapply(seq_len(sum(skip)), \(i) integer(0L))
+    attr(indices, "is_neighborhood_confounded") <- skip
+  }
   indices
 }
