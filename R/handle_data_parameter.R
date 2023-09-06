@@ -39,6 +39,14 @@ handle_data_parameter <- function(data, on_disk, assay){
          "It must be of type dense matrix object (i.e., a base matrix or DelayedArray),",
          " or a container for such a matrix (for example: SummarizedExperiment).")
   }
+
+  if(! is.null(colnames(data_mat))){
+    if(ncol(data_mat) != length(unique(colnames(data_mat)))) stop("The colnames of the data are not unique.")
+  }
+  if(! is.null(rownames(data_mat))){
+    if(nrow(data_mat) != length(unique(rownames(data_mat)))) stop("The rownames of the data are not unique.")
+  }
+
   data_mat
 }
 

@@ -249,6 +249,19 @@ test_that("Columns/rows of the results are orthogonal", {
   expect_equal(t(res$base_point) %*% res$base_point, diag(nrow = 2))
 })
 
+test_that("duplicated names trigger errors", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  dat2 <- dat
+  colnames(dat2)[1] <- colnames(dat2)[2]
+  expect_true(validObject(dat2))
+  expect_error(
+    lemur(dat2, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  )
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  colnames(fit)[1] <- colnames(fit)[2]
+  expect_error(validObject(fit))
+})
+
 test_that("regularization helps", {
 
   # dat <- make_synthetic_data(n_genes = 30, treatment_effect = 0.04, n_centers = 3)

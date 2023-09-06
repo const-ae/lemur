@@ -102,6 +102,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(is.null(use_assay)) msg <- c(msg, "'use_assay' must not be NULL")
   is_test_data <- obj$is_test_data
   if(is.null(is_test_data)) msg <- c(msg, "'is_test_data' must not be NULL")
+  col_names <- colnames(obj)
+  row_names <- rownames(obj)
 
   if(! is.null(design_matrix) && nrow(design_matrix) != n_obs) msg <- c(msg, "`nrow(design_matrix)` does not match number of observations")
   if(! is.null(linear_coefficients) && nrow(linear_coefficients) != n_features_original) msg <- c(msg, "`nrow(linear_coefficients)` does not match `n_features_original`")
@@ -124,7 +126,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(use_assay) &&  ! use_assay %in% assayNames(obj)) msg <- c(msg, "`use_assay` must be one of the assays")
   if(! is.null(is_test_data) &&  ! is.logical(is_test_data)) msg <- c(msg, "`is_test_data` must be a logical vector")
   if(! is.null(is_test_data) &&  length(is_test_data) != n_obs ) msg <- c(msg, "length `is_test_data` must match the number of observations")
-
+  if(! is.null(col_names) && length(col_names) != length(unique(col_names))) msg <- c(msg, "`colnames` are not unique")
+  if(! is.null(row_names) && length(row_names) != length(unique(row_names))) msg <- c(msg, "`rownames` are not unique")
 
   if(is.null(msg)){
     TRUE
