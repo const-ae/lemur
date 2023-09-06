@@ -250,8 +250,11 @@ find_de_neighborhoods <- function(fit,
     colnames <- c(colnames[1:3], "independent_indices", colnames[-(1:3)])
   }
   de_regions$n_cells <- lengths(de_regions$indices)
-  de_regions[colnames]
+  de_regions$pval[de_regions$n_cells < min_neighborhood_size] <- NA_real_
+  # Recalculate FDR, because there can be many skipped neighborhoods
+  de_regions$adj_pval <- p.adjust(de_regions$pval, method = "BH")
 
+  de_regions[colnames]
 }
 
 select_directions_from_axes <- function(embedding, de_mat){
