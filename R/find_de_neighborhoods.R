@@ -254,6 +254,19 @@ find_de_neighborhoods <- function(fit,
   # Recalculate FDR, because there can be many skipped neighborhoods
   de_regions$adj_pval <- p.adjust(de_regions$pval, method = "BH")
 
+  index_cols <- intersect(c("indices", "independent_indices"), colnames)
+  if(length(index_cols) > 0){
+    names <- colnames(fit)
+    if(! is.null(names)){
+      if(length(names) != length(unique(names))) warning("`colnames(fit)` are not unique.")
+      de_regions[c("members", "independent_members")] <- lapply(de_regions[index_cols], \(col){
+        I(lapply(col, \(idx) names[idx]))
+      })
+    }
+  }
+  colnames[colnames == "indices"] <- "members"
+  colnames[colnames == "independent_indices"] <- "independent_members"
+
   de_regions[colnames]
 }
 

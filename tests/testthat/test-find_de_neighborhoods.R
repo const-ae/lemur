@@ -170,7 +170,7 @@ test_that("find_de_neighborhoods_with_contrast works", {
                                 directions = dirs, verbose = FALSE,
                                 include_complement = FALSE,
                                 control_parameters = list(find_de_neighborhoods_with_contrast.ridge_penalty = 1e-6))
-  expect_equal(nei_orig$indices, nei_orig$independent_indices)
+  expect_equal(nei_orig$members, nei_orig$independent_members)
 
   set.seed(1)
   nei <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
@@ -179,7 +179,7 @@ test_that("find_de_neighborhoods_with_contrast works", {
 
 
   expect_equal(nrow(nei), 50)
-  expect_equal(nei[,c("indices", "sel_statistic", "selection", "name")], nei_orig[,c("indices", "sel_statistic", "selection", "name")])
+  expect_equal(nei[,c("sel_statistic", "selection", "name")], nei_orig[,c("sel_statistic", "selection", "name")])
 
   set.seed(1)
   nei2 <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
@@ -218,15 +218,17 @@ test_that("find_de_neighborhoods works", {
                                      test_data_col_data = colData(fit$test_data),
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast", verbose = FALSE)
-  expect_equal(de_neigh5[,-c(3,4)], de_neigh6[,-c(3,4,5)])
+  expect_equal(de_neigh5[,c("name", "selection", "sel_statistic", "f_statistic", "df1", "df2", "lfc")],
+               de_neigh6[,c("name", "selection", "sel_statistic", "f_statistic", "df1", "df2", "lfc")])
+  expect_equal(de_neigh5$pval[!de_neigh5$n_cells == 0], de_neigh6$pval[!de_neigh5$n_cells == 0])
 
   de_neigh7 <- find_de_neighborhoods(fit, test_data = fit$test_data,
                                      group_by = vars(individual, condition),
                                      selection_procedure = "contrast", directions = "contrast",
                                      test_method = "limma",
                                      verbose = FALSE)
-  expect_equal(de_neigh7[,c("name", "selection", "indices", "n_cells", "sel_statistic")],
-               de_neigh5[,c("name", "selection", "indices", "n_cells", "sel_statistic")])
+  expect_equal(de_neigh7[,c("name", "selection", "members", "n_cells", "sel_statistic")],
+               de_neigh5[,c("name", "selection", "members", "n_cells", "sel_statistic")])
 })
 
 
@@ -238,7 +240,7 @@ test_that("find_de_neighborhoods works with subset", {
   fit_red <- fit[,1:200]
   expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
   de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:200], test_method = "none", verbose = FALSE)
-  expect_true(all(vapply(de_red$indices, \(idx) all(idx <= 400), FUN.VALUE = logical(1))))
+  expect_true(all(vapply(de_red$members, \(names) all(names %in% colnames(fit_red)), FUN.VALUE = logical(1))))
 })
 
 test_that("find_de_neighborhoods works for subsetted data", {
@@ -257,7 +259,7 @@ test_that("find_de_neighborhoods works for subsetted data", {
     nei2 <- find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore",
                                   test_method = "limma",  include_complement = FALSE, verbose = FALSE)
   })
-  cols <- c("name", "selection", "indices", "n_cells", "sel_statistic", "lfc")
+  cols <- c("name", "selection", "members", "n_cells", "sel_statistic", "lfc")
   expect_equal(nei[1:10, cols], nei2[,cols])
 })
 
@@ -272,7 +274,7 @@ test_that("find_de_neighborhoods works reasonably well with counts", {
   set.seed(1)
   de_neigh <- find_de_neighborhoods(fit, group_by = vars(pat, condition), de_mat = assay(fit, "DE"),
                                     contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
-  expect_equal(colnames(de_neigh), c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
+  expect_equal(colnames(de_neigh), c("name", "selection", "members", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc"))
   set.seed(1)
   de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(pat, condition), verbose = FALSE)
   expect_equal(de_neigh, de_neigh2)
@@ -304,7 +306,7 @@ test_that("find_de_neighborhoods works if test_data is NULL", {
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore",
                                test_data = NULL, verbose = FALSE)
-  expect_equal(nei$independent_indices, I(lapply(1:100, \(i) integer(0L))))
+  expect_equal(nei$independent_members, I(lapply(1:100, \(i) character(0L))))
 })
 
 
