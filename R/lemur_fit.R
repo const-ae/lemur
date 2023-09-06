@@ -158,7 +158,7 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
     metadata(x)$row_mask[old_mask][ii] <- TRUE
   }
   if(! j_missing){
-    jj <- SingleCellExperiment:::.convert_subset_index(j, rownames(x))
+    jj <- SingleCellExperiment:::.convert_subset_index(j, colnames(x))
     metadata(x)[["alignment_design_matrix"]] <- metadata(x)[["alignment_design_matrix"]][jj,,drop=FALSE]
   }
 

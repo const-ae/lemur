@@ -262,6 +262,13 @@ test_that("duplicated names trigger errors", {
   expect_error(validObject(fit))
 })
 
+test_that("subsetting with strings works", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)
+  expect_equal(dim(fit[,c("cell_1", "cell_42")]), dim(dat[,c("cell_1", "cell_42")]))
+  expect_equal(dim(fit[c("gene_1", "gene_30"),c("cell_1", "cell_42")]), dim(dat[c("gene_1", "gene_30"),c("cell_1", "cell_42")]))
+})
+
 test_that("regularization helps", {
 
   # dat <- make_synthetic_data(n_genes = 30, treatment_effect = 0.04, n_centers = 3)
