@@ -17,12 +17,8 @@ edger_fit <- function(counts, design, offset, col_data = NULL,
 
 
 edger_test_de <- function(edger_fit, contrast, design = NULL){
-  if(rlang::is_quosure(contrast)){
     cntrst <- parse_contrast({{contrast}}, design)
     cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
-  }else{
-    cntrst <- contrast
-  }
 
   edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
   edger_res <- edgeR::topTags(edger_fit, n = nrow(edger_fit$counts), sort.by = "none")$table
@@ -31,15 +27,19 @@ edger_test_de <- function(edger_fit, contrast, design = NULL){
 }
 
 
-limma_fit <- function(values, design, col_data){
-  model_matrix <- model.matrix(design, data = col_data)
-  if(! is_contrast_estimable(cntrst, model_matrix)){
-    stop("The contrast is not estimable from the model_matrix")
+limma_fit <- function(values, design, col_data = NULL){
+  if(is.matrix(design)){
+    design_matrix <- design
+  }else{
+    design_matrix <- model.matrix(design, data = col_data)
+  }
+  if(! is_contrast_estimable(cntrst, design_matrix)){
+    stop("The contrast is not estimable from the design_matrix")
   }
 
   suppressWarnings({
     # limma warns about missing values. Here we expect missing values though.
-    lm_fit <- limma::lmFit(values, model_matrix)
+    lm_fit <- limma::lmFit(values, design_matrix)
   })
   lm_fit
 }
@@ -68,7 +68,7 @@ limma_test_de <- function(lm_fit, contrast, design, values = NULL, shrink = TRUE
       }
     }
   }
-  tt
+  data.frame(name = rownames(tt), pval = tt$P.Value, adj_pval = tt$adj.P.Val, t_statistic = tt$t, lfc = tt$logFC)
 }
 
 
