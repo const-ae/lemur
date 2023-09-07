@@ -105,6 +105,8 @@ find_de_neighborhoods <- function(fit,
       stop("The rownames differ between 'fit' and 'independent_data'.")
     }
   }
+  merge_indices_columns <- isTRUE(control_parameters$merge_indices_columns) ||
+    (is.na(control_parameters$merge_indices_columns) && identical(test_data, fit$test_data))
 
   if(use_empty_test_projection){
     projected_indep_data <- matrix(nrow = fit$n_embedding, ncol = 0)
@@ -231,8 +233,7 @@ find_de_neighborhoods <- function(fit,
     }
   }
 
-  if(isTRUE(control_parameters$merge_indices_columns) ||
-     (is.na(control_parameters$merge_indices_columns) && identical(test_data, fit$test_data))){
+  if(merge_indices_columns){
     # Merge columns
     test_idx <- which(fit$is_test_data)
     train_idx <- which(!fit$is_test_data)
@@ -254,18 +255,28 @@ find_de_neighborhoods <- function(fit,
   # Recalculate FDR, because there can be many skipped neighborhoods
   de_regions$adj_pval <- p.adjust(de_regions$pval, method = "BH")
 
-  index_cols <- intersect(c("indices", "independent_indices"), colnames)
-  if(length(index_cols) > 0){
-    names <- colnames(fit)
-    if(! is.null(names)){
+  if("indices" %in% colnames){
+    names <- if(merge_indices_columns) colnames(fit)
+    else colnames(fit$training_data)
+    de_regions[["members"]] <- if(! is.null(names)){
       if(length(names) != length(unique(names))) warning("`colnames(fit)` are not unique.")
-      de_regions[c("members", "independent_members")] <- lapply(de_regions[index_cols], \(col){
-        I(lapply(col, \(idx) names[idx]))
-      })
+      I(lapply(de_regions[["indices"]], \(idx) names[idx]))
+    }else{
+      de_regions[["indices"]]
     }
+    colnames[colnames == "indices"] <- "members"
   }
-  colnames[colnames == "indices"] <- "members"
-  colnames[colnames == "independent_indices"] <- "independent_members"
+
+  if("independent_indices" %in% colnames){
+    names <- colnames(test_data)
+    de_regions[["independent_members"]] <- if(! is.null(names)){
+      if(length(names) != length(unique(names))) warning("`colnames(test_data)` are not unique.")
+      I(lapply(de_regions[["independent_indices"]], \(idx) names[idx]))
+    }else{
+      de_regions[["independent_indices"]]
+    }
+    colnames[colnames == "independent_indices"] <- "independent_members"
+  }
 
   de_regions[colnames]
 }
