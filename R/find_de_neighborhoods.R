@@ -511,23 +511,20 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
            "BiocManager::install('edgeR')")
     }
     if(verbose) message("Fit edgeR model on pseudobulk data")
+    glm_regions <- edger_fit(assay(region_psce, "masked_counts"), design = design, offset = log(size_factor_matrix + 1e-10),
+                           col_data = SummarizedExperiment::colData(region_psce))
+    de_res <- edger_test_de(glm_regions, {{contrast}}, design)
+  }
 
-    if(is.matrix(design)){
-      design_matrix <- design
-    }else{
-      design_matrix <- model.matrix(design, data = SummarizedExperiment::colData(region_psce))
-    }
-    cntrst <- parse_contrast({{contrast}}, design)
-    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
 
-    edger_y <- edgeR::DGEList(counts = assay(region_psce, "masked_counts"))
-    edger_y <- edgeR::scaleOffset(edger_y, offset = log(size_factor_matrix + 1e-10))
-    edger_y <- edgeR::estimateDisp(edger_y, design_matrix)
-    edger_fit <- edgeR::glmQLFit(edger_y, design_matrix, abundance.trend = TRUE, robust = TRUE)
-    edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
-    edger_res <- edgeR::topTags(edger_fit, n = nrow(edger_y), sort.by = "none")$table
-    de_res <- data.frame(name = rownames(edger_res), pval = edger_res$PValue, adj_pval = edger_res$FDR,
-                         f_statistic = edger_res$F, df1 = edger_fit$df.test, df2 = edger_fit$df.total, lfc = edger_res$logFC)
+
+
+
+
+
+
+
+
   }
   cbind(de_regions, de_res[,-1])
 }
@@ -538,8 +535,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
   if(is.null(de_regions$name)){
     stop("The de_region data frame must contain a column called 'name'.")
   }
-  cntrst <- parse_contrast({{contrast}}, formula = design)
-  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(values))
   indices <- de_regions[[de_region_index_name]]
   for(idx in seq_len(nrow(de_regions))){
@@ -569,35 +565,11 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
 
   M <- aggregate_matrix(masked_values, group_split, MatrixGenerics::rowSums2) /
     aggregate_matrix(mask, group_split, MatrixGenerics::rowSums2)
-  model_matrix <- model.matrix(design, data = split_res$key)
 
-  if(! is_contrast_estimable(cntrst, model_matrix)){
-    stop("The contrast is not estimable from the model_matrix")
-  }
   if(verbose) message("Fit limma model")
-  suppressWarnings({
-    # limma warns about missing values. Here we expect missing values though.
-    lm_fit <- limma::lmFit(M, model_matrix)
-  })
-  lm_fit <- limma::contrasts.fit(lm_fit, contrasts = cntrst)
-  if(shrink){
-    lm_fit <- tryCatch({
-      limma::eBayes(lm_fit, trend = TRUE, robust = TRUE)
-    }, error = function(err){
-      limma::eBayes(lm_fit, trend = FALSE, robust = TRUE)
-    })
-  }else{
-    lm_fit <- limma_eBayes_without_shrinkage(lm_fit)
-  }
-  tt <- limma::topTable(lm_fit, number = nrow(lm_fit$coefficients),
-                        adjust.method = "BH", sort.by = "none")
-  for(row in which(MatrixGenerics::rowAnyNAs(M))){
-    # limma can return misleading results if there missing values in the wrong
-    # places (see https://support.bioconductor.org/p/9150300/)
-    if(! is_contrast_estimable(cntrst, model_matrix[!is.na(M[row,]),,drop=FALSE])){
-      tt[row, c("P.Value", "adj.P.Val", "t", "logFC")] <- NA_real_
-    }
-  }
+  lm_fit <- limma_fit(M, design, col_data = split_res$key)
+  tt <- limma_test_de(lm_fit, {{contrast}}, design, values = M, shrink = shrink)
+
   cbind(de_regions, pval = tt$P.Value, adj_pval = tt$adj.P.Val, t_statistic = tt$t, lfc = tt$logFC)
 }
 
