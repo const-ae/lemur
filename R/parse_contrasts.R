@@ -8,7 +8,11 @@ parse_contrast <- function(contrast, formula) {
   covar <- all.vars(formula)
 
   cnt_capture <- rlang::enquo(contrast)
-  data_mask <- create_contrast_data_mask(formula)
+  if(is.null(formula)){
+    data_mask <- NULL
+  }else{
+    data_mask <- create_contrast_data_mask(formula)
+  }
 
   tryCatch({
     res <- rlang::eval_tidy(cnt_capture, data = data_mask)

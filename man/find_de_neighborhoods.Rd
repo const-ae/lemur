@@ -20,7 +20,7 @@ find_de_neighborhoods(
   size_factor_method = NULL,
   design = fit$design,
   alignment_design = fit$alignment_design,
-  include_complement = TRUE,
+  add_diff_in_diff = TRUE,
   make_neighborhoods_consistent = TRUE,
   skip_confounded_neighborhoods = TRUE,
   control_parameters = NULL,
@@ -78,8 +78,10 @@ Default: \code{NULL} which means that \code{colSums(assay(fit$test_data, count_a
 
 \item{design, alignment_design}{the design to use for the fit. Default: \code{fit$design}}
 
-\item{include_complement}{a boolean to specify if the complement of the identified per gene
-neighborhood is also returned. It will be marked in the output by \code{selection = FALSE}.}
+\item{add_diff_in_diff}{a boolean to specify if the log-fold change (plus significance) of
+the DE in the neighborhood against the DE in the complement of the neighborhood is calculated.
+If \code{TRUE}, the result includes three additional columns starting with \code{"did_"} short for
+difference-in-difference. Default: \code{TRUE}.}
 
 \item{make_neighborhoods_consistent}{Include cells from outside the neighborhood if they are
 at least 10 times in the k-nearest neighbors of the cells inside the neighborhood. Secondly,
@@ -100,7 +102,10 @@ a data frame with one entry per gene / neighborhood containing the name
 of the neighborhood, the cell indices included in the neighborhood, the number of
 cells, and the selection statistic. If \code{independent_matrix} is not \code{NULL}, the data frame will
 also contain columns from the \code{limma} / \code{glmGamPoi} pseudobulk test (pval, adj_pval,
-t_statistic / f_statistic, and lfc).
+t_statistic / f_statistic, and lfc). If \code{add_diff_in_diff} is \code{TRUE}, the data frame will
+also contain three columns from a test measuring if the differential expression in the
+neighborhood is significantly different from the differential expression of the cells not in the
+neighborhood.
 }
 \description{
 Find differential expression neighborhoods

@@ -42,8 +42,10 @@ glmGamPoi::vars
 #'   [limma](http://bioconductor.org/packages/limma/) works on the continuous assay.
 #' @param continuous_assay_name,count_assay_name the assay or list names of `independent_data`.
 #' @param design,alignment_design the design to use for the fit. Default: `fit$design`
-#' @param include_complement a boolean to specify if the complement of the identified per gene
-#'   neighborhood is also returned. It will be marked in the output by `selection = FALSE`.
+#' @param add_diff_in_diff a boolean to specify if the log-fold change (plus significance) of
+#'   the DE in the neighborhood against the DE in the complement of the neighborhood is calculated.
+#'   If `TRUE`, the result includes three additional columns starting with `"did_"` short for
+#'   difference-in-difference. Default: `TRUE`.
 #' @param make_neighborhoods_consistent Include cells from outside the neighborhood if they are
 #'   at least 10 times in the k-nearest neighbors of the cells inside the neighborhood. Secondly,
 #'   remove cells from the neighborhood which are less than 10 times in the k-nearest neighbors of the
@@ -59,7 +61,10 @@ glmGamPoi::vars
 #'   of the neighborhood, the cell indices included in the neighborhood, the number of
 #'   cells, and the selection statistic. If `independent_matrix` is not `NULL`, the data frame will
 #'   also contain columns from the `limma` / `glmGamPoi` pseudobulk test (pval, adj_pval,
-#'   t_statistic / f_statistic, and lfc).
+#'   t_statistic / f_statistic, and lfc). If `add_diff_in_diff` is `TRUE`, the data frame will
+#'   also contain three columns from a test measuring if the differential expression in the
+#'   neighborhood is significantly different from the differential expression of the cells not in the
+#'   neighborhood.
 #'
 #' @export
 find_de_neighborhoods <- function(fit,
@@ -77,7 +82,7 @@ find_de_neighborhoods <- function(fit,
                                   size_factor_method = NULL,
                                   design = fit$design,
                                   alignment_design = fit$alignment_design,
-                                  include_complement = TRUE,
+                                  add_diff_in_diff = TRUE,
                                   make_neighborhoods_consistent = TRUE,
                                   skip_confounded_neighborhoods = TRUE,
                                   control_parameters = NULL,
@@ -154,12 +159,12 @@ find_de_neighborhoods <- function(fit,
                                "argument or call 'fit <- test_de(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
-                                                       independent_embedding = projected_indep_data, include_complement = include_complement,
+                                                       independent_embedding = projected_indep_data,
                                                        min_neighborhood_size = min_neighborhood_size, verbose = verbose)
     }else if(selection_procedure == "contrast"){
       de_regions <- find_de_neighborhoods_with_contrast(training_fit, dirs, group_by = {{group_by}}, contrast = {{contrast}},
                                                         use_assay = continuous_assay_name, independent_embedding = projected_indep_data,
-                                                        include_complement = include_complement, min_neighborhood_size = min_neighborhood_size,
+                                                        min_neighborhood_size = min_neighborhood_size,
                                                         ridge_penalty = control_parameters$find_de_neighborhoods_with_contrast.ridge_penalty,
                                                         verbose = verbose)
     }else if(selection_procedure == "likelihood"){
@@ -168,12 +173,12 @@ find_de_neighborhoods <- function(fit,
     }
   }else{
     stopifnot(is.data.frame(selection_procedure))
-    stopifnot(c("name", "selection", "indices", "independent_indices", "sel_statistic") %in% colnames(selection_procedure))
+    stopifnot(c("name", "indices", "independent_indices", "sel_statistic") %in% colnames(selection_procedure))
     de_regions <- selection_procedure
   }
 
   if(skip_independent_test){
-    colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic")
+    colnames <- c("name", "indices", "n_cells", "sel_statistic")
   }else{
     if(verbose) message("Validate neighborhoods using test data")
     if(! is.null(rownames(fit)) && is.null(rownames(test_data))){
@@ -221,15 +226,18 @@ find_de_neighborhoods <- function(fit,
                 "Consider setting 'size_factor_method' to a vector with the appropriate sequencing depth per cell.")
       }
 
-      colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc")
+      colnames <- c("name", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc",
+                    if(add_diff_in_diff) c("did_pval", "did_adj_pval", "did_lfc"))
       de_regions <- neighborhood_count_test(de_regions, counts = assay(test_data, count_assay_name), group_by = group_by, contrast = {{contrast}},
                               design = design, col_data = colData(test_data), shrink = control_parameters$neighborhood_test.shrink,
-                              size_factor_method = size_factor_method, method = test_method, de_region_index_name = "independent_indices", verbose = verbose)
+                              size_factor_method = size_factor_method, method = test_method, de_region_index_name = "independent_indices",
+                              add_diff_in_diff = add_diff_in_diff, verbose = verbose)
     }else{
-      colnames <- c("name", "selection", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc")
+      colnames <- c("name", "indices", "n_cells", "sel_statistic", "pval", "adj_pval", "t_statistic", "lfc",
+                    if(add_diff_in_diff) c("did_pval", "did_adj_pval", "did_lfc"))
       de_regions <- neighborhood_normal_test(de_regions, values = assay(test_data, continuous_assay_name), group_by = group_by, contrast = {{contrast}},
                                              design = design, col_data = colData(test_data), shrink = control_parameters$neighborhood_test.shrink,
-                                             de_region_index_name = "independent_indices",  verbose = verbose)
+                                             de_region_index_name = "independent_indices", add_diff_in_diff = add_diff_in_diff, verbose = verbose)
     }
   }
 
@@ -334,9 +342,7 @@ select_directions_from_canonical_correlation <- function(embedding, de_mat){
 
 
 find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_embedding = NULL,
-                                               include_complement = TRUE,
-                                               min_neighborhood_size = 50,
-                                               verbose = TRUE){
+                                               min_neighborhood_size = 50, verbose = TRUE){
   n_genes <- nrow(fit)
   n_cells <- ncol(fit)
   stopifnot(ncol(fit) == ncol(de_mat))
@@ -377,28 +383,12 @@ find_de_neighborhoods_with_z_score <- function(fit, dirs, de_mat, independent_em
   if(is.null(result$name)){
     result$name <- paste0("feature_", seq_len(nrow(fit)))
   }
-  result$selection <- TRUE
 
-  if(include_complement){
-    all_indices <- seq_len(ncol(fit))
-    indep_all_indices <- seq_len(ncol(independent_embedding))
-    comp_indices <- lapply(result$indices, \(indices) setdiff(all_indices, indices))
-    comp_ind_indices <- lapply(result$independent_indices, \(indices) setdiff(indep_all_indices, indices))
-    comp_stat <- vapply(seq_len(nrow(fit)), \(gene_idx){
-      sel <- comp_indices[[gene_idx]]
-      vals <- de_mat[gene_idx, sel]
-      mean(vals) / (sd(vals) / sqrt(length(sel)))
-    }, FUN.VALUE = numeric(1L))
-    rbind(result, data.frame(name = result$name, indices = I(comp_indices),
-                             independent_indices = I(comp_ind_indices), sel_statistic = comp_stat, selection = FALSE))
-  }else{
-    result
-  }
+  result
 }
 
 find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, use_assay = fit$use_assay, independent_embedding = NULL,
-                                                include_complement = TRUE, ridge_penalty = 0.1, min_neighborhood_size = 50,
-                                                verbose = TRUE){
+                                                ridge_penalty = 0.1, min_neighborhood_size = 50, verbose = TRUE){
   n_genes <- nrow(fit)
   n_cells <- ncol(fit)
   contrast <- parse_contrast({{contrast}}, formula = fit$design)
@@ -452,23 +442,11 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, u
   if(show_progress_bar){
     close(progress_bar)
   }
-  result$selection <- TRUE
   result$name <- rownames(fit)
   if(is.null(result$name)){
     result$name <- paste0("feature_", seq_len(nrow(fit)))
   }
 
-  if(include_complement){
-    all_indices <- seq_len(ncol(fit))
-    indep_all_indices <- seq_len(ncol(independent_embedding))
-    comp_indices <- lapply(result$indices, \(indices) setdiff(all_indices, indices))
-    comp_ind_indices <- lapply(result$independent_indices, \(indices) setdiff(indep_all_indices, indices))
-    comp_stat <-  neighborhood_normal_test(data.frame(name = rownames(Y), indices = I(comp_indices)),
-                                           values = Y, group_by = group_by, contrast = cntrst,
-                                           design = fit$design, fit$colData, shrink = FALSE, verbose = verbose)$t_statistic
-    result <- rbind(result, data.frame(name = result$name, indices = I(comp_indices),
-                                       independent_indices = I(comp_ind_indices), sel_statistic = comp_stat, selection = FALSE))
-  }
   result
 }
 
@@ -476,7 +454,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, u
 
 neighborhood_count_test <- function(de_regions, counts, group_by, contrast, design, col_data,
                                     shrink = TRUE, size_factor_method = NULL, method = c("glmGamPoi", "edgeR"),
-                                    de_region_index_name = "indices", verbose = TRUE){
+                                    de_region_index_name = "indices", add_diff_in_diff = TRUE, verbose = TRUE){
   method <- match.arg(method)
   mask <- matrix(0, nrow = nrow(de_regions),  ncol = ncol(counts))
   indices <- de_regions[[de_region_index_name]]
@@ -489,10 +467,10 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
   }
   masked_counts <- counts[de_regions$name,,drop=FALSE] * mask
 
-  masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts), colData = col_data)
+  masked_sce <- SingleCellExperiment::SingleCellExperiment(list(masked_counts = masked_counts, counts = counts[de_regions$name,,drop=FALSE]), colData = col_data)
   if(verbose) message("Form pseudobulk (summing counts)")
   region_psce <- glmGamPoi::pseudobulk(masked_sce, group_by = {{group_by}},
-                                       aggregation_functions = list("masked_counts" = "rowSums2"),
+                                       aggregation_functions = list("masked_counts" = "rowSums2", "counts" = "rowSums2"),
                                        verbose = FALSE)
   if(verbose) message("Calculate size factors for each gene")
   size_factor_matrix <- pseudobulk_size_factors_for_neighborhoods(counts, mask = mask, col_data = col_data,
@@ -516,22 +494,43 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     de_res <- edger_test_de(glm_regions, {{contrast}}, design)
   }
 
+  if(add_diff_in_diff){
+    mm <- if(method == "glmGamPoi") glm_regions$model_matrix else glm_regions$design
+    mat <- assay(region_psce, "masked_counts")
+    complement_mat <- assay(region_psce, "counts") - assay(region_psce, "masked_counts")
+    cntrst <- parse_contrast({{contrast}}, design)
+    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, y) x)
 
+    comb_mat <- unname(cbind(mat, complement_mat))
+    zero_mat <- array(0, dim = dim(mm))
+    # Fit the model separately to the neighborhood and its complement
+    comb_design_mat <- unname(rbind(cbind(mm, zero_mat), cbind(zero_mat, mm)))
+    mod_col_data <- cbind(rbind(col_data, col_data), ..did_indicator = rep(c(0, 1), each = nrow(col_data)))
+    mod_size_factor_matrix <- pseudobulk_size_factors_for_neighborhoods(cbind(counts, counts), mask = cbind(mask, 1-mask),
+                                                                        col_data = mod_col_data, group_by = c({{group_by}}, vars(..did_indicator)),
+                                                                        method = size_factor_method, verbose = verbose)
+    if(verbose) message("Fit diff-in-diff effect")
+    if(method == "glmGamPoi"){
+      did_fit <- glmGamPoi::glm_gp(comb_mat, design = comb_design_mat, verbose = FALSE,
+                                   offset = log(mod_size_factor_matrix + 1e-10),
+                                   size_factors = FALSE, overdispersion = TRUE, overdispersion_shrinkage = shrink)
+      did_res <- glmGamPoi::test_de(did_fit, contrast = c(-cntrst, cntrst))
+    }else if(method == "edgeR"){
+      did_fit <- edger_fit(comb_mat, design = comb_design_mat, offset = log(mod_size_factor_matrix + 1e-10))
+      did_res <- edger_test_de(did_fit,  c(-cntrst, cntrst))
+    }
+    colnames(did_res) <- paste0("did_", colnames(did_res))
 
-
-
-
-
-
-
-
+    cbind(de_regions, de_res[,-1], did_res[,c("did_pval", "did_adj_pval", "did_lfc")])
+  }else{
+    cbind(de_regions, de_res[,-1])
   }
-  cbind(de_regions, de_res[,-1])
+
 }
 
 
 neighborhood_normal_test <- function(de_regions, values, group_by, contrast, design, col_data,
-                                     shrink = TRUE, de_region_index_name = "indices", verbose = TRUE){
+                                     shrink = TRUE, de_region_index_name = "indices", add_diff_in_diff = TRUE, verbose = TRUE){
   if(is.null(de_regions$name)){
     stop("The de_region data frame must contain a column called 'name'.")
   }
@@ -568,9 +567,31 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
 
   if(verbose) message("Fit limma model")
   lm_fit <- limma_fit(M, design, col_data = split_res$key)
-  tt <- limma_test_de(lm_fit, {{contrast}}, design, values = M, shrink = shrink)
+  de_res <- limma_test_de(lm_fit, {{contrast}}, design, values = M, shrink = shrink)
 
-  cbind(de_regions, pval = tt$P.Value, adj_pval = tt$adj.P.Val, t_statistic = tt$t, lfc = tt$logFC)
+  if(add_diff_in_diff){
+    mm <- lm_fit$design
+    inverse_mask <- (1 - mask)
+    compl_masked_values <- values[de_regions$name,,drop=FALSE] * inverse_mask
+    CM <- aggregate_matrix(compl_masked_values, group_split, MatrixGenerics::rowSums2) /
+      aggregate_matrix(inverse_mask, group_split, MatrixGenerics::rowSums2)
+    cntrst <- parse_contrast({{contrast}}, design)
+    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, y) x)
+
+    comb_mat <- unname(cbind(M, CM))
+    zero_mat <- array(0, dim = dim(mm))
+    # Fit the model separately to the neighborhood and its complement
+    comb_design_mat <- unname(rbind(cbind(mm, zero_mat), cbind(zero_mat, mm)))
+    if(verbose) message("Fit diff-in-diff effect")
+    did_fit <- limma_fit(comb_mat, comb_design_mat)
+    did_res <- limma_test_de(did_fit, c(-cntrst, cntrst), design = NULL, values = comb_mat, shrink = shrink)
+    colnames(did_res) <- paste0("did_", colnames(did_res))
+
+    cbind(de_regions, de_res[,-1], did_res[,c("did_pval", "did_adj_pval", "did_lfc")])
+  }else{
+    cbind(de_regions, de_res[,-1])
+  }
+
 }
 
 
