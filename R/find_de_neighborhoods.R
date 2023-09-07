@@ -57,14 +57,20 @@ glmGamPoi::vars
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param control_parameters named list with additional parameters passed to underlying functions.
 #'
-#' @return a data frame with one entry per gene / neighborhood containing the name
-#'   of the neighborhood, the cell indices included in the neighborhood, the number of
-#'   cells, and the selection statistic. If `independent_matrix` is not `NULL`, the data frame will
-#'   also contain columns from the `limma` / `glmGamPoi` pseudobulk test (pval, adj_pval,
-#'   t_statistic / f_statistic, and lfc). If `add_diff_in_diff` is `TRUE`, the data frame will
-#'   also contain three columns from a test measuring if the differential expression in the
-#'   neighborhood is significantly different from the differential expression of the cells not in the
-#'   neighborhood.
+#' @return a data frame with one entry per gene
+#'   \describe{
+#'      \item{`name`}{The gene name.}
+#'      \item{`neighborhood`}{A list column where each element is a vector with the cell names included
+#'      in that neighborhood.}
+#'      \item{`n_cells`}{the number of cells in the neighborhood (`lengths(neighborhood)`).}
+#'      \item{`sel_statistic`}{The statistic that is maximized by the `selection_procedure`.}
+#'      \item{`pval`, `adj_pval`, `t_statistic`, `lfc`}{The p-value, Benjamini-Hochberg adjusted p-value (FDR), the
+#'      t-statistic, and the log2 fold change of the differential expression test defined by `contrast` for the
+#'      cells inside the neighborhood (calculated using `test_method`). Only present if `test_data` is not `NULL`.}
+#'      \item{`did_pval`, `did_adj_pval`, `did_lfc`}{The measurement if the differential expression of the cells
+#'      inside the neigbhorhood is significantly different from the differential expression of the cells outside
+#'      the neighborhood. Only present if `add_diff_in_diff = TRUE`.}
+#'   }
 #'
 #' @export
 find_de_neighborhoods <- function(fit,
@@ -266,24 +272,26 @@ find_de_neighborhoods <- function(fit,
   if("indices" %in% colnames){
     names <- if(merge_indices_columns) colnames(fit)
     else colnames(fit$training_data)
-    de_regions[["members"]] <- if(! is.null(names)){
+    de_regions[["neighborhood"]] <- if(! is.null(names)){
       if(length(names) != length(unique(names))) warning("`colnames(fit)` are not unique.")
       I(lapply(de_regions[["indices"]], \(idx) names[idx]))
     }else{
       de_regions[["indices"]]
     }
-    colnames[colnames == "indices"] <- "members"
+    colnames[colnames == "indices"] <- "neighborhood"
   }
 
   if("independent_indices" %in% colnames){
     names <- colnames(test_data)
-    de_regions[["independent_members"]] <- if(! is.null(names)){
+    de_regions[["neighborhood_test_data"]] <- if(! is.null(names)){
       if(length(names) != length(unique(names))) warning("`colnames(test_data)` are not unique.")
       I(lapply(de_regions[["independent_indices"]], \(idx) names[idx]))
     }else{
       de_regions[["independent_indices"]]
     }
-    colnames[colnames == "independent_indices"] <- "independent_members"
+    colnames[colnames == "independent_indices"] <- "neighborhood_test_data"
+    colnames[colnames == "neighborhood"] <- "neighborhood_training_data"
+    names(de_regions)[names(de_regions) == "neighborhood"]  <- "neighborhood_training_data"
   }
 
   de_regions[colnames]

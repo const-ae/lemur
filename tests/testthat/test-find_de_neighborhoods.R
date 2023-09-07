@@ -214,7 +214,7 @@ test_that("find_de_neighborhoods_with_contrast works", {
                                 make_neighborhoods_consistent = FALSE, skip_confounded_neighborhoods = FALSE,
                                 directions = dirs, verbose = FALSE,
                                 control_parameters = list(find_de_neighborhoods_with_contrast.ridge_penalty = 1e-6))
-  expect_equal(nei_orig$members, nei_orig$independent_members)
+  expect_equal(nei_orig$neighborhood_training_data, nei_orig$neighborhood_test_data)
 
   set.seed(1)
   nei <- find_de_neighborhoods_with_contrast(fit, dirs, vars(individual, condition),
@@ -264,8 +264,8 @@ test_that("find_de_neighborhoods works", {
                                      selection_procedure = "contrast", directions = "contrast",
                                      test_method = "limma",
                                      verbose = FALSE)
-  expect_equal(de_neigh7[,c("name", "members", "n_cells", "sel_statistic")],
-               de_neigh5[,c("name", "members", "n_cells", "sel_statistic")])
+  expect_equal(de_neigh7[,c("name", "neighborhood", "n_cells", "sel_statistic")],
+               de_neigh5[,c("name", "neighborhood", "n_cells", "sel_statistic")])
 })
 
 
@@ -277,7 +277,7 @@ test_that("find_de_neighborhoods works with subset", {
   fit_red <- fit[,1:200]
   expect_error(find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:10], verbose = FALSE))
   de_red <- find_de_neighborhoods(fit_red, de_mat = assay(fit, "DE")[,1:200], test_method = "none", verbose = FALSE)
-  expect_true(all(vapply(de_red$members, \(names) all(names %in% colnames(fit_red)), FUN.VALUE = logical(1))))
+  expect_true(all(vapply(de_red$neighborhood, \(names) all(names %in% colnames(fit_red)), FUN.VALUE = logical(1))))
 })
 
 test_that("find_de_neighborhoods works for subsetted data", {
@@ -296,7 +296,7 @@ test_that("find_de_neighborhoods works for subsetted data", {
     nei2 <- find_de_neighborhoods(fit_subset, group_by = vars(individual, condition), selection_procedure = "zscore",
                                   test_method = "limma",  verbose = FALSE)
   })
-  cols <- c("name", "members", "n_cells", "sel_statistic", "lfc")
+  cols <- c("name", "neighborhood", "n_cells", "sel_statistic", "lfc")
   expect_equal(nei[1:10, cols], nei2[,cols])
 })
 
@@ -311,7 +311,7 @@ test_that("find_de_neighborhoods works reasonably well with counts", {
   set.seed(1)
   de_neigh <- find_de_neighborhoods(fit, group_by = vars(pat, condition), de_mat = assay(fit, "DE"),
                                     contrast = cond(condition = "a") - cond(condition = "b"), verbose = FALSE)
-  expect_equal(colnames(de_neigh), c("name", "members", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc", "did_pval", "did_adj_pval", "did_lfc"))
+  expect_equal(colnames(de_neigh), c("name", "neighborhood", "n_cells", "sel_statistic", "pval", "adj_pval", "f_statistic", "df1", "df2", "lfc", "did_pval", "did_adj_pval", "did_lfc"))
   set.seed(1)
   de_neigh2 <- find_de_neighborhoods(fit, group_by = vars(pat, condition), verbose = FALSE)
   expect_equal(de_neigh, de_neigh2)
@@ -343,7 +343,7 @@ test_that("find_de_neighborhoods works if test_data is NULL", {
   fit <- test_de(fit, contrast = cond(condition = "a") - cond(condition = "b"))
   nei <- find_de_neighborhoods(fit, group_by = vars(individual, condition), selection_procedure = "zscore",
                                test_data = NULL, verbose = FALSE)
-  expect_equal(nei$independent_members, I(lapply(1:50, \(i) integer(0L))))
+  expect_equal(nei$neighborhood_test_data, I(lapply(1:50, \(i) integer(0L))))
 })
 
 

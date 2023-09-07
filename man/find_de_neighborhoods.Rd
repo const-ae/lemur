@@ -98,14 +98,20 @@ that those imbalanced neighborhood are not considered for differential expressio
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }
 \value{
-a data frame with one entry per gene / neighborhood containing the name
-of the neighborhood, the cell indices included in the neighborhood, the number of
-cells, and the selection statistic. If \code{independent_matrix} is not \code{NULL}, the data frame will
-also contain columns from the \code{limma} / \code{glmGamPoi} pseudobulk test (pval, adj_pval,
-t_statistic / f_statistic, and lfc). If \code{add_diff_in_diff} is \code{TRUE}, the data frame will
-also contain three columns from a test measuring if the differential expression in the
-neighborhood is significantly different from the differential expression of the cells not in the
-neighborhood.
+a data frame with one entry per gene
+\describe{
+\item{\code{name}}{The gene name.}
+\item{\code{neighborhood}}{A list column where each element is a vector with the cell names included
+in that neighborhood.}
+\item{\code{n_cells}}{the number of cells in the neighborhood (\code{lengths(neighborhood)}).}
+\item{\code{sel_statistic}}{The statistic that is maximized by the \code{selection_procedure}.}
+\item{\code{pval}, \code{adj_pval}, \code{t_statistic}, \code{lfc}}{The p-value, Benjamini-Hochberg adjusted p-value (FDR), the
+t-statistic, and the log2 fold change of the differential expression test defined by \code{contrast} for the
+cells inside the neighborhood (calculated using \code{test_method}). Only present if \code{test_data} is not \code{NULL}.}
+\item{\code{did_pval}, \code{did_adj_pval}, \code{did_lfc}}{The measurement if the differential expression of the cells
+inside the neigbhorhood is significantly different from the differential expression of the cells outside
+the neighborhood. Only present if \code{add_diff_in_diff = TRUE}.}
+}
 }
 \description{
 Find differential expression neighborhoods
