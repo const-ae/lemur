@@ -4,12 +4,14 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%",
+  out.width = "80%",
+  fig.asp = 0.5,
+  fig.align = "center",
   dpi = 300
 )
 ```
@@ -41,8 +43,10 @@ This package is being actively developed, and I am still making breaking changes
 ## Quick start
 
 ```{r preparation, echo=FALSE}
-set.seed(1)
-sce <- lemur::glioblastoma_example_data[1:50,sample.int(5000, size = 500)]
+library(lemur)
+set.seed(42)
+data(glioblastoma_example_data)
+sce <- glioblastoma_example_data[1:50,sample.int(5000, size = 500)]
 ```
 
 ```{r quick_start, message=FALSE, warning=FALSE}
@@ -57,7 +61,7 @@ nei <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
 
 ## A worked through example
 
-We will demonstrate `lemur` using a dataset by Zhao et al. (2021). The data consist of tumor biopsies from five glioblastomas which were treated with the drug panobinostat and with a control. Accordingly, we will analyze ten samples (patient-treatment combinations) using a paired experimental design.
+We will demonstrate `lemur` using a dataset published by [Zhao et al. (2021)](https://doi.org/10.1186/s13073-021-00894-y). The data consist of tumor biopsies from five glioblastomas which were treated with the drug panobinostat and with a control. Accordingly, we will analyze ten samples (patient-treatment combinations) using a paired experimental design.
 
 We start by loading some required packages.
 
@@ -71,7 +75,8 @@ set.seed(42)
 We use a reduced-size version of the glioblastoma data that ships with the `lemur` package.
 
 ```{r load_data}
-lemur::glioblastoma_example_data
+data(glioblastoma_example_data)
+glioblastoma_example_data
 ```
 
 Initially, the data separates by the known covariates `patient_id` and `condition`.
@@ -110,11 +115,12 @@ umap <- uwot::umap(t(fit$embedding))
 as_tibble(fit$colData) %>%
   mutate(umap = umap) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    geom_point(aes(color = patient_id), size = 0.5) +
+    facet_wrap(vars(condition)) +
     labs(title = "UMAP of latent space from LEMUR")
 ```
 
-Next, we will calculate the expected effect of the panobinostat treatment for each gene and cell. The `test_de` function takes a `lemur_fit_obj` and returns with a new assay `"DE"` with the predicted difference between two conditions specified in the `contrast`. Note that `lemur` implements a special notation for contrasts. Instead of providing a contrast vector or design matrix column names, you provide for each *condition* the levels, and `lemur` automatically forms the contrast vector. This makes the contrast more readable.
+Next, we will calculate the expected effect of the panobinostat treatment for each gene and cell. The `test_de` function takes a `lemur_fit` object and returns the object with a new assay `"DE"`. This assay contains the predicted log fold change between the conditions specified in `contrast`. Note that `lemur` implements a special notation for contrasts. Instead of providing a contrast vector or design matrix column names, you provide for each *condition* the levels, and `lemur` automatically forms the contrast vector. This makes the contrast more readable.
 
 ```{r lemur_test_de}
 fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
@@ -123,41 +129,39 @@ fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition
 We can pick any gene and show the differential expression pattern on the UMAP plot:
 
 ```{r umap_de}
-# EEF1A1
-sel_gene <- "ENSG00000156508"
+sel_gene <- "ENSG00000172020" # is GAP43
 
 tibble(umap = umap) %>%
-  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
+  mutate(de = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = expr)) +
+    geom_point(aes(color = de)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
 ```
 
-Alternatively, we can use the matrix of differential expression values (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that show consistent differential expression. If we provide a count matrix, the function uses a pseudobulked differential expression test to confirm the gene expression differences on the count level.
+Alternatively, we can use the matrix of differential expression values (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that show consistent differential expression. In addition, `find_de_neighborhoods` uses the `fit$test_data`, which was put aside in the first `lemur()` call, to perform a pseudobulked-differential expression test. Furthermore, it calculates if the difference between the conditions is significantly larger for the cells inside the neighborhood than the cells outside the neighborhood (columns starting with `did`, short for difference-in-difference).
 
 The `group_by` argument determines how the pseudobulk samples are formed. It specifies the columns in the `fit$colData` that are used to define a sample and is inspired by the `group_by` function in `dplyr`. Typically, you provide the covariates that were used for the experimental design plus the sample id (in this case `patient_id`).
 
-```{r de_neighborhoods}
-neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition),
-                                      include_complement = FALSE)
+```{r de_neighborhoods, paged.print=FALSE}
+neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
 
 as_tibble(neighborhoods) %>%
+  left_join(as_tibble(rowData(fit)[,1:2]), by = c("name" = "gene_id")) %>%
+  relocate(symbol, .before = "name") %>%
   arrange(pval) %>%
-  left_join(as_tibble(rowData(fit)), by = c("name" = "gene_id")) %>%
-  dplyr::select(name, symbol, n_cells, pval, adj_pval)
+  dplyr::select(symbol, neighborhood, name, n_cells, pval, adj_pval, lfc, did_lfc) 
 ```
 
-We can now specifically select regions with significant differential expression:
+To continue, we investigate one gene for which the neighborhood shows a significant differential expression pattern:  here we choose a _CXCL8_ (also known as interleukin 8), an important inflammation signalling molecule. We see that it is upregulated by panobinostat in a subset of cells (blue). We chose this gene because it (1) had a significant change between panobinostat and negative control condition (`adj_pval` column) and (2) showed much larger differential expression for the cells inside the neighborhood than for the cells outside (`did_lfc` column).
 
 ```{r umap_de2}
-# HLA-DRB1
-sel_gene <- "ENSG00000196126"
+sel_gene <- "ENSG00000169429" # is CXCL8
 
 tibble(umap = umap) %>%
-  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
+  mutate(de = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = expr)) +
+    geom_point(aes(color = de)) +
     scale_color_gradient2() +
     labs(title = "Differential expression on UMAP plot")
 ```
@@ -166,36 +170,96 @@ To plot the boundaries of the differential expression neighborhood, we create a 
 
 ```{r umap_de3}
 neighborhood_coordinates <- neighborhoods %>%
-  dplyr::filter(selection & name == sel_gene) %>%
-  mutate(cell_id = map(indices, \(idx) colnames(fit)[idx])) %>%
-  unnest(c(indices, cell_id)) %>%
+  dplyr::filter(name == sel_gene) %>%
+  unnest(c(neighborhood)) %>%
+  dplyr::rename(cell_id = neighborhood) %>%
   left_join(tibble(cell_id = rownames(umap), umap), by = "cell_id") %>%
   dplyr::select(name, cell_id, umap)
 
 tibble(umap = umap) %>%
-  mutate(expr = assay(fit, "DE")[sel_gene,]) %>%
+  mutate(de = assay(fit, "DE")[sel_gene,]) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = expr)) +
+    geom_point(aes(color = de)) +
     scale_color_gradient2() +
-    geom_density2d(data = neighborhood_coordinates, breaks = 0.1, 
+    geom_density2d(data = neighborhood_coordinates, breaks = 0.5, 
                    contour_var = "ndensity", color = "black") +
     labs(title = "Differential expression with neighborhood boundary")
 
 ```
 
-We make a volcano plot of the differential expression results to better understand the expression differences across all genes.
+To summarize the results, we make a volcano plot of the differential expression results to better understand the expression differences across all genes.
 
 ```{r volcano_plot}
 neighborhoods %>%
+  drop_na() %>%
   ggplot(aes(x = lfc, y = -log10(pval))) +
     geom_point(aes(color  = adj_pval < 0.1)) +
     labs(title = "Volcano plot of the neighborhoods")
 
 neighborhoods %>%
+  drop_na() %>%
   ggplot(aes(x = n_cells, y = -log10(pval))) +
     geom_point(aes(color  = adj_pval < 0.1)) +
     labs(title = "Neighborhood size vs neighborhood significance")
 ```
+
+This analysis was conducted without using any cell type information. Often, additional cell type information is available or can be annotated manually. Here, we can for example distinguish the tumor cells from cells of the microenvironment, because all tumors had a chromosome 10 deletion and chromosome 7 duplication. We build a simple classifier to distinguish the cells accordingly. (This is just to illustrate the process, in reality, we would use more sophisticated methods.)
+
+```{r tumor_cell_annotation, paged.print=FALSE}
+tumor_label_df <- tibble(cell_id = colnames(fit),
+       chr7_total_expr = colMeans(logcounts(fit)[rowData(fit)$chromosome == "7",]),
+       chr10_total_expr = colMeans(logcounts(fit)[rowData(fit)$chromosome == "10",])) %>%
+  mutate(is_tumor = chr7_total_expr > 0.8 & chr10_total_expr < 2.5)
+
+
+ggplot(tumor_label_df, aes(x = chr10_total_expr, y = chr7_total_expr)) +
+    geom_point(aes(color = is_tumor), size = 0.5) +
+    geom_hline(yintercept = 0.8) +
+    geom_vline(xintercept = 2.5) +
+    labs(title = "Simple gating strategy to find tumor cells")
+
+tibble(umap = umap) %>%
+  mutate(is_tumor = tumor_label_df$is_tumor) %>%
+  ggplot(aes(x = umap[,1], y = umap[,2])) +
+    geom_point(aes(color = is_tumor), size = 0.5) +
+    labs(title = "The tumor cells are enriched in the left population") +
+    facet_wrap(vars(is_tumor))
+```
+
+We use the cell annotation, to focus our neighborhood finding on subpopulations of the tumor.
+
+```{r tumor_de_neighborhood, paged.print=FALSE}
+tumor_fit <- fit[, tumor_label_df$is_tumor]
+tum_nei <- find_de_neighborhoods(tumor_fit, group_by = vars(patient_id, condition))
+
+as_tibble(tum_nei) %>%
+  left_join(as_tibble(rowData(fit)[,1:2]), by = c("name" = "gene_id")) %>%
+  dplyr::relocate(symbol, .before = "name") %>%
+  filter(adj_pval < 0.1) %>%
+  arrange(did_pval)  %>%
+  dplyr::select(symbol, name, neighborhood, n_cells, adj_pval, lfc, did_pval, did_lfc) %>%
+  print(n = 10)
+```
+
+Focusing on RPS11, we see that panobinostat mostly has no effect on its expression, except for a subpopulation of tumor cells where RPS11 was originally upregulated and panobinostat downregulates the expression. A small caveat: this analysis is conducted on a subset of all cells and should be interpreted carefully. Yet, this section demonstrates how `lemur` can be used to find tumor subpopulations which show differential responses to treatments.
+
+```{r tumor_de_neighborhood_plot, paged.print=FALSE}
+sel_gene <- "ENSG00000142534" # is RPS11
+
+as_tibble(colData(fit)) %>%
+  mutate(expr = assay(fit, "logcounts")[sel_gene,]) %>%
+  mutate(is_tumor = tumor_label_df$is_tumor) %>%
+  mutate(in_neighborhood = id %in% filter(tum_nei, name == sel_gene)$neighborhood[[1]]) %>%
+  ggplot(aes(x = condition, y = expr)) +
+    geom_jitter() +
+    geom_point(data = . %>% summarize(expr = mean(expr), .by = c(condition, patient_id, is_tumor, in_neighborhood)),
+               aes(color = patient_id), size = 2) +
+    stat_summary(fun.data = mean_se, geom = "crossbar", color = "red") +
+    # scale_y_log10()
+    facet_wrap(vars(is_tumor, in_neighborhood), labeller = label_both) 
+
+```
+
 
 # FAQ
 
