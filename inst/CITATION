@@ -1,0 +1,8 @@
+bibentry(
+  bibtype  = "Article",
+  title    = "Analysis of multi-condition single-cell data with latent embedding multivariate regression",
+  author   = "Constantin Ahlmann-Eltze and Wolfgang Huber",
+  journal  = "bioRxiv",
+  year     = 2023,
+  doi      = "10.1101/2023.03.06.531268"
+)
