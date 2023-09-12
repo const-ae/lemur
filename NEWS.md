@@ -1,3 +1,9 @@
+# v0.0.27
+
+* Instead of `include_complement`, the `find_de_neighborhoods` function gains a `add_diff_in_diff` argument. If it is true, the function calculates the difference between the DE results inside the neighborhood vs. outside.
+* Change `indices` columns to `neighborhood` and store list of cell name vectors in output of `find_de_neighborhoods`.
+* Enforce unique column and row names.
+
 # v0.0.26
 
 * Make the neighborhoods more consistent: (1) include cells which are connected to many cells inside the neighborhood, (2) exclude cells from the neighborhood which are not well connected to the other cells in the neighborhood.
