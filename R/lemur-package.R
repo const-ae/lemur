@@ -21,3 +21,6 @@ NULL
 ## usethis namespace: end
 NULL
 
+# Satisfy NOTE from CRAN CMD check
+# Both are used in 'find_de_neighborhoods'
+utils::globalVariables(c("cntrst", "..did_indicator"))

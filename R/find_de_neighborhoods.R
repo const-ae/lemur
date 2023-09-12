@@ -204,17 +204,17 @@ find_de_neighborhoods <- function(fit,
       # Do nothing. The 'contrast' is probably an unquoted expression
     })
 
-    # Add cells which neighbor more than 10 cells in the neighborhood,
-    # remove cells which have less than 10 neighbors in the neighborhood.
     if(make_neighborhoods_consistent){
+      # Add cells which neighbor more than 10 cells in the neighborhood,
+      # remove cells which have less than 10 neighbors in the neighborhood.
       de_regions[["independent_indices"]] <- make_neighborhoods_consistent(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
                                                                            design = fit$design, col_data = colData(test_data),
                                                                            knn = control_parameters$make_neighborhoods_consistent.knn,
                                                                            cell_inclusion_threshold = control_parameters$make_neighborhoods_consistent.cell_inclusion_threshold,
                                                                            verbose = verbose)
     }
-    # Check if neighborhood is balanced between the conditions
     if(skip_confounded_neighborhoods){
+      # Check if neighborhood is balanced between the conditions
       de_regions[["independent_indices"]] <- null_confounded_neighborhoods(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
                                                                            design = fit$design, col_data = colData(test_data),
                                                                            normal_quantile = control_parameters$null_confounded_neighborhoods.normal_quantile,

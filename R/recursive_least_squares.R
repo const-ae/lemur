@@ -95,7 +95,6 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge
     # Avoid zero or negative numbers
     covar <- rss / max(1e-8, n_obs - k) * gamma
     se_sq <- contrast %*% covar %*% t(contrast)
-    if(is.na(se_sq)) browser()
     if(se_sq > 0){
       t_stat[idx] <- sum(drop(contrast) * beta) / sqrt(se_sq)
     }
