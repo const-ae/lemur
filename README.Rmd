@@ -5,15 +5,17 @@ output: github_document
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "80%",
-  fig.asp = 0.5,
-  fig.align = "center",
-  dpi = 300
-)
+if(! exists("..options_set") || isFALSE(..options_set)){
+  knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.path = "man/figures/README-",
+    out.width = "80%",
+    fig.asp = 0.5,
+    fig.align = "center",
+    dpi = 300
+  )
+}
 ```
 
 # Latent Embedding Multivariate Regression (LEMUR)

@@ -1,0 +1,30 @@
+---
+title: "Introduction"
+author: Constantin Ahlmann-Eltze
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  BiocStyle::html_document:
+    number_sections: false
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup_alt, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  dpi = 40,
+  fig_retina = 1,
+  dev = "jpeg"
+  # dev.args = list(quality = 20)
+)
+..options_set <- TRUE
+```
+
+```{r child = "../README.Rmd"}
+
+```
+

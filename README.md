@@ -517,7 +517,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
-#> [21] lemur_0.0.26               
+#> [21] lemur_0.0.27               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                

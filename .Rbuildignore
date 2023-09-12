@@ -1,5 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^README\.Rmd$
 ^LICENSE\.md$
-^man/*\.ai
+^man/.*\.ai$
+^man/figures/README-.*$
+^vignettes/man/figures/README-.*$
