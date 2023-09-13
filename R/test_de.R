@@ -8,6 +8,7 @@
 #' @param embedding matrix of size `n_embedding` \eqn{\times} `n` that specifies where in the latent space
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
+#' @param new_assay_name the name of the assay added to the `fit` object. Default: `"DE"`.
 #'
 #' @returns If `is.null(embedding)` the `fit` object with a new assay called `"DE"`. Otherwise
 #'  return a matrix with the differential expression values.
@@ -35,7 +36,8 @@
 test_de <- function(fit,
                     contrast,
                     embedding = NULL,
-                    consider = c("embedding+linear", "embedding", "linear")){
+                    consider = c("embedding+linear", "embedding", "linear"),
+                    new_assay_name = "DE"){
   if(is.null(embedding)){
     embedding <- fit$embedding
     use_provided_diff_emb <- FALSE
@@ -58,7 +60,7 @@ test_de <- function(fit,
   if(use_provided_diff_emb){
     diff
   }else{
-    assay(fit, "DE") <- diff
+    assay(fit, new_assay_name) <- diff
     metadata(fit)[["contrast"]] <- cntrst
 
     fit

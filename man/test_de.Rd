@@ -8,7 +8,8 @@ test_de(
   fit,
   contrast,
   embedding = NULL,
-  consider = c("embedding+linear", "embedding", "linear")
+  consider = c("embedding+linear", "embedding", "linear"),
+  new_assay_name = "DE"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ compare treatment A vs C for male observations). Unspecified factors default to 
 the differential expression is tested. It defaults to the position of all cells from the original fit.}
 
 \item{consider}{specify which part of the model are considered for the differential expression test.}
+
+\item{new_assay_name}{the name of the assay added to the \code{fit} object. Default: \code{"DE"}.}
 }
 \value{
 If \code{is.null(embedding)} the \code{fit} object with a new assay called \code{"DE"}. Otherwise
