@@ -1,3 +1,7 @@
+# v0.99.1
+
+* Submission to Bioconductor, thus the jump in version number.
+
 # v0.0.27
 
 * Instead of `include_complement`, the `find_de_neighborhoods` function gains a `add_diff_in_diff` argument. If it is true, the function calculates the difference between the DE results inside the neighborhood vs. outside.
