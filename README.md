@@ -331,10 +331,10 @@ neighborhoods %>%
 This analysis was conducted without using any cell type information.
 Often, additional cell type information is available or can be annotated
 manually. Here, we can for example distinguish the tumor cells from
-cells of the microenvironment, because all tumors had a chromosome 10
+cells of the microenvironment, because the tumors had a chromosome 10
 deletion and chromosome 7 duplication. We build a simple classifier to
 distinguish the cells accordingly. (This is just to illustrate the
-process, in reality, we would use more sophisticated methods.)
+process; for a real analysis, we would use more sophisticated methods.)
 
 ``` r
 tumor_label_df <- tibble(cell_id = colnames(fit),
@@ -418,11 +418,10 @@ as_tibble(colData(fit)) %>%
   mutate(is_tumor = tumor_label_df$is_tumor) %>%
   mutate(in_neighborhood = id %in% filter(tum_nei, name == sel_gene)$neighborhood[[1]]) %>%
   ggplot(aes(x = condition, y = expr)) +
-    geom_jitter() +
+    geom_jitter(size = 0.3, stroke = 0) +
     geom_point(data = . %>% summarize(expr = mean(expr), .by = c(condition, patient_id, is_tumor, in_neighborhood)),
                aes(color = patient_id), size = 2) +
     stat_summary(fun.data = mean_se, geom = "crossbar", color = "red") +
-    # scale_y_log10()
     facet_wrap(vars(is_tumor, in_neighborhood), labeller = label_both) 
 ```
 
