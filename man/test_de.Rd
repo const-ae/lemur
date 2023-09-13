@@ -34,6 +34,8 @@ return a matrix with the differential expression values.
 Predict log fold changes between conditions for each cell
 }
 \examples{
+library(SummarizedExperiment)
+library(SingleCellExperiment)
 
 data(glioblastoma_example_data)
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,

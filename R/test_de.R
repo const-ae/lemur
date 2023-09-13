@@ -16,6 +16,8 @@
 #' @seealso [find_de_neighborhoods]
 #'
 #' @examples
+#' library(SummarizedExperiment)
+#' library(SingleCellExperiment)
 #'
 #' data(glioblastoma_example_data)
 #' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
