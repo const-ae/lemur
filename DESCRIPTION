@@ -18,7 +18,6 @@ LazyData: false
 Imports: 
     stats,
     utils,
-    expm,
     irlba,
     methods,
     SingleCellExperiment,
