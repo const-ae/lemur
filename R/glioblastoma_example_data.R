@@ -7,7 +7,7 @@
 #'
 #' The original data was collected by Zhao et al. (2021).
 #'
-#' @returns A [`SingleCellExperimenbt`] object.
+#' @returns A [`SingleCellExperiment`] object.
 #'
 #' @references
 #' * Zhao, Wenting, Athanassios Dovas, Eleonora Francesca Spinazzi, Hanna Mendes Levitin, Matei Alexandru Banu, Pavan Upadhyayula, Tejaswi Sudhakar, et al.
@@ -16,3 +16,4 @@
 #'
 #' @name glioblastoma_example_data
 NULL
+

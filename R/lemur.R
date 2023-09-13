@@ -32,6 +32,12 @@
 #'
 #' @seealso [`align_by_grouping`], [`align_harmony`], [`test_de`], [`find_de_neighborhoods`]
 #'
+#' @examples
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5)
+#' fit
+#'
+#'
 #' @export
 lemur <- function(data, design = ~ 1, col_data = NULL,
                   n_embedding = 15,

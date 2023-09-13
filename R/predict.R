@@ -24,6 +24,21 @@
 #'
 #' @seealso [`residuals`][residuals,lemur_fit-method]
 #'
+#' @examples
+#'
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+#'              n_emb = 5, verbose = FALSE)
+#'
+#' pred <- predict(fit)
+#'
+#' pred_ctrl <- predict(fit, newdesign = c(1, 0, 0, 0, 0, 0))
+#' pred_trt <-  predict(fit, newdesign = c(1, 0, 0, 0, 0, 1))
+#' # This is the same as the test_de result
+#' fit <- test_de(fit, cond(condition = "panobinostat") - cond(condition = "ctrl"))
+#' all.equal(SummarizedExperiment::assay(fit, "DE"), pred_trt - pred_ctrl,
+#'           check.attributes = FALSE)
+#'
 #' @export
 predict.lemur_fit <- function(object, newdata = NULL, newdesign = NULL,
                                embedding = object$embedding,
@@ -118,6 +133,15 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 #' @returns A matrix with the same dimension `dim(object)`.
 #'
 #' @seealso [predict.lemur_fit]
+#'
+#' @examples
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+#'              n_emb = 5, verbose = FALSE)
+#'
+#' resid <- residuals(fit)
+#' dim(resid)
+#'
 #'
 #' @export
 setMethod("residuals", signature = "lemur_fit", function(object,

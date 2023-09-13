@@ -53,6 +53,13 @@ For details see the \linkS4class{lemur_fit} help page.
 \description{
 Main function to fit the latent embedding multivariate regression (LEMUR) model
 }
+\examples{
+data(glioblastoma_example_data)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5)
+fit
+
+
+}
 \references{
 \itemize{
 \item Ahlmann-Eltze, C. & Huber, W. (2023). Analysis of multi-condition single-cell data with latent

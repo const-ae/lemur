@@ -33,6 +33,19 @@
 #' @rdname lemur_fit
 #' @aliases lemur_fit
 #'
+#' @examples
+#' # The easiest way to make a lemur_fit object, is to call `lemur`
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+#'              n_emb = 5, verbose = FALSE)
+#'
+#' fit$n_embedding
+#' fit$embedding[,1:10]
+#' fit$n_embedding
+#' fit$embedding[,1:10]
+#' fit$design_matrix[1:10,]
+#' fit$coefficients[1:3,,]
+#'
 #' @export
 .lemur_fit <- setClass("lemur_fit", contains = "SingleCellExperiment")
 

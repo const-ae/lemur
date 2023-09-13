@@ -14,6 +14,23 @@
 #'
 #' @seealso [find_de_neighborhoods]
 #'
+#' @examples
+#'
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+#'              n_emb = 5, verbose = FALSE)
+#' # Optional alignment
+#' # fit <- align_harmony(fit)
+#' fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+#'
+#' # The fit object contains a new assay called "DE"
+#' assayNames(fit)
+#'
+#' # The DE assay captures differences between conditions
+#' is_ctrl_cond <- fit$colData$condition == "ctrl"
+#' mean(logcounts(fit)[1,!is_ctrl_cond]) - mean(logcounts(fit)[1,is_ctrl_cond])
+#' mean(assay(fit, "DE")[1,])
+#'
 #' @export
 test_de <- function(fit,
                     contrast,

@@ -17,6 +17,21 @@
 #'
 #' @returns The `fit` object with the updated `fit$embedding` and `fit$alignment_coefficients`.
 #'
+#' @examples
+#' data(glioblastoma_example_data)
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+#'              n_emb = 5, verbose = FALSE)
+#' # Creating some grouping for illustration
+#' cell_types <- sample(c("tumor cell", "neuron", "leukocyte"), size = ncol(fit), replace = TRUE)
+#' fit_al1 <- align_by_grouping(fit, grouping = cell_types)
+#'
+#' # Alternatively, use harmony to automatically group cells
+#' fit_al2 <- align_harmony(fit)
+#' fit_al2
+#'
+#' # The alignment coefficients are a 3D array
+#' fit_al2$alignment_coefficients
+#'
 #' @export
 align_harmony <- function(fit, design = fit$alignment_design,
                           ridge_penalty = 0.01, max_iter = 10, ..., verbose = TRUE){

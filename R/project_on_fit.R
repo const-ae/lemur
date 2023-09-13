@@ -17,6 +17,21 @@
 #' @returns Either a matrix with the low-dimensional embeddings of the `data` or
 #'   an object of class `lemur_fit` wrapping that embedding.
 #'
+#' @examples
+#'
+#' data(glioblastoma_example_data)
+#'
+#' subset1 <- glioblastoma_example_data[,1:2500]
+#' subset2 <- glioblastoma_example_data[,2501:5000]
+#'
+#' fit <- lemur(subset1, design = ~ patient_id + condition, n_emb = 5,
+#'              test_fraction = 0, verbose = FALSE)
+#'
+#' # Returns a `lemur_fit` object with the projection of `subset2`
+#' fit2 <- project_on_lemur_fit(fit, subset2, return = "lemur_fit")
+#' fit2
+#'
+#'
 #'
 #' @export
 project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcounts",

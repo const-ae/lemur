@@ -4,7 +4,7 @@
 \alias{glioblastoma_example_data}
 \title{The \code{glioblastoma_example_data} dataset}
 \value{
-A \code{\link{SingleCellExperimenbt}} object.
+A \code{\link{SingleCellExperiment}} object.
 }
 \description{
 The dataset is a \code{\link{SingleCellExperiment}} object subset to 5,000 cells and

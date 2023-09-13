@@ -23,6 +23,16 @@ A matrix with the same dimension \code{dim(object)}.
 \description{
 Predict values from \code{lemur_fit} object
 }
+\examples{
+data(glioblastoma_example_data)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+             n_emb = 5, verbose = FALSE)
+
+resid <- residuals(fit)
+dim(resid)
+
+
+}
 \seealso{
 \link{predict.lemur_fit}
 }

@@ -109,10 +109,21 @@ in that neighborhood.}
 t-statistic, and the log2 fold change of the differential expression test defined by \code{contrast} for the
 cells inside the neighborhood (calculated using \code{test_method}). Only present if \code{test_data} is not \code{NULL}.}
 \item{\code{did_pval}, \code{did_adj_pval}, \code{did_lfc}}{The measurement if the differential expression of the cells
-inside the neigbhorhood is significantly different from the differential expression of the cells outside
+inside the neighborhood is significantly different from the differential expression of the cells outside
 the neighborhood. Only present if \code{add_diff_in_diff = TRUE}.}
 }
 }
 \description{
 Find differential expression neighborhoods
+}
+\examples{
+data(glioblastoma_example_data)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
+             n_emb = 5, verbose = FALSE)
+# Optional alignment
+# fit <- align_harmony(fit)
+fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+nei <- find_de_neighborhoods(fit, group_by = vars(condition, patient_id))
+head(nei)
+
 }
