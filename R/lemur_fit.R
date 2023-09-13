@@ -4,7 +4,7 @@
 #' additional accessors to get the values of the values produced by [`lemur`].
 #'
 #' @param object the `lemur_fit` object for the [`BiocGenerics::design`] generic
-#' @param x,i,j,...,drop the `lemur_fitect` and indices for the `[` subsetting operator
+#' @param x,i,j,...,drop the `lemur_fit` object and indices for the `[` subsetting operator
 #'
 #' @details
 #'
@@ -28,7 +28,11 @@
 #'
 #' @seealso [`lemur`], [`predict`][predict.lemur_fit], [`residuals`][residuals,lemur_fit-method]
 #'
+#' @returns An object of class `lemur_fit`.
+#'
 #' @rdname lemur_fit
+#' @aliases lemur_fit
+#'
 #' @export
 .lemur_fit <- setClass("lemur_fit", contains = "SingleCellExperiment")
 
@@ -196,6 +200,8 @@ setMethod("design", signature = "lemur_fit", function(object){
 #' @param name the name of the value behind the dollar
 #' @param value the replacement value. This only works for `colData` and
 #'   `rowData`.
+#'
+#' @returns The respective value stored in the `lemur_fit` object.
 #'
 #' @seealso [`lemur_fit-class`] for more documentation on the
 #'   accessor functions.

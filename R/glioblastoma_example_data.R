@@ -7,6 +7,8 @@
 #'
 #' The original data was collected by Zhao et al. (2021).
 #'
+#' @returns A [`SingleCellExperimenbt`] object.
+#'
 #' @references
 #' * Zhao, Wenting, Athanassios Dovas, Eleonora Francesca Spinazzi, Hanna Mendes Levitin, Matei Alexandru Banu, Pavan Upadhyayula, Tejaswi Sudhakar, et al.
 #'    “Deconvolution of Cell Type-Specific Drug Responses in Human Tumor Tissue with Single-Cell RNA-Seq.” Genome Medicine 13, no. 1

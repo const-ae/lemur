@@ -16,6 +16,9 @@ ridge_regression(Y, X, ridge_penalty = 0, weights = rep(1, nrow(X)))
 
 \item{weights}{a vector of observation weights}
 }
+\value{
+The matrix of coefficients.
+}
 \description{
 The function does not treat the intercept special.
 }

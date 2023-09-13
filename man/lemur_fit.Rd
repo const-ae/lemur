@@ -4,6 +4,7 @@
 \name{lemur_fit-class}
 \alias{lemur_fit-class}
 \alias{.lemur_fit}
+\alias{lemur_fit}
 \alias{[,lemur_fit,ANY,ANY,ANY-method}
 \alias{design,lemur_fit-method}
 \title{The \code{lemur_fit} class}
@@ -13,9 +14,12 @@
 \S4method{design}{lemur_fit}(object)
 }
 \arguments{
-\item{x, i, j, ..., drop}{the \code{lemur_fitect} and indices for the \code{[} subsetting operator}
+\item{x, i, j, ..., drop}{the \code{lemur_fit} object and indices for the \code{[} subsetting operator}
 
 \item{object}{the \code{lemur_fit} object for the \code{\link[BiocGenerics:dge]{BiocGenerics::design}} generic}
+}
+\value{
+An object of class \code{lemur_fit}.
 }
 \description{
 The \code{lemur_fit} class extends \code{\link{SingleCellExperiment}} and provides

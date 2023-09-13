@@ -3,6 +3,9 @@
 \name{glioblastoma_example_data}
 \alias{glioblastoma_example_data}
 \title{The \code{glioblastoma_example_data} dataset}
+\value{
+A \code{\link{SingleCellExperimenbt}} object.
+}
 \description{
 The dataset is a \code{\link{SingleCellExperiment}} object subset to 5,000 cells and
 300 genes. The \code{colData} contain an entry for each cell from which patient

@@ -33,7 +33,7 @@ from the \code{fit} object.}
 \item{return}{which data structure is returned.}
 }
 \value{
-either a matrix with the low-dimensional embeddings of the \code{data} or
+Either a matrix with the low-dimensional embeddings of the \code{data} or
 an object of class \code{lemur_fit} wrapping that embedding.
 }
 \description{

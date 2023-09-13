@@ -45,7 +45,7 @@ independent set of test observations. Default: 20\% (\code{0.2}).}
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }
 \value{
-an object of class \code{lemur_fit} which extends \code{\link{SingleCellExperiment}}. Accordingly,
+An object of class \code{lemur_fit} which extends \code{\link{SingleCellExperiment}}. Accordingly,
 all functions that work for \code{sce}'s also work for \code{lemur_fit}'s. In addition, we
 give easy access to the fitted values using the dollar notation (e.g., \code{fit$embedding}).
 For details see the \linkS4class{lemur_fit} help page.

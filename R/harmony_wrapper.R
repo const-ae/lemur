@@ -41,6 +41,8 @@ harmony_init <- function(embedding, design_matrix,
 
 #' Create an arbitrary Harmony object so that I can modify it later
 #'
+#' @returns The full [`harmony`] object (R6 reference class type).
+#'
 #' @keywords internal
 harmony_new_object <- function(){
   Y <- randn(10, 3)

@@ -9,6 +9,7 @@
 #'   `covariates x covariates` respectively)
 #' @param weights a vector of observation weights
 #'
+#' @returns The matrix of coefficients.
 #'
 #' @keywords internal
 ridge_regression <- function(Y, X, ridge_penalty = 0, weights = rep(1, nrow(X))){

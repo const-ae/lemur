@@ -52,6 +52,9 @@ sym <- function(M){
 #' @param ncol the length of the output vector
 #' @param ... additional arguments that are passed to `FUN`
 #'
+#' @returns A matrix with `length(x)` / `nrow(x)` rows and `ncol` columns.
+#'   For `msply_dbl` the number of columns depends on the output of `FUN`.
+#'
 #' @keywords internal
 mply_dbl <- function(x, FUN, ncol=1, ...){
   if(!is.matrix(x)){
@@ -133,6 +136,8 @@ stack_cols <- function(x){
 #' The length of the list will become the third dimension of the cube.
 #'
 #' @param x a list of vectors/matrices that are stacked
+#'
+#' @returns A three-dimensional array.
 #'
 #' @keywords internal
 stack_slice <- function(x){
@@ -223,6 +228,8 @@ normalize_vec_length <- function(x){
 #'     # ... the same as
 #'     sum(1:10)
 #'   }
+#'
+#' @returns The final value of `accum`.
 #'
 #' @keywords internal
 fold_left <- function(init){
@@ -355,7 +362,16 @@ is_contrast_estimable <- function(contrast, design_matrix, tol = sqrt(.Machine$d
 
 #' Moore-Penrose pseudoinverse calculated via SVD
 #'
+#' In the simplest case, the pseudoinverse is
+#' \deqn{X^{+} = (X^T X)^{-1} X^T.}
+#'
+#' To handle the more general case, the pseudoinverse can expressed using a SVD
+#' \eqn{X = U D V^T}:
+#' \deqn{X^{+} = V D^{-1} U^T}
+#'
 #' @param X a matrix X
+#'
+#' @returns The matrix \eqn{X^{+}}.
 #'
 #' @keywords internal
 pseudoinverse <- function(X){

@@ -46,6 +46,9 @@ to a cluster (i.e., columns sum to \code{1}). \code{NA}'s are allowed.}
 Boolean flag to decide if \code{NA}s in the \code{grouping} mean that these cells should stay where they are (if
 possible) or if they are free to move around. Default: \code{FALSE}}
 }
+\value{
+The \code{fit} object with the updated \code{fit$embedding} and \code{fit$alignment_coefficients}.
+}
 \description{
 Enforce additional alignment of cell clusters beyond the direct differential embedding
 }

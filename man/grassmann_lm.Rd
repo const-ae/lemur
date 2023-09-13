@@ -6,6 +6,9 @@
 \usage{
 grassmann_lm(data, design, base_point, tangent_regression = FALSE)
 }
+\value{
+A three-dimensional array with the coefficients \code{V}.
+}
 \description{
 Solve ||Y - exp_p(V * x) Y ||^2_2 for V
 }

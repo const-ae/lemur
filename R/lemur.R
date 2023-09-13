@@ -21,7 +21,7 @@
 #' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
-#' @return an object of class `lemur_fit` which extends [`SingleCellExperiment`]. Accordingly,
+#' @return An object of class `lemur_fit` which extends [`SingleCellExperiment`]. Accordingly,
 #'   all functions that work for `sce`'s also work for `lemur_fit`'s. In addition, we
 #'   give easy access to the fitted values using the dollar notation (e.g., `fit$embedding`).
 #'   For details see the [lemur_fit-class] help page.

@@ -17,6 +17,12 @@ to the output.}
 
 \item{...}{ignored.}
 }
+\value{
+A matrix with the same dimension \code{dim(object)}.
+}
 \description{
 Predict values from \code{lemur_fit} object
+}
+\seealso{
+\link{predict.lemur_fit}
 }

@@ -15,6 +15,8 @@
 #' @param ... additional parameters that are passed on to relevant functions
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
+#' @returns The `fit` object with the updated `fit$embedding` and `fit$alignment_coefficients`.
+#'
 #' @export
 align_harmony <- function(fit, design = fit$alignment_design,
                           ridge_penalty = 0.01, max_iter = 10, ..., verbose = TRUE){
@@ -78,6 +80,8 @@ align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
 
 
 #' Align the points according to some grouping
+#'
+#' @returns A list with the new embedding and the coefficients
 #'
 #' @keywords internal
 align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
@@ -148,7 +152,7 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
 
 #' Take a vector and convert it to a one-hot encoded matrix
 #'
-#'
+#' @returns A matrix with `length(unique(groups))` rows and `length(groups)` columns.
 #'
 #' @keywords internal
 one_hot_encoding <- function(groups){

@@ -6,6 +6,9 @@
 \usage{
 harmony_new_object()
 }
+\value{
+The full \code{\link{harmony}} object (R6 reference class type).
+}
 \description{
 Create an arbitrary Harmony object so that I can modify it later
 }

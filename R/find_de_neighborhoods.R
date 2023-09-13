@@ -1,5 +1,8 @@
 
 #' @importFrom glmGamPoi vars
+#'
+#' @returns see [glmGamPoi::vars].
+#'
 #' @export
 glmGamPoi::vars
 

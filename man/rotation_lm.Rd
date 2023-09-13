@@ -14,6 +14,9 @@ rotation_lm(
   tangent_regression = FALSE
 )
 }
+\value{
+A three-dimensional array with the coefficients \code{V}.
+}
 \description{
 Here data = t(grassmann_map(V * X)) Y
 }

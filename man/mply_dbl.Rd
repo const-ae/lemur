@@ -24,6 +24,10 @@ stack_cols(x)
 
 \item{...}{additional arguments that are passed to \code{FUN}}
 }
+\value{
+A matrix with \code{length(x)} / \code{nrow(x)} rows and \code{ncol} columns.
+For \code{msply_dbl} the number of columns depends on the output of \code{FUN}.
+}
 \description{
 The length of \code{x} determines the number of rows. The length of
 \code{FUN(x[i])} determines the number of columns. Must match \code{ncol}.

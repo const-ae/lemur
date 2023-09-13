@@ -13,6 +13,9 @@ spd_geodesic_regression(
   tangent_regression = FALSE
 )
 }
+\value{
+A three-dimensional array with the coefficients \code{V}.
+}
 \description{
 Solve d(P, exp_p(V * x))^2 for V
 }

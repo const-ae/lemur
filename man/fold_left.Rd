@@ -17,6 +17,9 @@ fold_right(init)
 \item{FUN}{a function with first argument named \code{elem} and second argument
 named \code{accum}}
 }
+\value{
+The final value of \code{accum}.
+}
 \description{
 Fold left over a sequence
 

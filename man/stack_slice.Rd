@@ -12,6 +12,9 @@ destack_slice(x)
 \arguments{
 \item{x}{a list of vectors/matrices that are stacked}
 }
+\value{
+A three-dimensional array.
+}
 \description{
 The length of the list will become the third dimension of the cube.
 }

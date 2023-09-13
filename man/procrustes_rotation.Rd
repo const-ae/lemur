@@ -6,6 +6,9 @@
 \usage{
 procrustes_rotation(Y, Z)
 }
+\value{
+The matrix \code{R}.
+}
 \description{
 Solve ||Y - R Z ||^2_2 for R in SO(n) (aka. Procrustes analysis)
 }

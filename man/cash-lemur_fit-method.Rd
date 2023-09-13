@@ -23,6 +23,9 @@
 \item{value}{the replacement value. This only works for \code{colData} and
 \code{rowData}.}
 }
+\value{
+The respective value stored in the \code{lemur_fit} object.
+}
 \description{
 Access values from a \code{lemur_fit}
 }

@@ -19,7 +19,7 @@
 #'   is removed from the output.
 #' @param ... additional parameters passed to `predict_impl`.
 #'
-#' @return a matrix with the same dimension `nrow(object) * nrow(newdesign)`.
+#' @returns A matrix with the same dimension `nrow(object) * nrow(newdesign)`.
 #'
 #'
 #' @seealso [`residuals`][residuals,lemur_fit-method]
@@ -114,6 +114,10 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 #'
 #' @inheritParams predict.lemur_fit
 #' @param ... ignored.
+#'
+#' @returns A matrix with the same dimension `dim(object)`.
+#'
+#' @seealso [predict.lemur_fit]
 #'
 #' @export
 setMethod("residuals", signature = "lemur_fit", function(object,

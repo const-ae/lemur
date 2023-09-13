@@ -13,6 +13,9 @@ align_impl(
   calculate_new_embedding = TRUE
 )
 }
+\value{
+A list with the new embedding and the coefficients
+}
 \description{
 Align the points according to some grouping
 }

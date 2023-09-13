@@ -1,5 +1,5 @@
 
-#' Differential expression for each cell (or position in the latent embedding)
+#' Predict log fold changes between conditions for each cell
 #'
 #' @param fit the result of calling [`lemur()`]
 #' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
@@ -9,8 +9,10 @@
 #'   the differential expression is tested. It defaults to the position of all cells from the original fit.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #'
-#' @return if `is.null(embedding)` the `fit` object with a new assay called `"DE"`. Otherwise
-#'  return the matrix with the differential expression values
+#' @returns If `is.null(embedding)` the `fit` object with a new assay called `"DE"`. Otherwise
+#'  return a matrix with the differential expression values.
+#'
+#' @seealso [find_de_neighborhoods]
 #'
 #' @export
 test_de <- function(fit,

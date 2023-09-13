@@ -14,7 +14,7 @@
 #' @param return which data structure is returned.
 #'
 #'
-#' @returns either a matrix with the low-dimensional embeddings of the `data` or
+#' @returns Either a matrix with the low-dimensional embeddings of the `data` or
 #'   an object of class `lemur_fit` wrapping that embedding.
 #'
 #'

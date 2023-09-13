@@ -2,7 +2,7 @@
 % Please edit documentation in R/test_de.R
 \name{test_de}
 \alias{test_de}
-\title{Differential expression for each cell (or position in the latent embedding)}
+\title{Predict log fold changes between conditions for each cell}
 \usage{
 test_de(
   fit,
@@ -24,9 +24,12 @@ the differential expression is tested. It defaults to the position of all cells 
 \item{consider}{specify which part of the model are considered for the differential expression test.}
 }
 \value{
-if \code{is.null(embedding)} the \code{fit} object with a new assay called \code{"DE"}. Otherwise
-return the matrix with the differential expression values
+If \code{is.null(embedding)} the \code{fit} object with a new assay called \code{"DE"}. Otherwise
+return a matrix with the differential expression values.
 }
 \description{
-Differential expression for each cell (or position in the latent embedding)
+Predict log fold changes between conditions for each cell
+}
+\seealso{
+\link{find_de_neighborhoods}
 }

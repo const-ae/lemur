@@ -9,7 +9,16 @@ pseudoinverse(X)
 \arguments{
 \item{X}{a matrix X}
 }
+\value{
+The matrix \eqn{X^{+}}.
+}
 \description{
-Moore-Penrose pseudoinverse calculated via SVD
+In the simplest case, the pseudoinverse is
+\deqn{X^{+} = (X^T X)^{-1} X^T.}
+}
+\details{
+To handle the more general case, the pseudoinverse can expressed using a SVD
+\eqn{X = U D V^T}:
+\deqn{X^{+} = V D^{-1} U^T}
 }
 \keyword{internal}

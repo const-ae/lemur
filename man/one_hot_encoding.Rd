@@ -6,6 +6,9 @@
 \usage{
 one_hot_encoding(groups)
 }
+\value{
+A matrix with \code{length(unique(groups))} rows and \code{length(groups)} columns.
+}
 \description{
 Take a vector and convert it to a one-hot encoded matrix
 }

@@ -5,6 +5,9 @@
 \alias{reexports}
 \alias{vars}
 \title{Objects exported from other packages}
+\value{
+see \link[glmGamPoi:vars]{glmGamPoi::vars}.
+}
 \keyword{internal}
 \description{
 These objects are imported from other packages. Follow the links

@@ -41,7 +41,7 @@ is removed from the output.}
 \item{...}{additional parameters passed to \code{predict_impl}.}
 }
 \value{
-a matrix with the same dimension \code{nrow(object) * nrow(newdesign)}.
+A matrix with the same dimension \code{nrow(object) * nrow(newdesign)}.
 }
 \description{
 Predict values from \code{lemur_fit} object

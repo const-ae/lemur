@@ -6,6 +6,8 @@
 
 #' Solve d(P, exp_p(V * x))^2 for V
 #'
+#' @returns A three-dimensional array with the coefficients `V`.
+#'
 #' @keywords internal
 grassmann_geodesic_regression <- function(coordsystems, design, base_point, weights = 1, tangent_regression = FALSE){
   # Validate input
@@ -51,6 +53,8 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, weig
 
 #' Solve ||Y - exp_p(V * x) Y ||^2_2 for V
 #'
+#' @returns A three-dimensional array with the coefficients `V`.
+#'
 #' @keywords internal
 grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
   nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA)
@@ -91,6 +95,8 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
 
 
 #' Solve d(R, exp_p(V * x))^2 for V
+#'
+#' @returns A three-dimensional array with the coefficients `V`.
 #'
 #' @keywords internal
 rotation_geodesic_regression <- function(rotations, design, base_point, weights = 1, ridge_penalty = 0, tangent_regression = FALSE){
@@ -146,6 +152,8 @@ rotation_geodesic_regression <- function(rotations, design, base_point, weights 
 #' Solve ||Y - exp_p(V * x) Z ||^2_2 for V (aka. Procrustes regression)
 #'
 #' Here data = t(grassmann_map(V * X)) Y
+#'
+#' @returns A three-dimensional array with the coefficients `V`.
 #'
 #' @keywords internal
 rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, tangent_regression = FALSE){
@@ -206,6 +214,8 @@ rotation_lm <- function(data, design, obs_embedding, base_point, ridge_penalty =
 
 #' Solve ||Y - R Z ||^2_2 for R in SO(n) (aka. Procrustes analysis)
 #'
+#' @returns The matrix `R`.
+#'
 #' @keywords internal
 procrustes_rotation <- function(Y, Z){
   # This code is based on an answer by Mike Hawk on cross validated
@@ -254,6 +264,8 @@ procrustes_rotation <- function(Y, Z){
 ################################################
 
 #' Solve d(P, exp_p(V * x))^2 for V
+#'
+#' @returns A three-dimensional array with the coefficients `V`.
 #'
 #' @keywords internal
 spd_geodesic_regression <- function(spd_matrices, design, base_point, weights = 1, ridge_penalty = 0, tangent_regression = FALSE){
@@ -311,6 +323,8 @@ spd_geodesic_regression <- function(spd_matrices, design, base_point, weights = 
 #' Solve ||Y - exp_p(V * x) Z ||^2_2 for V (aka. SPD Procrustes regression)
 #'
 #' Here data = t(grassmann_map(V * X)) Y
+#'
+#' @returns A three-dimensional array with the coefficients `V`.
 #'
 #' @keywords internal
 spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, weights = NULL, tangent_regression = FALSE){
@@ -382,6 +396,8 @@ spd_lm <- function(data, design, obs_embedding, base_point, ridge_penalty = 0, w
 
 
 #' Solve ||B - A X ||^2_2 for A in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
+#'
+#' @returns The matrix `A`.
 #'
 #' @keywords internal
 procrustes_spd <- function(data, obs_embedding, maxiter = 1000, tolerance = 1e-8){
@@ -464,6 +480,8 @@ init_procrustes_spd <- function(data, obs_embedding){
 }
 
 #' Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
+#'
+#' @returns The matrix `P`.
 #'
 #' @keywords internal
 analytic_approx_procrustes_spd <- function(data, obs_embedding){

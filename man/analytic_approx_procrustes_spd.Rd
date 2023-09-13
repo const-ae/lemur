@@ -6,6 +6,9 @@
 \usage{
 analytic_approx_procrustes_spd(data, obs_embedding)
 }
+\value{
+The matrix \code{P}.
+}
 \description{
 Solve ||Y - P Z ||^2_2 for P in SPD(n) (aka. Symmetric Positive Definite Procrustes analysis)
 }
