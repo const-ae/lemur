@@ -65,8 +65,7 @@ mply_dbl <- function(x, FUN, ncol=1, ...){
       res <- matrix(numeric(0), nrow=ncol, ncol=0)
     }
     if((ncol == 1 && ! is.vector(res)) || (ncol > 1 && nrow(res) != ncol)){
-      stop(paste0("values must be length ", ncol,
-                  ", but result is length ", nrow(res)))
+      stop("values must be length ", ncol, ", but result is length ", nrow(res))
     }
   }
 
@@ -103,7 +102,7 @@ msply_dbl <- function(x, FUN, ...){
   }else if(is.logical(res)){
     res <- res * 1.0
   }else{
-    stop(paste0("Result is of type ", typeof(res), ". Cannot convert to numeric."))
+    stop("Result is of type ", typeof(res), ". Cannot convert to numeric.")
   }
 
   if(is.matrix(res)){

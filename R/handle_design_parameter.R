@@ -28,8 +28,8 @@ handle_design_parameter <- function(design, data, col_data){
     design_formula <- tmp$formula
     attr(design_formula, "constructed_from") <- "formula"
   }else{
-    stop(paste0("design argment of class ", class(design), " is not supported. Please ",
-                "specify a `design_matrix`, a `character vector`, or a `formula`."))
+    stop("design argment of class ", class(design), " is not supported. Please ",
+         "specify a `design_matrix`, a `character vector`, or a `formula`.")
   }
 
   if(nrow(design_matrix) != ncol(data)) stop("Number of rows in col_data does not match number of columns of data.")
