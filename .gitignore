@@ -5,3 +5,4 @@
 .Ruserdata
 tmp_scripts
 inst/doc
+*.DS_Store
