@@ -365,7 +365,7 @@ test_that("pseudobulk size factor calculation works for arbitrary neighborhoods"
   pseudo <- glmGamPoi::pseudobulk(counts, group_by = group, col_data = col_data, verbose = FALSE)
   cs <- colSums(counts(pseudo))
   expect_equal(sf[1,], cs / mean(cs))
-  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+  expect_equal(MatrixGenerics::colSds(sf, useNames = FALSE), rep(0, 8))
 
   ## Include half the cells
   mask <- matrix(0, nrow = n_genes, ncol = n_cells)
@@ -377,7 +377,7 @@ test_that("pseudobulk size factor calculation works for arbitrary neighborhoods"
   pseudo <- glmGamPoi::pseudobulk(counts[,sel], group_by = group, col_data = col_data[sel,], verbose = FALSE)
   cs <- colSums(counts(pseudo))
   expect_equal(sf[1,colnames(pseudo)], cs / mean(cs))
-  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+  expect_equal(MatrixGenerics::colSds(sf, useNames = FALSE), rep(0, 8))
 
 
   # Check that a vector works
@@ -408,7 +408,7 @@ test_that("pseudobulk size factor calculation works for arbitrary neighborhoods"
   fit <- glmGamPoi::glm_gp(pseudo, design = ~ 1, size_factors = "ratio", overdispersion = FALSE)
   scaling_fct <- sf[1,colnames(pseudo)[1]] / fit$size_factors[1]
   expect_equal(sf[1,colnames(pseudo)], fit$size_factors * scaling_fct)
-  expect_equal(MatrixGenerics::colSds(sf), rep(0, 8))
+  expect_equal(MatrixGenerics::colSds(sf, useNames = FALSE), rep(0, 8))
 
 
   ## Include random set of cells
