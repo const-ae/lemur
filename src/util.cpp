@@ -47,7 +47,7 @@ List cumz_which_abs_max(NumericVector x, int min_neighborhood_size){
     m += delta / i;
     double delta2 = x[i-1] - m;
     msq = (msq * (i - 1) + delta * delta2) / i;
-    double val = abs(m / sqrt(msq / (i-1)));
+    double val = std::abs(m / sqrt(msq / (i-1)));
     if(i >= min_neighborhood_size - 1 && val > max){
       max = val;
       sign = m < 0 ? -1 : +1;
@@ -102,8 +102,8 @@ List cum_brls_which_abs_max(const NumericVector y, const arma::mat& X, const Int
       double rss = std::max(1e-6, arma::accu(arma::pow(m - X_act * beta, 2)));
       double se = sqrt(se_pre * rss / (n_obs - k));
       double t_stat = arma::as_scalar(contrast * beta) / se;
-      if(i >= min_neighborhood_size-1 && abs(t_stat) > max_val){
-        max_val = abs(t_stat);
+      if(i >= min_neighborhood_size-1 && std::abs(t_stat) > max_val){
+        max_val = std::abs(t_stat);
         sign = t_stat < 0 ? -1 : +1;
         max_idx = i + 1;
       }
