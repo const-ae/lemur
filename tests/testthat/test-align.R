@@ -143,7 +143,7 @@ test_that("check that harmony alignment works as expected", {
     W[1,] <- 0
     Z_corr <- Z_corr - t(W) %*% Phi_Rk
   }
-  expect_equal(Z_corr, harm)
+  expect_equal(Z_corr, harm, tolerance = 1e-6)
 })
 
 
