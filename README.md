@@ -6,15 +6,23 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of `lemur` is to enable easy analysis of multi-condition
-single-cell data. `lemur` fits a latent embedding regression model,
-which means it tries to find a PCA-like embedding for each condition and
-parameterizes the transition from one embedding to another. For this
-task, `lemur` uses geodesic regression on a Grassmann manifold, which is
-solved efficiently using tangent-space linear modeling. `lemur` works
-with arbitrary experimental designs that can be expressed using a design
-matrix. The result is an interpretable model of the gene expression
-patterns.
+The goal of `lemur` is to simplify analysis the of multi-condition
+single-cell data. If you have collected a single-cell RNA-seq dataset
+with more than one condition, `lemur` predicts for each cell and gene
+how much the expression would change if the cell had been in the other
+condition. Furthermore, `lemur` finds neighborhoods of cells that show
+consistent differential expression. The results are statistically
+validated using a pseudo-bulk differential expression test on hold-out
+data using
+[glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)
+or [edgeR]().
+
+`lemur` implements a novel framework to disentangle the effects of known
+covariates, latent cell states, and their interactions. At the core, is
+a combination of matrix factorization and regression analysis
+implemented as geodesic regression on Grassmann manifolds. We call this
+*latent embedding multivariate regression*. For more details see our
+[preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268v1).
 
 <figure>
 <img src="man/figures/equation_schematic.png"
@@ -112,12 +120,10 @@ as_tibble(colData(glioblastoma_example_data)) %>%
 
 We fit the LEMUR model by calling `lemur()`. We provide the experimental
 design using a formula. The elements of the formula can refer to columns
-of the `colData` of the `SingleCellExperiment` object. We also set the
-number of latent dimensions, which has a similar interpretation as the
-number of dimensions in PCA. Optionally, we can further align
-corresponding cells using manually annotated cell types
-(`align_by_grouping`) or an automated alignment procedure (e.g.,
-`align_harmony`).
+of the `colData` of the `SingleCellExperiment` object.
+
+We also set the number of latent dimensions (`n_embedding`), which has a
+similar interpretation as the number of dimensions in PCA.
 
 The `test_fraction` argument sets the fraction of cells which are
 exclusively used to test for differential expression and not for
@@ -136,12 +142,6 @@ fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
 #> ---Fit Grassmann linear model
 #> Final error: 1.11e+06
 
-# Optionally, align cell positions across conditions
-# Either with manual annotation by calling `align_by_grouping` or
-# with automatically inferred correspondences by calling `align_harmony`
-fit <- align_harmony(fit)
-#> Select cells that are considered close with 'harmony'
-
 fit
 #> class: lemur_fit 
 #> dim: 300 5000 
@@ -157,12 +157,25 @@ fit
 #> altExpNames(0):
 ```
 
-The `lemur()` function returns an object that extends
-`SingleCellExperiment` and thus supports subsetting and all the usual
-data accessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`). In
+The `lemur()` function returns a `lemur_fit` object which extends
+`SingleCellExperiment`. It supports subsetting and all the usual data
+accessor methods (e.g., `nrow`, `assay`, `colData`, `rowData`). In
 addition, `lemur` overloads the `$` operator to allow easy access to
 additional fields produced by the LEMUR model. For example, the
 low-dimensional embedding can be accessed using `fit$embedding`:
+
+Optionally, we can further align corresponding cells using manually
+annotated cell types (`align_by_grouping`) or an automated alignment
+procedure (e.g., `align_harmony`). This ensures that corresponding cells
+are close to each other in the `fit$embedding`.
+
+``` r
+fit <- align_harmony(fit)
+#> Select cells that are considered close with 'harmony'
+```
+
+I will make a UMAP of the `fit$embedding`. This is similar to working on
+the integrated PCA space in a traditional single-cell analysis.
 
 ``` r
 umap <- uwot::umap(t(fit$embedding))
@@ -177,12 +190,12 @@ as_tibble(fit$colData) %>%
 
 <img src="man/figures/README-lemur_umap-1.png" width="80%" style="display: block; margin: auto;" />
 
-Next, we will calculate the expected effect of the panobinostat
-treatment for each gene and cell. The `test_de` function takes a
-`lemur_fit` object and returns the object with a new assay `"DE"`. This
-assay contains the predicted log fold change between the conditions
-specified in `contrast`. Note that `lemur` implements a special notation
-for contrasts. Instead of providing a contrast vector or design matrix
+Next, we will predict the effect of the panobinostat treatment for each
+gene and cell. The `test_de` function takes a `lemur_fit` object and
+returns the object with a new assay `"DE"`. This assay contains the
+predicted log fold change between the conditions specified in
+`contrast`. Note that `lemur` implements a special notation for
+contrasts. Instead of providing a contrast vector or design matrix
 column names, you provide for each *condition* the levels, and `lemur`
 automatically forms the contrast vector. This makes the contrast more
 readable.
@@ -209,13 +222,13 @@ tibble(umap = umap) %>%
 
 Alternatively, we can use the matrix of differential expression values
 (`assay(fit, "DE")`) to guide the selection of cell neighborhoods that
-show consistent differential expression. In addition,
-`find_de_neighborhoods` uses the `fit$test_data`, which was put aside in
-the first `lemur()` call, to perform a pseudobulked-differential
-expression test. Furthermore, it calculates if the difference between
-the conditions is significantly larger for the cells inside the
-neighborhood than the cells outside the neighborhood (columns starting
-with `did`, short for difference-in-difference).
+show consistent differential expression. `find_de_neighborhoods`
+validates the results with a pseudobulked diferential expression test.
+For this it uses the `fit$test_data` which was put aside in the first
+`lemur()` call. In addition, `find_de_neighborhoods` assess if the
+difference between the conditions is significantly larger for the cells
+inside the neighborhood than the cells outside the neighborhood (see
+columns starting with `did`, short for difference-in-difference).
 
 The `group_by` argument determines how the pseudobulk samples are
 formed. It specifies the columns in the `fit$colData` that are used to
@@ -369,15 +382,7 @@ subpopulations of the tumor.
 
 ``` r
 tumor_fit <- fit[, tumor_label_df$is_tumor]
-tum_nei <- find_de_neighborhoods(tumor_fit, group_by = vars(patient_id, condition))
-#> Find optimal neighborhood using zscore.
-#> Validate neighborhoods using test data
-#> Make neighborhoods consistent by adding connected and removing isolated cells
-#> Skipping 31 neighborhoods which contain unbalanced cell states
-#> Form pseudobulk (summing counts)
-#> Calculate size factors for each gene
-#> Fit glmGamPoi model on pseudobulk data
-#> Fit diff-in-diff effect
+tum_nei <- find_de_neighborhoods(tumor_fit, group_by = vars(patient_id, condition), verbose = FALSE)
 
 as_tibble(tum_nei) %>%
   left_join(as_tibble(rowData(fit)[,1:2]), by = c("name" = "gene_id")) %>%
@@ -516,7 +521,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
-#> [21] lemur_0.0.27               
+#> [21] lemur_0.99.3               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
