@@ -516,6 +516,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
   }
 
   if(add_diff_in_diff){
+    if(verbose) message("Fit diff-in-diff effect")
     mm <- if(method == "glmGamPoi") glm_regions$model_matrix else glm_regions$design
     mat <- assay(region_psce, "masked_counts")
     complement_mat <- assay(region_psce, "counts") - assay(region_psce, "masked_counts")
@@ -530,7 +531,6 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     mod_size_factor_matrix <- pseudobulk_size_factors_for_neighborhoods(cbind(counts, counts), mask = cbind(mask, 1-mask),
                                                                         col_data = mod_col_data, group_by = c({{group_by}}, vars(..did_indicator)),
                                                                         method = size_factor_method, verbose = verbose)
-    if(verbose) message("Fit diff-in-diff effect")
     if(method == "glmGamPoi"){
       did_fit <- glmGamPoi::glm_gp(comb_mat, design = comb_design_mat, verbose = FALSE,
                                    offset = log(mod_size_factor_matrix + 1e-10),

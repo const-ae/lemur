@@ -38,7 +38,8 @@ However, expression changes affecting all cells equally are not regressed out.}
 which assay should be used.}
 
 \item{test_fraction}{the fraction of cells that are split of before the model fit to keep an
-independent set of test observations. Default: 20\% (\code{0.2}).}
+independent set of test observations. Alternatively, a logical vector of length \code{ncol(data)}.
+Default: 20\% (\code{0.2}).}
 
 \item{...}{additional parameters that are passed on to the internal function \code{lemur_impl}.}
 

@@ -17,7 +17,8 @@
 #' @param use_assay if `data` is a `SummarizedExperiment` / `SingleCellExperiment` object,
 #'   which assay should be used.
 #' @param test_fraction the fraction of cells that are split of before the model fit to keep an
-#'   independent set of test observations. Default: 20% (`0.2`).
+#'   independent set of test observations. Alternatively, a logical vector of length `ncol(data)`.
+#'   Default: 20% (`0.2`).
 #' @param ... additional parameters that are passed on to the internal function `lemur_impl`.
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #'
@@ -61,7 +62,12 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
   # Create indicator vector which cells are used for training and which for testing
   is_test_data <- rep(FALSE, ncol(data))
-  if(test_fraction < 0 || test_fraction >= 1){
+  if(is.logical(test_fraction) && length(ncol(data))){
+    if(any(is.na(test_fraction))) stop("test_fraction must not contain 'NA's.")
+    is_test_data <- test_fraction
+  }else if(length(test_fraction) != 1){
+    stop("'test_fraction' must be a boolean vector of length 'ncol(data)' or a single number between 0 and 1.")
+  }else if(test_fraction < 0 || test_fraction >= 1){
     stop("'test_fraction' must be at least 0 and smaller than 1.")
   }else{
     if(verbose) message("Storing ", round(test_fraction, 2) * 100, "% of the data (", round(ncol(data) * test_fraction), " cells)",
