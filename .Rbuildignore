@@ -4,3 +4,5 @@
 ^man/.*\.ai$
 ^man/figures/README-.*$
 ^vignettes/man/figures/README-.*$
+^doc$
+^Meta$
