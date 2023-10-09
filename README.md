@@ -172,6 +172,7 @@ are close to each other in the `fit$embedding`.
 ``` r
 fit <- align_harmony(fit)
 #> Select cells that are considered close with 'harmony'
+#> Transposing data matrix
 ```
 
 I will make a UMAP of the `fit$embedding`. This is similar to working on
@@ -240,8 +241,6 @@ experimental design plus the sample id (in this case `patient_id`).
 neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
 #> Find optimal neighborhood using zscore.
 #> Validate neighborhoods using test data
-#> Make neighborhoods consistent by adding connected and removing isolated cells
-#> Skipping 26 neighborhoods which contain unbalanced cell states
 #> Form pseudobulk (summing counts)
 #> Calculate size factors for each gene
 #> Fit glmGamPoi model on pseudobulk data
@@ -253,18 +252,18 @@ as_tibble(neighborhoods) %>%
   arrange(pval) %>%
   dplyr::select(symbol, neighborhood, name, n_cells, pval, adj_pval, lfc, did_lfc) 
 #> # A tibble: 300 × 8
-#>    symbol neighborhood  name            n_cells     pval adj_pval    lfc did_lfc
-#>    <chr>  <I<list>>     <chr>             <int>    <dbl>    <dbl>  <dbl>   <dbl>
-#>  1 MT1X   <chr [2,941]> ENSG00000187193    2941  8.17e-6  0.00147  3.30  -0.471 
-#>  2 KNG1   <chr [3,168]> ENSG00000113889    3168  1.07e-5  0.00147  3.76  -1.49  
-#>  3 NEAT1  <chr [3,759]> ENSG00000245532    3759  2.39e-5  0.00218  1.84  -0.437 
-#>  4 PMP2   <chr [3,587]> ENSG00000147588    3587  1.85e-4  0.0127  -1.20  -0.259 
-#>  5 CXCL8  <chr [758]>   ENSG00000169429     758  5.02e-4  0.0215   1.69  -1.98  
-#>  6 POLR2L <chr [3,367]> ENSG00000177700    3367  5.15e-4  0.0215   1.21   0.0500
-#>  7 NUCKS1 <chr [3,536]> ENSG00000069275    3536  5.49e-4  0.0215  -1.07  -0.0461
-#>  8 DNAJB1 <chr [1,691]> ENSG00000132002    1691  6.57e-4  0.0225   0.993 -0.464 
-#>  9 CALM1  <chr [2,892]> ENSG00000198668    2892  7.43e-4  0.0226   0.829 -0.219 
-#> 10 EEF1A1 <chr [2,903]> ENSG00000156508    2903  8.30e-4  0.0228  -0.636  0.232 
+#>    symbol neighborhood  name            n_cells    pval adj_pval    lfc  did_lfc
+#>    <chr>  <I<list>>     <chr>             <int>   <dbl>    <dbl>  <dbl>    <dbl>
+#>  1 MT1X   <chr [3,265]> ENSG00000187193    3265 2.68e-6 0.000804  3.24  -1.52   
+#>  2 CALM1  <chr [2,805]> ENSG00000198668    2805 1.13e-4 0.0122    0.998 -0.524  
+#>  3 POLR2L <chr [3,864]> ENSG00000177700    3864 1.22e-4 0.0122    1.33  -0.757  
+#>  4 NEAT1  <chr [4,049]> ENSG00000245532    4049 2.81e-4 0.0211    1.83  -0.682  
+#>  5 PMP2   <chr [3,672]> ENSG00000147588    3672 4.43e-4 0.0237   -1.47   0.332  
+#>  6 MT2A   <chr [1,378]> ENSG00000125148    1378 5.20e-4 0.0237    1.63   0.00142
+#>  7 ATP5G3 <chr [4,129]> ENSG00000154518    4129 5.53e-4 0.0237    0.683 -0.326  
+#>  8 SKP1   <chr [3,646]> ENSG00000113558    3646 8.29e-4 0.0311    0.606 -0.185  
+#>  9 EEF1A1 <chr [3,806]> ENSG00000156508    3806 1.13e-3 0.0377   -0.620  0.445  
+#> 10 A2M    <chr [3,752]> ENSG00000175899    3752 1.57e-3 0.0442   -1.61   0.895  
 #> # ℹ 290 more rows
 ```
 
@@ -371,7 +370,7 @@ tibble(umap = umap) %>%
   mutate(is_tumor = tumor_label_df$is_tumor) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = is_tumor), size = 0.5) +
-    labs(title = "The tumor cells are enriched in the left population") +
+    labs(title = "The tumor cells are enriched in parts of the big blob") +
     facet_wrap(vars(is_tumor))
 ```
 
@@ -391,20 +390,20 @@ as_tibble(tum_nei) %>%
   arrange(did_pval)  %>%
   dplyr::select(symbol, name, neighborhood, n_cells, adj_pval, lfc, did_pval, did_lfc) %>%
   print(n = 10)
-#> # A tibble: 17 × 8
+#> # A tibble: 42 × 8
 #>    symbol name            neighborhood  n_cells adj_pval    lfc did_pval did_lfc
 #>    <chr>  <chr>           <I<list>>       <int>    <dbl>  <dbl>    <dbl>   <dbl>
-#>  1 RPS11  ENSG00000142534 <chr [2,228]>    2228  0.0436  -0.491   0.0571   0.333
-#>  2 ATP5G3 ENSG00000154518 <chr [2,696]>    2696  0.0501   0.595   0.0856   0.403
-#>  3 RPL10  ENSG00000147403 <chr [2,040]>    2040  0.0541  -0.546   0.126    0.321
-#>  4 CALM1  ENSG00000198668 <chr [2,461]>    2461  0.0316   0.866   0.146   -0.464
-#>  5 MT1X   ENSG00000187193 <chr [1,689]>    1689  0.00237  3.26    0.246   -0.541
-#>  6 RPL6   ENSG00000089009 <chr [2,529]>    2529  0.0316  -0.605   0.261    0.203
-#>  7 NEAT1  ENSG00000245532 <chr [2,408]>    2408  0.00237  1.83    0.418   -0.498
-#>  8 KNG1   ENSG00000113889 <chr [2,697]>    2697  0.00237  3.59    0.449   -2.09 
-#>  9 GPX1   ENSG00000233276 <chr [2,093]>    2093  0.0399  -0.810   0.519    0.220
-#> 10 PMP2   ENSG00000147588 <chr [2,546]>    2546  0.00681 -1.32    0.558    0.186
-#> # ℹ 7 more rows
+#>  1 HSPA1A ENSG00000204389 <chr [1,872]>    1872  0.0617   1.12    0.0112  -1.30 
+#>  2 GPX4   ENSG00000167468 <chr [3,172]>    3172  0.0630   0.536   0.0181  -0.833
+#>  3 RPL36  ENSG00000130255 <chr [1,676]>    1676  0.0750   0.507   0.0202  -0.466
+#>  4 HMGB1  ENSG00000189403 <chr [1,862]>    1862  0.0251  -1.03    0.0344   0.687
+#>  5 CCL3   ENSG00000277632 <chr [1,627]>    1627  0.0617  -2.24    0.0457   1.69 
+#>  6 NACA   ENSG00000196531 <chr [1,853]>    1853  0.0697  -0.497   0.0638   0.336
+#>  7 SQSTM1 ENSG00000161011 <chr [2,432]>    2432  0.0816   0.482   0.0666  -0.635
+#>  8 RPL10  ENSG00000147403 <chr [2,900]>    2900  0.0636  -0.450   0.0966   0.320
+#>  9 MT1X   ENSG00000187193 <chr [1,671]>    1671  0.00374  3.33    0.100   -1.11 
+#> 10 PLP1   ENSG00000123560 <chr [1,041]>    1041  0.0697  -1.81    0.175    1.18 
+#> # ℹ 32 more rows
 ```
 
 Focusing on RPS11, we see that panobinostat mostly has no effect on its
@@ -521,39 +520,38 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
-#> [21] lemur_0.99.4               
+#> [21] lemur_0.99.6               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
 #>  [3] lattice_0.21-8            tzdb_0.4.0               
 #>  [5] vctrs_0.6.2               tools_4.3.0              
 #>  [7] bitops_1.0-7              generics_0.1.3           
-#>  [9] parallel_4.3.0            fansi_1.0.4              
-#> [11] highr_0.10                pkgconfig_2.0.3          
-#> [13] BiocNeighbors_1.18.0      Matrix_1.5-4.1           
-#> [15] sparseMatrixStats_1.13.4  lifecycle_1.0.3          
-#> [17] GenomeInfoDbData_1.2.10   farver_2.1.1             
-#> [19] compiler_4.3.0            munsell_0.5.0            
-#> [21] codetools_0.2-19          glmGamPoi_1.13.3         
-#> [23] htmltools_0.5.5           RCurl_1.98-1.12          
-#> [25] yaml_2.3.7                pillar_1.9.0             
-#> [27] crayon_1.5.2              MASS_7.3-60              
-#> [29] uwot_0.1.14               BiocParallel_1.34.2      
-#> [31] DelayedArray_0.26.3       tidyselect_1.2.0         
-#> [33] digest_0.6.31             stringi_1.7.12           
-#> [35] splines_4.3.0             labeling_0.4.2           
-#> [37] cowplot_1.1.1             fastmap_1.1.1            
-#> [39] grid_4.3.0                colorspace_2.1-0         
-#> [41] cli_3.6.1                 harmony_0.1.1            
-#> [43] magrittr_2.0.3            S4Arrays_1.0.4           
-#> [45] utf8_1.2.3                withr_2.5.0              
-#> [47] DelayedMatrixStats_1.22.0 scales_1.2.1             
-#> [49] timechange_0.2.0          rmarkdown_2.22           
-#> [51] XVector_0.40.0            hms_1.1.3                
-#> [53] evaluate_0.21             knitr_1.43               
-#> [55] RcppAnnoy_0.0.20          irlba_2.3.5.1            
-#> [57] rlang_1.1.1               isoband_0.2.7            
-#> [59] Rcpp_1.0.10               glue_1.6.2               
-#> [61] rstudioapi_0.14           R6_2.5.1                 
-#> [63] zlibbioc_1.46.0
+#>  [9] fansi_1.0.4               highr_0.10               
+#> [11] pkgconfig_2.0.3           Matrix_1.5-4.1           
+#> [13] sparseMatrixStats_1.13.4  lifecycle_1.0.3          
+#> [15] GenomeInfoDbData_1.2.10   farver_2.1.1             
+#> [17] compiler_4.3.0            munsell_0.5.0            
+#> [19] RhpcBLASctl_0.23-42       codetools_0.2-19         
+#> [21] glmGamPoi_1.13.3          htmltools_0.5.5          
+#> [23] RCurl_1.98-1.12           yaml_2.3.7               
+#> [25] pillar_1.9.0              crayon_1.5.2             
+#> [27] MASS_7.3-60               uwot_0.1.14              
+#> [29] DelayedArray_0.26.3       tidyselect_1.2.0         
+#> [31] digest_0.6.31             stringi_1.7.12           
+#> [33] splines_4.3.0             labeling_0.4.2           
+#> [35] cowplot_1.1.1             fastmap_1.1.1            
+#> [37] grid_4.3.0                colorspace_2.1-0         
+#> [39] cli_3.6.1                 harmony_1.0.3            
+#> [41] magrittr_2.0.3            S4Arrays_1.0.4           
+#> [43] utf8_1.2.3                withr_2.5.0              
+#> [45] DelayedMatrixStats_1.22.0 scales_1.2.1             
+#> [47] timechange_0.2.0          rmarkdown_2.22           
+#> [49] XVector_0.40.0            hms_1.1.3                
+#> [51] evaluate_0.21             knitr_1.43               
+#> [53] RcppAnnoy_0.0.20          irlba_2.3.5.1            
+#> [55] rlang_1.1.1               isoband_0.2.7            
+#> [57] Rcpp_1.0.10               glue_1.6.2               
+#> [59] rstudioapi_0.14           R6_2.5.1                 
+#> [61] zlibbioc_1.46.0
 ```

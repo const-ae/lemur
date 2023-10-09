@@ -239,7 +239,7 @@ tibble(umap = umap) %>%
   mutate(is_tumor = tumor_label_df$is_tumor) %>%
   ggplot(aes(x = umap[,1], y = umap[,2])) +
     geom_point(aes(color = is_tumor), size = 0.5) +
-    labs(title = "The tumor cells are enriched in the left population") +
+    labs(title = "The tumor cells are enriched in parts of the big blob") +
     facet_wrap(vars(is_tumor))
 ```
 
