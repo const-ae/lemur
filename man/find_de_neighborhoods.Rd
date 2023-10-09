@@ -21,8 +21,8 @@ find_de_neighborhoods(
   design = fit$design,
   alignment_design = fit$alignment_design,
   add_diff_in_diff = TRUE,
-  make_neighborhoods_consistent = TRUE,
-  skip_confounded_neighborhoods = TRUE,
+  make_neighborhoods_consistent = FALSE,
+  skip_confounded_neighborhoods = FALSE,
   control_parameters = NULL,
   verbose = TRUE
 )
@@ -86,12 +86,11 @@ difference-in-difference. Default: \code{TRUE}.}
 \item{make_neighborhoods_consistent}{Include cells from outside the neighborhood if they are
 at least 10 times in the k-nearest neighbors of the cells inside the neighborhood. Secondly,
 remove cells from the neighborhood which are less than 10 times in the k-nearest neighbors of the
-other cells in the neighborhood. Default \code{TRUE}}
+other cells in the neighborhood. Default \code{FALSE}}
 
 \item{skip_confounded_neighborhoods}{Sometimes the inferred neighborhoods are not limited to
 a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
-are unequally distributed between the cell states. Default: \code{TRUE} means
-that those imbalanced neighborhood are not considered for differential expression testing.}
+are unequally distributed between the cell states. Default: \code{FALSE}}
 
 \item{control_parameters}{named list with additional parameters passed to underlying functions.}
 
