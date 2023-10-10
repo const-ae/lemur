@@ -40,7 +40,7 @@ parse_contrast <- function(contrast, formula) {
 create_contrast_data_mask <- function(formula){
   top <- rlang::new_environment(list(
     cond = function(...){
-      .cond(formula, list(...))
+      .cond(formula, rlang::dots_list(..., .homonyms = "error", .check_assign = TRUE))
     },
     "+" = .plus, "-" = .minus, "/" = .divide, "*" = .multiply,
     "==" = .equal,
