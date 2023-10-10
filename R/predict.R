@@ -41,32 +41,43 @@
 #'
 #' @export
 predict.lemur_fit <- function(object, newdata = NULL, newdesign = NULL,
+                              newcondition = NULL,
                                embedding = object$embedding,
                                with_linear_model = TRUE,
                                with_embedding = TRUE,
                                with_alignment = TRUE,
                                ...){
-  predict_impl(object, newdata = newdata, newdesign = newdesign, embedding = embedding,
-               with_linear_model = with_linear_model,
+  predict_impl(object, newdata = newdata, newdesign = newdesign, newcondition = {{newcondition}},
+               embedding = embedding, with_linear_model = with_linear_model,
                with_embedding = with_embedding, with_alignment = with_alignment, ...)
 
 }
 
 predict_impl <- function(object, newdata = NULL, newdesign = NULL,
+                         newcondition = NULL,
                          embedding = object$embedding,
                          with_linear_model = TRUE,
                          with_embedding = TRUE,
                          with_alignment = TRUE,
                          n_embedding = object$n_embedding,
-                         design_matrix = object$design_matrix, design = object$design,
+                         design_matrix = object$design_matrix,
+                         design = object$design,
                          linear_coefficients = object$linear_coefficients,
                          coefficients = object$coefficients,
                          base_point = object$base_point,
                          alignment_coefficients = object$alignment_coefficients,
+                         alignment_design = object$alignment_design,
                          alignment_design_matrix = object$alignment_design_matrix,
                          row_mask = metadata(object)$row_mask,
                          ...){
-  if(is.null(newdesign) && is.null(newdata)){
+  if(! rlang::quo_is_null(rlang::quo({{newcondition}}))){
+    if(! is.null(newdesign) || !is.null(newdata)) warning("If 'newcondition' is used, 'newdesign' and 'newdata' are ignored.")
+    newdesign <- parse_contrast({{newcondition}}, design)
+    alignment_design_matrix <- parse_contrast({{newcondition}}, alignment_design)
+    if(inherits(newdesign, "contrast_relation")) stop("Contrast relations using + or -  are not allowed")
+    newdesign <- matrix(newdesign, nrow = ncol(embedding), ncol = length(newdesign), byrow = TRUE)
+    alignment_design_matrix <- matrix(alignment_design_matrix, nrow = ncol(embedding), ncol = length(alignment_design_matrix), byrow = TRUE)
+  }else if(is.null(newdesign) && is.null(newdata)){
     newdesign <- design_matrix
   }else if(! is.null(newdata)){
     if(is.null(design)) stop("'newdata' is provided, but 'object' does not contain a design formula.")

@@ -110,6 +110,14 @@ test_that("predicting works", {
   expect_equal(dim(predict(red_fit)), c(3, 5))
 })
 
+test_that("cond works within predict", {
+  dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 0, test_fraction = 0, verbose = FALSE)
+  pred1 <- predict(fit, newcondition = cond(condition = "b"))
+  pred2 <- predict(fit, newdesign = c(1, 1, 0))
+  expect_equal(pred1, pred2)
+})
+
 
 test_that("Adding predictors improves predictions", {
   dat <- make_synthetic_data(n_lat = 5)
