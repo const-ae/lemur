@@ -121,5 +121,8 @@ test_that("parse_contrast works in dynamic contexts", {
     parse_contrast(cond({{cov}} := lvl), form)
   }
   res2 <- fun("group", "B")
+  val <- list("group")
+  res3 <- parse_contrast(cond(!!val[[1]] := "B"), form)
   expect_equal(res, res2)
+  expect_equal(res, res3)
 })
