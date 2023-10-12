@@ -17,8 +17,7 @@ edger_fit <- function(counts, design, offset, col_data = NULL,
 
 
 edger_test_de <- function(edger_fit, contrast, design = NULL){
-    cntrst <- parse_contrast({{contrast}}, design)
-    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
+  cntrst <- parse_contrast({{contrast}}, design, simplify = TRUE)
 
   edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
   edger_res <- edgeR::topTags(edger_fit, n = nrow(edger_fit$counts), sort.by = "none")$table
@@ -45,8 +44,8 @@ limma_fit <- function(values, design, col_data = NULL){
 }
 
 limma_test_de <- function(lm_fit, contrast, design, values = NULL, shrink = TRUE, trend = TRUE, robust = TRUE){
-  cntrst <- parse_contrast({{contrast}}, formula = design)
-  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+  cntrst <- matrix(parse_contrast({{contrast}}, formula = design, simplify = TRUE), ncol = 1)
+  cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
 
   lm_fit <- limma::contrasts.fit(lm_fit, contrasts = cntrst)
   if(shrink){

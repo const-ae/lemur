@@ -411,10 +411,7 @@ find_de_neighborhoods_with_contrast <- function(fit, dirs, group_by, contrast, u
                                                 ridge_penalty = 0.1, min_neighborhood_size = 50, verbose = TRUE){
   n_genes <- nrow(fit)
   n_cells <- ncol(fit)
-  contrast <- parse_contrast({{contrast}}, formula = fit$design)
-  cntrst <- evaluate_contrast_tree(contrast, contrast, \(x, .){
-    x
-  })
+  cntrst <- parse_contrast({{contrast}}, formula = fit$design, simplify = TRUE)
   show_progress_bar <- verbose && interactive()
 
 
@@ -519,8 +516,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     mm <- if(method == "glmGamPoi") glm_regions$model_matrix else glm_regions$design
     mat <- assay(region_psce, "masked_counts")
     complement_mat <- assay(region_psce, "counts") - assay(region_psce, "masked_counts")
-    cntrst <- parse_contrast({{contrast}}, design)
-    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, y) x)
+    cntrst <- parse_contrast({{contrast}}, design, simplify = TRUE)
 
     comb_mat <- unname(cbind(mat, complement_mat))
     zero_mat <- array(0, dim = dim(mm))
@@ -595,8 +591,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
     compl_masked_values <- values[de_regions$name,,drop=FALSE] * inverse_mask
     CM <- aggregate_matrix(compl_masked_values, group_split, MatrixGenerics::rowSums2) /
       aggregate_matrix(inverse_mask, group_split, MatrixGenerics::rowSums2)
-    cntrst <- parse_contrast({{contrast}}, design)
-    cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, y) x)
+    cntrst <- parse_contrast({{contrast}}, design, simplify = TRUE)
 
     comb_mat <- unname(cbind(M, CM))
     zero_mat <- array(0, dim = dim(mm))
@@ -696,8 +691,7 @@ make_neighborhoods_consistent <- function(embedding, indices, contrast, design, 
   stopifnot(cell_inclusion_threshold >= 0)
   show_progress_bar <- verbose && interactive()
 
-  cntrst <- parse_contrast({{contrast}}, formula = design)
-  cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+  cntrst <- matrix(parse_contrast({{contrast}}, formula = design, simplify = TRUE), ncol = 1)
   design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
   condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 
@@ -730,8 +724,7 @@ null_confounded_neighborhoods <- function(embedding, indices, contrast, design, 
   if(diff(range(neighborhood_sizes[large_neighborhood])) < 10){
     # Do nothing
   }else{
-    cntrst <- parse_contrast({{contrast}}, formula = design)
-    cntrst <- matrix(evaluate_contrast_tree(cntrst, cntrst, \(x, .) x), ncol = 1)
+    cntrst <-  matrix(parse_contrast({{contrast}}, formula = design, simplify = TRUE), ncol = 1)
     design_matrix <- convert_formula_to_design_matrix(design, col_data)$design_matrix
     condition <- kmeans(c(design_matrix %*% cntrst), centers = 2)$cluster
 

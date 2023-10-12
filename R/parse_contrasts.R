@@ -1,6 +1,6 @@
 
 # This function is adapted from proDA
-parse_contrast <- function(contrast, formula) {
+parse_contrast <- function(contrast, formula, simplify = FALSE) {
 
   if(missing(contrast)){
     stop("No contrast argument was provided!")
@@ -33,7 +33,12 @@ parse_contrast <- function(contrast, formula) {
       stop(e$message)
     }
   })
-  res
+
+  if(simplify){
+    evaluate_contrast_tree(res, res, \(x, y) x)
+  }else{
+    res
+  }
 }
 
 
