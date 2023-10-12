@@ -93,7 +93,7 @@ convert_formula_to_design_matrix <- function(formula, col_data){
     # Try to extract text from error message
     match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
     if(length(match) == 2){
-      stop("Error while parsing the formula (", formula, ").\n",
+      stop("Problem parsing the formula (", formula, ").\n",
            "Variable '", match[2], "' not found in col_data or global environment. Possible variables are:\n",
            paste0(colnames(col_data), collapse = ", "), call. = FALSE)
     }else{
