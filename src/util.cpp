@@ -2,31 +2,6 @@
 using namespace Rcpp;
 
 
-// // [[Rcpp::export(rng = FALSE)]]
-// NumericVector cumz(NumericVector x){
-//   int size = x.size();
-//   NumericVector res(size);
-//   if(size == 0){
-//     return res;
-//   }else if(size == 1){
-//     res[0] = NA_REAL;
-//     return res;
-//   }
-//   double m = x[0];
-//   double msq = 0;
-//   res[0] = NA_REAL;
-//
-//   for(int i = 2; i <= size; i++){
-//     double delta = x[i-1] - m;
-//     m += delta / i;
-//     double delta2 = x[i-1] - m;
-//     msq = (msq * (i - 1) + delta * delta2) / i;
-//     res[i-1] = m / sqrt(msq / (i-1));
-//   }
-//   return res;
-// }
-
-
 // [[Rcpp::export(rng = FALSE)]]
 List cumz_which_abs_max(NumericVector x, int min_neighborhood_size){
   int size = x.size();
