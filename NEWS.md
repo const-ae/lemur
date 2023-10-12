@@ -1,6 +1,9 @@
-# v0.99.1
+# v0.99.1-0.99.8
 
 * Submission to Bioconductor, thus the jump in version number.
+* Adjusted internal code to handle breaking changes in `harmony` v1.0.0.
+* Multiple small fixes to comply with Bioconductor guidelines 
+(see https://github.com/Bioconductor/Contributions/issues/3152)
 
 # v0.0.27
 
