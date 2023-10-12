@@ -118,8 +118,6 @@ evaluate_contrast_tree <-function(c1, c2, FUN){
       evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) * evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
     }else if(c1$relation == "divide"){
       evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) / evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
-    # }else if(c1$relation == "equal"){
-    #   evaluate_contrast_tree(c1$lhs, c2$lhs, FUN = FUN) - evaluate_contrast_tree(c1$rhs, c2$rhs, FUN = FUN)
     }else if(c1$relation %in% c("equal", "less_than", "greater_than")){
       stop("(In)equalities are not allowed in contrasts")
     }else{

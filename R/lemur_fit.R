@@ -93,7 +93,6 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   msg <- NULL
 
   n_features_original <- length(metadata(obj)$row_mask)
-  # n_features <- sum(int_metadata(obj)$row_mask)
   n_features <- nrow(obj)
   n_obs <- ncol(obj)
 

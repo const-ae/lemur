@@ -76,7 +76,6 @@ handle_design_parameter <- function(design, data, col_data){
 
   rownames(design_matrix) <- colnames(data)
   validate_design_matrix(design_matrix, data)
-  # design_matrix <- add_attr_if_intercept(design_matrix)
   list(design_matrix = design_matrix, design_formula = design_formula)
 }
 

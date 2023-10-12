@@ -134,19 +134,6 @@ lemur_impl <- function(Y, design_matrix,
     alignment_design_matrix <- design_matrix
   }
 
-
-  # if(reshuffling_fraction != 0){
-  #   stopifnot(reshuffling_fraction > 0 && reshuffling_fraction <= 1)
-  #   warning("Reshuffling elements from the design matrix is a beta feature, that was ",
-  #           "designed to regularize the differential inference for unmatched populations.\n",
-  #           "On the down-side a large 'reshuffle_fraction' can adversely affect the accuracy of the inference.",
-  #           "Please use with care.", call. = FALSE)
-  #   sel <- sample.int(nrow(design_matrix), size = round(nrow(design_matrix) * reshuffling_fraction), replace = FALSE)
-  #   shuf_sel <- sample(sel)
-  #   design_matrix[sel,] <- design_matrix[shuf_sel,]
-  #   alignment_design_matrix[sel,] <- alignment_design_matrix[shuf_sel,]
-  # }
-
   # Initialize values
   if(linear_coef_fixed){
     if(length(linear_coefficients) == 1){

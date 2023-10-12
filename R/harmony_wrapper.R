@@ -54,9 +54,6 @@ harmony_new_object <- function(){
 
 harmony_init_clustering <- function(harmonyObj, iter.max = 25, nstart = 10){
   stopifnot(is(harmonyObj, "Rcpp_harmony"))
-  # if(! harmonyObj$ran_setup){
-  #   stop("You must call 'harmonyObj$setup' before calling 'harmony_init_clustering'")
-  # }
   harmonyObj$Y <- t(stats::kmeans(t(harmonyObj$Z_cos), centers = harmonyObj$K, iter.max = iter.max, nstart = nstart)$centers)
   harmonyObj$init_cluster_cpp(0)
   harmonyObj
@@ -64,9 +61,6 @@ harmony_init_clustering <- function(harmonyObj, iter.max = 25, nstart = 10){
 
 harmony_max_div_clustering <- function(harmonyObj){
   stopifnot(is(harmonyObj, "Rcpp_harmony"))
-  # if(! harmonyObj$ran_init){
-  #   stop("You must call 'harmony_init_clustering' before calling 'harmony_max_div_clustering'")
-  # }
   err_status <- harmonyObj$cluster_cpp()
   if (err_status == -1) {
     stop('terminated by user')

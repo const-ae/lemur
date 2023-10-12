@@ -11,7 +11,7 @@ grassmann_map <- function(x, base_point){
     svd <- svd(x)
     z <- base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)) %*% t(svd$v) +
       svd$u %*% diag(sin(svd$d), nrow = length(svd$d)) %*% t(svd$v)
-    # qr.Q(qr(z))
+    # Calling `qr.Q(qr(z))` is problematic because it can flip the signs
     z
   }
 }
@@ -52,8 +52,6 @@ random_grassmann_tangent <- function(p, ...){
   k <- ncol(p)
   Z <- randn(n, k, ...)
   project_grassmann_tangent(Z, p)
-  # norm_X <- sqrt(sum(X^2))
-  # X / norm_X
 }
 
 

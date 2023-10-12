@@ -61,22 +61,12 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge
   rss <- 0
   n_obs <- 0
 
-  # X_act[1:3,] <- X[1:3,]
-  # gamma <- solve(crossprod(X[seq_len(k),]))
-  # beta <- gamma %*% t(X[seq_len(k),]) %*% y[seq_len(k)]
-  # rss <- sum((y[1:3] - X_act %*% beta)^2, na.rm=TRUE)
-  # res[,k] <- beta
-  # count[1:3] <- 1
-  # m[1:3] <- y[1:3]
-  # n_obs <- 3
-  # covar <- rss / (n_obs - k) * gamma
-
   for(idx in seq(1, n)){
     yi <- y[idx]
     xi <- t(X[idx,,drop=FALSE])
     gi <- group[idx]
 
-    # m[gi] <- (m[gi] * count[gi] + yi) / (count[gi] + 1)
+    # Alternative formula for mu: m[gi] <- (m[gi] * count[gi] + yi) / (count[gi] + 1)
     delta_m <- 1/(count[gi] + 1) * yi - (1 - count[gi] / (count[gi] + 1)) * m[gi]
     m[gi] <- m[gi] + delta_m
     count[gi] <- count[gi] + 1
@@ -85,7 +75,7 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge
       X_act[gi,] <- xi
       n_obs <- n_obs + 1L
       gamma <- gamma - (gamma %*% xi %*% t(xi) %*% gamma) / c(1 + t(xi) %*% gamma %*% xi)
-      # beta <- gamma %*% t(X_act) %*% m
+      # Below is a more efficient version of: beta <- gamma %*% t(X_act) %*% m
       beta <- beta + gamma %*% xi %*% (m[gi] - t(xi) %*% beta)
     }else{
       beta <- beta + gamma %*% (xi * delta_m)
