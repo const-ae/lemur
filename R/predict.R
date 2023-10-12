@@ -9,6 +9,11 @@
 #'   is predicted. If `NULL`, the `object$design_matrix` is used. If
 #'   it is a vector it is repeated `ncol(embedding)` times to create
 #'   a design matrix with the same entry for each cell.
+#' @param newcondition an unquoted expression with a call to `cond()` specifying
+#'   the covariates of the prediction. See the `contrast` argument in [test_de]
+#'   for more details. Note that combinations of multiple calls to `cond()` are
+#'   not allowed (e.g., `cond(a = 1) - cond(a = 2)`). If specified, `newdata`
+#'   and `newdesign` are ignored.
 #' @param embedding the low-dimensional cell position for which the
 #'   output is predicted.
 #' @param with_linear_model a boolean to indicate if the linear regression

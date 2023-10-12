@@ -8,6 +8,7 @@
   object,
   newdata = NULL,
   newdesign = NULL,
+  newcondition = NULL,
   embedding = object$embedding,
   with_linear_model = TRUE,
   with_embedding = TRUE,
@@ -25,6 +26,12 @@
 is predicted. If \code{NULL}, the \code{object$design_matrix} is used. If
 it is a vector it is repeated \code{ncol(embedding)} times to create
 a design matrix with the same entry for each cell.}
+
+\item{newcondition}{an unquoted expression with a call to \code{cond()} specifying
+the covariates of the prediction. See the \code{contrast} argument in \link{test_de}
+for more details. Note that combinations of multiple calls to \code{cond()} are
+not allowed (e.g., \code{cond(a = 1) - cond(a = 2)}). If specified, \code{newdata}
+and \code{newdesign} are ignored.}
 
 \item{embedding}{the low-dimensional cell position for which the
 output is predicted.}

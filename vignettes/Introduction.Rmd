@@ -40,7 +40,16 @@ The goal of `lemur` is to simplify analysis the of multi-condition single-cell d
 
 ## Installation
 
-You can install the development version of lemur from Github:
+You can install `lemur` directly from Bioconductor (available since version 3.18). Just paste the following snippet into your R console:
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("lemur")
+```
+
+Alternatively, you can install the package from Github using `devtools`:
 
 ``` r
 devtools::install_github("const-ae/lemur")

@@ -33,7 +33,17 @@ the core of LEMUR</figcaption>
 
 ## Installation
 
-You can install the development version of lemur from Github:
+You can install `lemur` directly from Bioconductor (available since
+version 3.18). Just paste the following snippet into your R console:
+
+``` r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("lemur")
+```
+
+Alternatively, you can install the package from Github using `devtools`:
 
 ``` r
 devtools::install_github("const-ae/lemur")
@@ -520,7 +530,7 @@ sessionInfo()
 #> [15] GenomeInfoDb_1.36.0         IRanges_2.34.0             
 #> [17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
 #> [19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
-#> [21] lemur_0.99.6               
+#> [21] lemur_0.99.7               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.3              xfun_0.39                
