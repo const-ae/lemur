@@ -43,7 +43,7 @@ harmony_init <- function(embedding, design_matrix,
 #' @keywords internal
 harmony_new_object <- function(){
   Y <- randn(10, 3)
-  harmonyObj <- if(packageVersion("harmony") >= "1.0.3"){
+  harmonyObj <- if(utils::packageVersion("harmony") >= "1.0.3"){
     # Harmony ignores 'verbose = FALSE'
     harmony::RunHarmony(Y, rep(letters[1:2], length.out = 10), nclust = 2, max.iter = 0, return_object = TRUE, verbose = FALSE)
   }else{
