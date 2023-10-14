@@ -40,6 +40,19 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
   return <- match.arg(return)
   Y <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
+
+  xlevel <- attr(design, "xlevel") %default_to% attr(alignment_design, "xlevel")
+  for(lvl in names(xlevel)){
+    if(lvl %in% names(col_data)){
+      col_data[[lvl]] <- factor(col_data[[lvl]], levels = xlevel[[lvl]])
+    }else{
+      stop("The column data does not contain the covariate ", lvl, ". This is a problem",
+           "because it was used in the original design.")
+    }
+  }
+  attr(design, "ignore_degeneracy") <- TRUE
+  attr(alignment_design, "ignore_degeneracy") <- TRUE
+
   des <- handle_design_parameter(design, data, col_data)
   al_des <- handle_design_parameter(alignment_design, data, col_data)
   embedding <- project_on_lemur_fit_impl(Y, des$design_matrix, al_des$design_matrix,

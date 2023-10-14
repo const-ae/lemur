@@ -154,7 +154,30 @@ test_that("projection works", {
   proj1_fit <- project_on_lemur_fit(fit, dat1, return = "lemur_fit")
   expect_true(validObject(proj1_fit))
   colData(proj1_fit) <- convert_dataframe_cols_chr_to_fct(colData(proj1_fit))
-  expect_equal(proj1_fit, fit, ignore_attr = "dataClasses")
+  expect_equal(proj1_fit, fit, ignore_attr = c("dataClasses", "ignore_degeneracy"))
+})
+
+test_that("projection works for under-determinded data", {
+  dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
+  dat$contin <- sample(c(0, 1, 2), size = ncol(dat), replace = TRUE)
+  dat$alt_cond <- sample(c("A", "B"), size = ncol(dat), replace = TRUE)
+  dat1 <- dat[,1:250]
+  dat2 <- dat[,251:500]
+  fit <- lemur(dat1, design = ~ condition + contin, n_embedding = 3, test_fraction = 0, verbose = FALSE)
+  fit <- align_by_grouping(fit, grouping = sample(c("a", "b"), size = 250, replace = TRUE), design = ~ condition + alt_cond, verbose = FALSE)
+
+  proj1 <- project_on_lemur_fit(fit, dat1)
+  expect_equal(fit$embedding, proj1)
+  dat2$condition <- rep("a", ncol(dat2))
+
+  proj2 <- project_on_lemur_fit(fit, dat2)
+  proj3 <- project_on_lemur_fit(fit, assay(dat2, "logcounts"), col_data = colData(dat2))
+  expect_equal(proj2, proj3)
+
+  proj1_fit <- project_on_lemur_fit(fit, dat1, return = "lemur_fit")
+  expect_true(validObject(proj1_fit))
+  colData(proj1_fit) <- convert_dataframe_cols_chr_to_fct(colData(proj1_fit))
+  expect_equal(proj1_fit, fit, ignore_attr = c("dataClasses", "ignore_degeneracy"))
 })
 
 
