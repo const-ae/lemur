@@ -22,7 +22,7 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, weig
     stopifnot(length(dim(coordsystems)) == 3)
     destack_slice(coordsystems)
   }else{
-    stop("Cannot handle coordsystems of type: ", paste0(class(coordsystems), collapse = ", "))
+    stop("Cannot handle coordsystems of type: ", toString(class(coordsystems), width = 100))
   }
   stopifnot(length(coordsystems) == n_obs)
   stopifnot(all(vapply(coordsystems, \(emb) nrow(emb) == n_amb && ncol(emb) == n_emb, FUN.VALUE = logical(1L))))

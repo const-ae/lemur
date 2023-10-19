@@ -26,9 +26,10 @@ parse_contrast <- function(contrast, formula, simplify = FALSE) {
     # Try to extract text from error message
     match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
     if(length(match) == 2){
+      covars1 <- paste0(paste0(covar, " = ?"), collapse = ", ")
+      covars2 <- paste0(paste0(covar, " = ?"), collapse = ", ")
       stop("Object '", match[2], "' not found. Please specify the contrast using:\n",
-           "'cond(", paste0(paste0(covar, " = ?"), collapse = ", "), ") - ",
-           "cond(", paste0(paste0(covar, " = ?"), collapse = ", "), ")'", call. = FALSE)
+           "'cond(", covars1, ") - cond(", covars2, ")'", call. = FALSE)
     }else{
       stop(e$message)
     }

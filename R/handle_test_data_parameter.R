@@ -28,7 +28,7 @@ handle_test_data_parameter <- function(fit, test_data, test_data_col_data, conti
     test_data <- SingleCellExperiment(assays = setNames(list(matrix(nrow = nrow(fit), ncol = 0) * 1.0), continuous_assay_name),
                                       colData = col_data_copy[integer(0L),,drop=FALSE])
   }else{
-    stop("Cannot handle 'indepdendet_data' of type: ", paste0(class(test_data), collapse = ", "))
+    stop("Cannot handle 'indepdendet_data' of type: ", toString(class(test_data), width = 100))
   }
 
   colData(test_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(test_data, test_data_col_data))
