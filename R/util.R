@@ -79,42 +79,6 @@ mply_dbl <- function(x, FUN, ncol=1, ...){
   }
 }
 
-#' @describeIn mply_dbl flexible version that automatically infers the number
-#'   of columns
-msply_dbl <- function(x, FUN, ...){
-  if(is.vector(x)){
-    res <- sapply(x, FUN, ...)
-  }else{
-    res <- apply(x, 1, FUN, ...)
-  }
-
-  if(is.list(res)){
-    if(all(vapply(res, function(x) is.numeric(x) && length(x) == 0, FUN.VALUE = FALSE))){
-      res <- matrix(numeric(0),nrow=0, ncol=length(res))
-    }else{
-      stop("Couldn't simplify result to a matrix")
-    }
-  }
-  if(is.matrix(x) && length(res) == 0){
-    # Empty result, make matrix
-    res <- matrix(numeric(0),nrow=0, ncol=nrow(x))
-  }
-
-  if(is.numeric(res)){
-    # Do nothing
-  }else if(is.logical(res)){
-    res <- res * 1.0
-  }else{
-    stop("Result is of type ", typeof(res), ". Cannot convert to numeric.")
-  }
-
-  if(is.matrix(res)){
-    t(res)
-  }else{
-    as.matrix(res, nrow=length(res))
-  }
-}
-
 
 
 #'
