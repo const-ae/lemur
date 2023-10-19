@@ -168,20 +168,30 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
 
   if (! i_missing) {
     # Update metadata
-    ii <- SingleCellExperiment:::.convert_subset_index(i, rownames(x))
+    ii <- convert_subset_to_index(i, rownames(x))
     old_mask <- metadata(x)$row_mask
     metadata(x)$row_mask[] <- FALSE
     metadata(x)$row_mask[old_mask][ii] <- TRUE
   }
   if(! j_missing){
-    jj <- SingleCellExperiment:::.convert_subset_index(j, colnames(x))
+    jj <- convert_subset_to_index(j, colnames(x))
     metadata(x)[["alignment_design_matrix"]] <- metadata(x)[["alignment_design_matrix"]][jj,,drop=FALSE]
   }
 
   callNextMethod()
 })
 
-
+convert_subset_to_index <- function(subset, names){
+  if (is.character(subset)) {
+    orig <- subset
+    subset <- match(subset, names)
+    if (any(bad <- is.na(subset))) {
+      bad_examples <- toString(orig[bad], width = 100)
+      stop("index out of bounds: ", bad_examples)
+    }
+  }
+  return(as.vector(subset))
+}
 
 .methods_to_suggest <- c("n_embedding", "embedding",
                          "design", "design_matrix", "base_point",
