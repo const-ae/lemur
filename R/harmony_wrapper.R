@@ -45,9 +45,9 @@ harmony_new_object <- function(){
   Y <- randn(10, 3)
   harmonyObj <- if(utils::packageVersion("harmony") >= "1.0.3"){
     # Harmony ignores 'verbose = FALSE'
-    harmony::RunHarmony(Y, rep(letters[1:2], length.out = 10), nclust = 2, max.iter = 0, return_object = TRUE, verbose = FALSE)
+    harmony::RunHarmony(Y, rep(c("a", "b"), length.out = 10), nclust = 2, max.iter = 0, return_object = TRUE, verbose = FALSE)
   }else{
-    harmony::HarmonyMatrix(Y, rep(letters[1:2], length.out = 10), do_pca = FALSE, nclust = 2, max.iter.harmony = 0, return_object = TRUE)
+    harmony::HarmonyMatrix(Y, rep(c("a", "b"), length.out = 10), do_pca = FALSE, nclust = 2, max.iter.harmony = 0, return_object = TRUE)
   }
   harmonyObj
 }

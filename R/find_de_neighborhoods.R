@@ -278,7 +278,7 @@ find_de_neighborhoods <- function(fit,
     })
     de_regions$independent_indices <- NULL
   }else{
-    colnames <- c(colnames[1:3], "independent_indices", colnames[-(1:3)])
+    colnames <- c(colnames[seq_len(3)], "independent_indices", colnames[-seq_len(3)])
   }
   de_regions$n_cells <- lengths(de_regions$indices)
   de_regions$pval[de_regions$n_cells < min_neighborhood_size] <- NA_real_
