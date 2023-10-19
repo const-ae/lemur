@@ -3,6 +3,10 @@
 #'
 #' @returns see [glmGamPoi::vars].
 #'
+#' @examples
+#'   # `vars` quotes expressions (just like in dplyr)
+#'   vars(condition, sample)
+#'
 #' @export
 glmGamPoi::vars
 

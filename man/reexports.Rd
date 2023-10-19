@@ -8,6 +8,11 @@
 \value{
 see \link[glmGamPoi:vars]{glmGamPoi::vars}.
 }
+\examples{
+  # `vars` quotes expressions (just like in dplyr)
+  vars(condition, sample)
+
+}
 \keyword{internal}
 \description{
 These objects are imported from other packages. Follow the links
