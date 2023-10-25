@@ -43,7 +43,8 @@ Suggests:
     dplyr,
     edgeR,
     knitr,
-    rmarkdown
+    rmarkdown,
+    BiocStyle
 LinkingTo: 
     Rcpp,
     RcppArmadillo
