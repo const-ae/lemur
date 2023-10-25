@@ -1,7 +1,7 @@
 Package: lemur
 Type: Package
 Title: Latent Embedding Multivariate Regression
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: person("Constantin", "Ahlmann-Eltze", email = "artjom31415@googlemail.com", 
                role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3762-068X"))
 Description: Fit a latent embedding multivariate regression (LEMUR) model to multi-condition
