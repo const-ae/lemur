@@ -108,6 +108,7 @@ test_that("check that aligning points works perfectly for low number of points",
 
 
 test_that("check that harmony alignment works as expected", {
+  skip("Harmony v1.1.0 has a regression about small input matrices")
   set.seed(1)
   n_genes <- 10
   n_emb <- 2

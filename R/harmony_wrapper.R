@@ -42,12 +42,12 @@ harmony_init <- function(embedding, design_matrix,
 #'
 #' @keywords internal
 harmony_new_object <- function(){
-  Y <- randn(10, 3)
+  Y <- randn(3, 100)
   harmonyObj <- if(utils::packageVersion("harmony") >= "1.0.3"){
     # Harmony ignores 'verbose = FALSE'
-    harmony::RunHarmony(Y, rep(c("a", "b"), length.out = 10), nclust = 2, max.iter = 0, return_object = TRUE, verbose = FALSE)
+    harmony::RunHarmony(Y, rep(c("a", "b"), length.out = 100), nclust = 2, max.iter = 0, return_object = TRUE, verbose = FALSE)
   }else{
-    harmony::HarmonyMatrix(Y, rep(c("a", "b"), length.out = 10), do_pca = FALSE, nclust = 2, max.iter.harmony = 0, return_object = TRUE)
+    harmony::HarmonyMatrix(Y, rep(c("a", "b"), length.out = 100), do_pca = FALSE, nclust = 2, max.iter.harmony = 0, return_object = TRUE)
   }
   harmonyObj
 }
@@ -55,7 +55,7 @@ harmony_new_object <- function(){
 harmony_init_clustering <- function(harmonyObj, iter.max = 25, nstart = 10){
   stopifnot(is(harmonyObj, "Rcpp_harmony"))
   harmonyObj$Y <- t(stats::kmeans(t(harmonyObj$Z_cos), centers = harmonyObj$K, iter.max = iter.max, nstart = nstart)$centers)
-  harmonyObj$init_cluster_cpp(0)
+  harmonyObj$init_cluster_cpp()
   harmonyObj
 }
 
