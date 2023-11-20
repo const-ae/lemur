@@ -1,3 +1,7 @@
+# v1.1
+
+* Make `predict` function faster and less memory intensive for subset fits.
+
 # v0.99.1-0.99.8
 
 * Submission to Bioconductor, thus the jump in version number.
