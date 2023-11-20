@@ -61,7 +61,8 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
               alignment_coefficients = fit$alignment_coefficients,
               alignment_design = al_des$design_formula,
               alignment_design_matrix = al_des$design_matrix,
-              use_assay = use_assay, is_test_data = rep(FALSE, ncol(embedding)))
+              use_assay = use_assay, is_test_data = rep(FALSE, ncol(embedding)),
+              row_mask = metadata(fit)$row_mask)
   }
 }
 
@@ -69,6 +70,7 @@ project_on_lemur_fit_impl <- function(Y, design_matrix, alignment_design_matrix,
   Y_clean <- Y - linear_coefficients %*% t(design_matrix)
   embedding <- project_data_on_diffemb(Y_clean, design = design_matrix, coefficients = coefficients, base_point = base_point)
   embedding <- apply_linear_transformation(embedding, alignment_coefficients, alignment_design_matrix)
+  # TODO: subset to row_mask? And then potentially also remove the check in find_de_neighborhoods line 143.
   embedding
 }
 

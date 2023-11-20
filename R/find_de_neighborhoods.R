@@ -140,7 +140,7 @@ find_de_neighborhoods <- function(fit,
   }else if(use_existing_test_projection){
     projected_indep_data <- fit$embedding[,fit$is_test_data,drop=FALSE]
   }else{
-    if(! all(metadata(fit)$row_mask == TRUE)){
+    if(! all(metadata(fit)$row_mask == seq_len(nrow(fit$base_point)))){
       stop("The 'fit' argument of 'find_de_neighborhoods' must not be subsetted.")
     }
     attr(design, "ignore_degeneracy") <- TRUE
@@ -243,7 +243,7 @@ find_de_neighborhoods <- function(fit,
           "'count_assay_name=\"", count_assay_name,  "\"' is not an assay (",  paste0(assayNames(test_data), collapse = ", "),
              ") of the 'independent_data' object.")
       }
-      if(verbose & ! is.numeric(size_factor_method) & mean(metadata(fit)[["row_mask"]]) < 0.1){
+      if(verbose & ! is.numeric(size_factor_method) & length(metadata(fit)[["row_mask"]]) / nrow(fit$base_point) < 0.1){
         warning("The fit object was subset to less than 10% of the genes. This will make the size factor estimation unreliable. ",
                 "Consider setting 'size_factor_method' to a vector with the appropriate sequencing depth per cell.")
       }

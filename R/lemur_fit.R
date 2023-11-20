@@ -55,7 +55,7 @@ lemur_fit <- function(data, col_data, row_data,
                       base_point, coefficients, embedding,
                       alignment_coefficients,
                       alignment_design, alignment_design_matrix,
-                      use_assay, is_test_data){
+                      use_assay, is_test_data, row_mask = NULL){
   if(is.null(data)){
     data <- SingleCellExperiment(assays = list())
   }else if(! is(data, "SummarizedExperiment")){
@@ -77,7 +77,7 @@ lemur_fit <- function(data, col_data, row_data,
     n_embedding = n_embedding, design = design, base_point = base_point,
     coefficients = coefficients, alignment_coefficients = alignment_coefficients,
     alignment_design = alignment_design, alignment_design_matrix = alignment_design_matrix,
-    use_assay = use_assay, row_mask = rep(TRUE, n_features))
+    use_assay = use_assay, row_mask = if(is.null(row_mask)) seq_len(n_features) else row_mask)
 
   .lemur_fit(data)
 }
@@ -92,7 +92,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
 
   msg <- NULL
 
-  n_features_original <- length(metadata(obj)$row_mask)
+  row_mask <- metadata(obj)$row_mask
+  n_features_original <- nrow(obj$base_point)
   n_features <- nrow(obj)
   n_obs <- ncol(obj)
 
@@ -144,6 +145,8 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(is_test_data) &&  length(is_test_data) != n_obs ) msg <- c(msg, "length `is_test_data` must match the number of observations")
   if(! is.null(col_names) && length(col_names) != length(unique(col_names))) msg <- c(msg, "`colnames` are not unique")
   if(! is.null(row_names) && length(row_names) != length(unique(row_names))) msg <- c(msg, "`rownames` are not unique")
+  if(is.logical(row_mask)) msg <- c(msg, "`row_mask` is a logical. This is no longer allowed (changed in version 1.0.4 to fix a bug). Please rerun `lemur`.")
+  if(max(row_mask) > n_features_original || min(row_mask) < 0 || any(is.na(row_mask))) msg <- c(msg, "`row_mask` contains illegal index. This is a bug!")
 
   if(is.null(msg)){
     TRUE
@@ -169,9 +172,7 @@ setMethod("[", c("lemur_fit", "ANY", "ANY"), function(x, i, j, ...) {
   if (! i_missing) {
     # Update metadata
     ii <- convert_subset_to_index(i, rownames(x))
-    old_mask <- metadata(x)$row_mask
-    metadata(x)$row_mask[] <- FALSE
-    metadata(x)$row_mask[old_mask][ii] <- TRUE
+    metadata(x)$row_mask <- metadata(x)$row_mask[ii]
   }
   if(! j_missing){
     jj <- convert_subset_to_index(j, colnames(x))
@@ -189,6 +190,8 @@ convert_subset_to_index <- function(subset, names){
       bad_examples <- toString(orig[bad], width = 100)
       stop("index out of bounds: ", bad_examples)
     }
+  }else if(is.logical(subset)){
+    subset <- which(subset)
   }
   return(as.vector(subset))
 }
