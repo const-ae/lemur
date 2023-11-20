@@ -91,7 +91,7 @@ test_that("subsetting works", {
 test_that("predicting works", {
   # Compare with linear model fit
   dat <- make_synthetic_data(n_genes = 30, n_lat = 4)
-  fit <- lemur(dat, design = ~ condition, n_embedding = 0, test_fraction = 0, verbose = FALSE)
+  fit <- lemur(dat, design = ~ condition, n_embedding = 2, test_fraction = 0, verbose = FALSE)
   fit_lm <- lm(t(assay(dat)) ~ condition, data = colData(dat))
   expect_equal(fit$linear_coefficients, t(fit_lm$coefficients), ignore_attr = "dimnames")
   expect_equal(predict(fit, with_embedding = FALSE), t(predict(fit_lm)), ignore_attr = "dimnames")
@@ -100,7 +100,9 @@ test_that("predicting works", {
   # Predict works with subsetting
   pred_full <- predict(fit)
   pred_red <- predict(fit[1:3,])
+  pred_red2 <- predict(fit[c(3, 1, 5),])
   expect_equal(pred_red, pred_full[1:3,])
+  expect_equal(pred_red2[,1:5], pred_full[c(3,1,5),1:5])
 
   # Alignment does not disturb prediction
   fit <- lemur(dat, design = ~ condition, n_embedding = 5, verbose = FALSE)

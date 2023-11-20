@@ -108,7 +108,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   approx <- if(with_linear_model){
     linear_coefficients[row_mask,,drop=FALSE] %*% t(newdesign)
   }else{
-    matrix(0, nrow = sum(row_mask), ncol = nrow(newdesign))
+    matrix(0, nrow = length(row_mask), ncol = nrow(newdesign))
   }
 
   if(with_embedding){
@@ -134,7 +134,6 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     }
   }
 
-  approx <- approx
   colnames(approx) <- rownames(newdesign)
   rownames(approx) <- rownames(object)
   approx
