@@ -1,3 +1,8 @@
+# v1.0 (release)
+
+* Bug fix in subsetting logic affecting `predict` and `test_de`. The problem occured if a `fit` object was
+subsetted with indices or gene names and the order changed, and resulted in a wrong order of the predictions.
+
 # v0.99.1-0.99.8
 
 * Submission to Bioconductor, thus the jump in version number.
