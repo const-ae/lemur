@@ -106,9 +106,9 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     stop("The number of rows in 'newdesign' (", nrow(newdesign) ,") and 'alignment_design_matrix'(", nrow(alignment_design_matrix) ,")  must be the same")
   }
   approx <- if(with_linear_model){
-    linear_coefficients %*% t(newdesign)
+    linear_coefficients[row_mask,,drop=FALSE] %*% t(newdesign)
   }else{
-    matrix(0, nrow = min(nrow(linear_coefficients)), ncol = nrow(newdesign))
+    matrix(0, nrow = sum(row_mask), ncol = nrow(newdesign))
   }
 
   if(with_embedding){
@@ -130,11 +130,11 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
         offset <- 0
       }
       sel <- gr1 == mm_groups & gr2 == mm_al_groups
-      approx[,sel] <- approx[,sel] + diffemb %*% alignment %*% (embedding[,sel] - offset)
+      approx[,sel] <- approx[,sel] + diffemb[row_mask,,drop=FALSE] %*% (alignment %*% (embedding[,sel] - offset))
     }
   }
 
-  approx <- approx[row_mask,,drop=FALSE]
+  approx <- approx
   colnames(approx) <- rownames(newdesign)
   rownames(approx) <- rownames(object)
   approx
