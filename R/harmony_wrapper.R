@@ -26,12 +26,22 @@ harmony_init <- function(embedding, design_matrix,
 
   sigma <- rep_len(sigma, nclust)
   lambda_range = c(0.1, 10)
-  harmonyObj <- harmony_new_object()
-  harmonyObj$setup(
-    embedding, phi,
-    sigma, theta, lambda_vec, max.iter.cluster, epsilon.cluster,
-    epsilon.harmony, nclust, block.size, lambda_range, B_vec, verbose
-  )
+  if(packageVersion("harmony") < "1.2.0"){
+    harmonyObj <- harmony_new_object()
+    harmonyObj$setup(
+      embedding, phi,
+      sigma, theta, lambda_vec, max.iter.cluster, epsilon.cluster,
+      epsilon.harmony, nclust, block.size, lambda_range, B_vec, verbose
+    )
+  }else{
+    alpha <- 0.2
+    harmonyObj <- harmony::RunHarmony(embedding, mm_groups, nclust = nclust, max.iter = 0, return_object = TRUE, verbose = FALSE)
+    harmonyObj$setup(
+      embedding, phi,
+      sigma, theta, lambda_vec, alpha, max.iter.cluster, epsilon.cluster,
+      epsilon.harmony, nclust, block.size, B_vec, verbose
+    )
+  }
   harmony_init_clustering(harmonyObj)
   harmonyObj
 }
