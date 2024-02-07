@@ -6,7 +6,8 @@ Authors@R: person("Constantin", "Ahlmann-Eltze", email = "artjom31415@googlemail
                role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3762-068X"))
 Description: Fit a latent embedding multivariate regression (LEMUR) model to multi-condition
   single-cell data. The model provides a parametric description of single-cell data measured
-  with complex experimental designs. The parametric model is used to (1) align conditions, (2) predict
+  with treatment vs. control or more complex experimental designs. 
+  The parametric model is used to (1) align conditions, (2) predict
   log fold changes between conditions for all cells, and (3) identify cell neighborhoods with 
   consistent log fold changes. For those neighborhoods, a pseudobulked differential expression test
   is conducted to assess which genes are significantly changed.
