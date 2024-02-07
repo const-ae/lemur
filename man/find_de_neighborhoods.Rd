@@ -92,7 +92,11 @@ other cells in the neighborhood. Default \code{FALSE}}
 a single cell state; this becomes problematic if the cells of the conditions compared in the contrast
 are unequally distributed between the cell states. Default: \code{FALSE}}
 
-\item{control_parameters}{named list with additional parameters passed to underlying functions.}
+\item{control_parameters}{named list with additional parameters passed to underlying functions.
+
+If an explicit \code{test_data} argument is provided (and it is not equal to \code{fit$test_data}) or if
+\code{control_parameter$merge_indices_columns = FALSE}, the function returns separate neighborhood columns
+for the test and training data instead of a merged one.}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 }

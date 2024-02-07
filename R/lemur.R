@@ -48,7 +48,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
                   ...,
                   verbose = TRUE){
 
-  data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
+  data_mat <- handle_data_parameter(data, on_disk = NULL, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
   des <- handle_design_parameter(design, data, col_data)
   al_des <- des
@@ -140,22 +140,24 @@ lemur_impl <- function(Y, design_matrix,
       linear_coefficients <- matrix(linear_coefficients, nrow = n_ambient_eff, ncol = ncol(design_matrix))
     }
     stopifnot(nrow(linear_coefficients) == n_ambient_eff & ncol(linear_coefficients))
-
+    if(linear_coefficient_estimator == "zero"){
+      Y_clean <- Y
+    }else{
+      Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+    }
   }else{
     if(verbose) message("Regress out global effects using ", linear_coefficient_estimator, " method.")
-    linear_coefficients <- estimate_linear_coefficient(Y = Y, design_matrix = design_matrix, method = linear_coefficient_estimator)
-  }
-  if(linear_coefficient_estimator == "zero"){
-    Y_clean <- Y
-  }else{
-    Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+    lin_res <- estimate_linear_coefficient_and_residual(Y = Y, design_matrix = design_matrix, method = linear_coefficient_estimator)
+    linear_coefficients <- lin_res$coefficients
+    Y_clean <- lin_res$residuals
   }
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
     base_point <- find_base_point(Y_clean, base_point, n_embedding = n_embedding)
   }
 
-  initial_error <- sum(Y_clean^2)
+  # initial_error <- sum(Y_clean^2)
+  initial_error <- NA
   if(verbose) message("Fit differential embedding model")
   if(verbose) message("Initial error: ", sprintf("%.3g", initial_error))
   if(! diffemb_coef_fixed){
@@ -249,7 +251,7 @@ project_data_on_diffemb <- function(Y_clean, design, coefficients, base_point){
   mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]
+    res[,mm_groups == gr] <- as.matrix(t(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE])
   }
   res
 }

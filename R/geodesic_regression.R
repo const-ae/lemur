@@ -57,9 +57,9 @@ grassmann_geodesic_regression <- function(coordsystems, design, base_point, weig
 #'
 #' @keywords internal
 grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
-  nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA)
-  data <- data[,!nas,drop=FALSE]
-  design <- design[!nas,,drop=FALSE]
+  # nas <- apply(data, 2, anyNA) | apply(design, 1, anyNA)
+  # data <- data[,!nas,drop=FALSE]
+  # design <- design[!nas,,drop=FALSE]
 
   n_obs <- nrow(design)
   n_coef <- ncol(design)

@@ -1,13 +1,19 @@
 
 
-estimate_linear_coefficient <- function(Y, design_matrix, method = c("linear", "cluster_median", "zero")){
+estimate_linear_coefficient_and_residual <- function(Y, design_matrix, method = c("linear", "cluster_median", "zero")){
   method <- match.arg(method)
-
-  if(method == "linear"){
+  coef <- NULL
+  resid <- NULL
+  if(method == "linear" && (is(Y, "sparseMatrix") || is(Y, "DelayedArray"))){
+    resid <- t(ResidualMatrix::ResidualMatrix(t(Y), design = design_matrix))
+    coef <- t(backsolve(qr.R(qr(design_matrix)), resid@seed@Qty))
+  }else if(method == "linear"){
     linear_fit <- lm.fit(design_matrix, t(Y))
-    t(linear_fit$coefficients)
+    coef <- t(linear_fit$coefficients)
+    resid <- t(linear_fit$residuals)
   }else if(method == "zero"){
-    matrix(0, nrow = nrow(Y), ncol = ncol(design_matrix))
+    coef <- matrix(0, nrow = nrow(Y), ncol = ncol(design_matrix))
+    resid <- Y
   }else if(method == "cluster_median"){
     min_cluster_membership <- 0.01
     pca <- pca(Y, n = 20)
@@ -25,6 +31,8 @@ estimate_linear_coefficient <- function(Y, design_matrix, method = c("linear", "
       })
     }))
     wmed <- matrixStats::rowWeightedMedians(coef, w = rowSums(harm_obj$R), na.rm = TRUE, interpolate = FALSE)
-    matrix(wmed, nrow = nrow(Y), ncol = ncol(design_matrix))
+    coef <- matrix(wmed, nrow = nrow(Y), ncol = ncol(design_matrix))
+    resid <- Y - coef %*% t(design_matrix)
   }
+  list(coefficients = coef, residuals = resid)
 }

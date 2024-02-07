@@ -63,6 +63,10 @@ glmGamPoi::vars
 #' @param verbose Should the method print information during the fitting. Default: `TRUE`.
 #' @param control_parameters named list with additional parameters passed to underlying functions.
 #'
+#' If an explicit `test_data` argument is provided (and it is not equal to `fit$test_data`) or if
+#' `control_parameter$merge_indices_columns = FALSE`, the function returns separate neighborhood columns
+#' for the test and training data instead of a merged one.
+#'
 #' @return a data frame with one entry per gene
 #'   \describe{
 #'      \item{`name`}{The gene name.}
