@@ -112,8 +112,8 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
   }
 
   if(with_embedding){
-    mm_groups <- get_groups(newdesign, n_groups = 100)
-    mm_al_groups <- get_groups(alignment_design_matrix, n_groups = 100)
+    mm_groups <- get_groups(newdesign)
+    mm_al_groups <- get_groups(alignment_design_matrix)
     stopifnot(length(mm_groups) == length(mm_al_groups))
     mmg <- unique(cbind(mm_groups, mm_al_groups))
     for(idx in seq_len(nrow(mmg))){

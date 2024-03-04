@@ -235,7 +235,7 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
 project_diffemb_into_data_space <- function(embedding, design, coefficients, base_point){
   n_genes <- nrow(base_point)
   res <- matrix(NA, nrow = n_genes, ncol = ncol(embedding))
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  mm_groups <- get_groups(design)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
     res[,mm_groups == gr] <- grassmann_map(sum_tangent_vectors(coefficients, covars), base_point) %*% embedding[,mm_groups == gr,drop=FALSE]
@@ -246,7 +246,7 @@ project_diffemb_into_data_space <- function(embedding, design, coefficients, bas
 project_data_on_diffemb <- function(Y_clean, design, coefficients, base_point){
   n_emb <- ncol(base_point)
   res <- matrix(NA, nrow = n_emb, ncol = ncol(Y_clean))
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  mm_groups <- get_groups(design)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
     res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]

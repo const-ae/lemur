@@ -67,11 +67,7 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
   n_emb <- ncol(base_point)
 
   # Initialize with tangent regression
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
-  if(is.null(mm_groups)){
-    stop("The model matrix contains too many groups. Is maybe one of the covariates continuous?\n",
-         "This error could be removed, but this feature hasn't been implemented yet.")
-  }
+  mm_groups <- get_groups(design)
   if(any(table(mm_groups) < n_emb)){
     stop("Too few datapoints in some design matrix group.\n",
          "This error could be removed, but this feature hasn't been implemented yet.")
@@ -90,12 +86,8 @@ grassmann_lm <- function(data, design, base_point, tangent_regression = FALSE){
 }
 
 
-get_groups <- function (design_matrix, n_groups) {
-  if (!glmGamPoi:::lte_n_equal_rows(design_matrix, n_groups)) {
-    NULL
-  } else {
-    glmGamPoi:::get_row_groups(design_matrix, n_groups = n_groups)
-  }
+get_groups <- function (design_matrix) {
+  vctrs::vec_group_id(design_matrix)
 }
 
 

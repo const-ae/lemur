@@ -5,7 +5,7 @@ harmony_init <- function(embedding, design_matrix,
                          tau = 0, block.size = 0.05,  max.iter.cluster = 200,
                          epsilon.cluster = 1e-5, epsilon.harmony = 1e-4, verbose = TRUE){
 
-  mm_groups <- get_groups(design_matrix, n_groups = ncol(design_matrix) * 10)
+  mm_groups <- get_groups(design_matrix)
 
   # Adapted from https://github.com/immunogenomics/harmony/blob/c8f4901ef92d6e9b4e1373c52de3b67ff052db3e/R/ui.R#L161
   n_groups <- length(unique(mm_groups))

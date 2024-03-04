@@ -41,3 +41,25 @@ test_that("grassmann_lm works", {
   expect_equal(fit[,,"xb"], grassmann_log(base_point, plane_b) - grassmann_log(base_point, plane_a))
 })
 
+
+test_that("get_groups works and is fast", {
+  df <- data.frame(let = sample(letters[1:2], size = 100, replace = TRUE),
+                   num = rnorm(100))
+  mat <- model.matrix(~ let, data = df)
+  vec <- ifelse(df$let == df$let[1], 1, 2)
+  attr(vec, "n") <- 2
+  expect_equal(get_groups(mat), vec)
+
+  mat <- model.matrix(~ let + num, data = df)
+  vec <- seq_len(100)
+  attr(vec, "n") <- 100
+  expect_equal(get_groups(mat), vec)
+
+  # This is fast and grows roughly linear
+  df <- data.frame(num = rnorm(1e6))
+  mat <- model.matrix(~ num, data = df)
+  vec <- seq_len(1e6)
+  attr(vec, "n") <- 1e6
+  expect_equal(get_groups(mat), vec)
+})
+

@@ -43,8 +43,6 @@ align_harmony <- function(fit, design = fit$alignment_design,
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
   act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
 
-
-  mm_groups <- get_groups(act_design_matrix, n_groups = ncol(act_design_matrix) * 10)
   if(! requireNamespace("harmony", quietly = TRUE)){
     stop("'harmony' is not installed. Please install it from CRAN.")
   }
@@ -128,7 +126,7 @@ align_impl <- function(embedding, grouping, design_matrix, ridge_penalty = 0.01,
   n_emb <- nrow(embedding)
   K <- ncol(design_matrix)
 
-  conditions <- get_groups(design_matrix, ncol(design_matrix) * 10)
+  conditions <- get_groups(design_matrix)
   conds <- unique(conditions)
 
   # Calculate mean per cell_type+condition
@@ -207,7 +205,7 @@ reverse_linear_transformation <- function(alignment_coefficients, design_vector)
 }
 
 apply_linear_transformation <- function(A, alignment_coefs, design){
-  mm_groups <- get_groups(design, n_groups = ncol(design) * 10)
+  mm_groups <- get_groups(design)
   groups <- unique(mm_groups)
   for(gr in groups){
     A[,mm_groups == gr] <- forward_linear_transformation(alignment_coefs,  design[which(mm_groups == gr)[1],])  %*% rbind(1, A[,mm_groups == gr,drop=FALSE])
