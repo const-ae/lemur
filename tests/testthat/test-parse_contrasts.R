@@ -6,7 +6,8 @@ test_that("parse contrasts works", {
 
 
 test_that("factor based contrast specification works", {
-  n_obs <- 50
+  set.seed(1)
+  n_obs <- 500
   col_data <- data.frame(group = sample(LETTERS[1:3], size = n_obs, replace = TRUE),
                          cont = rnorm(n_obs),
                          city = sample(c("New York", "Paris", "London"), size = n_obs, replace = TRUE),
