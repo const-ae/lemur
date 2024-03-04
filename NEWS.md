@@ -1,6 +1,8 @@
 # v1.1 (devel)
 
 * Make `predict` function faster and less memory intensive for subset fits.
+* Speed-up internal function `get_groups`
+* Gracefully handle duplicated column names in `colData(fit)`
 
 # v1.0 (release)
 
