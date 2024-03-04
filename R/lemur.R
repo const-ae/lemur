@@ -50,6 +50,11 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
 
   data_mat <- handle_data_parameter(data, on_disk = FALSE, assay = use_assay)
   col_data <- glmGamPoi:::get_col_data(data, col_data)
+  if(! all(colnames(col_data) == make.names(colnames(col_data), unique = TRUE))){
+    warning("The column names of 'colData(fit)' are not unique. This ",
+            "can cause problems for downstream analyses.")
+  }
+
   des <- handle_design_parameter(design, data, col_data)
   al_des <- des
 

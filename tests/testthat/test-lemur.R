@@ -302,6 +302,19 @@ test_that("subsetting with strings works", {
   expect_equal(dim(fit[c("gene_1", "gene_30"),c("cell_1", "cell_42")]), dim(dat[c("gene_1", "gene_30"),c("cell_1", "cell_42")]))
 })
 
+
+test_that("Duplicated columns names are handled gracefully", {
+  dat <- make_synthetic_data(n_centers = 10, n_genes = 50)
+  colData(dat)  <- cbind(colData(dat), condition = 3)
+  expect_warning({
+    fit <- lemur(dat, design = ~ condition, verbose = FALSE)
+  })
+  fit <- test_de(fit, contrast = cond(condition = "b") - cond(condition = "a"))
+  res <- find_de_neighborhoods(fit, group_by = vars(cell_type, condition), test_method = "limma", verbose = FALSE)
+  expect_true("neighborhood" %in% colnames(res))
+})
+
+
 test_that("regularization helps", {
 
   # dat <- make_synthetic_data(n_genes = 30, treatment_effect = 0.04, n_centers = 3)

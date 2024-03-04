@@ -31,7 +31,7 @@ handle_test_data_parameter <- function(fit, test_data, test_data_col_data, conti
     stop("Cannot handle 'indepdendet_data' of type: ", toString(class(test_data), width = 100))
   }
 
-  colData(test_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(test_data, test_data_col_data))
+  colData(test_data) <- S4Vectors::DataFrame(glmGamPoi:::get_col_data(test_data, test_data_col_data), check.names = FALSE)
 
   test_data
 }
