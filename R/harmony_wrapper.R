@@ -65,7 +65,11 @@ harmony_new_object <- function(){
 harmony_init_clustering <- function(harmonyObj, iter.max = 25, nstart = 10){
   stopifnot(is(harmonyObj, "Rcpp_harmony"))
   harmonyObj$Y <- t(stats::kmeans(t(harmonyObj$Z_cos), centers = harmonyObj$K, iter.max = iter.max, nstart = nstart)$centers)
-  harmonyObj$init_cluster_cpp()
+  if(utils::packageVersion("harmony") <= "1.1.0"){
+    harmonyObj$init_cluster_cpp(0)
+  }else{
+    harmonyObj$init_cluster_cpp()
+  }
   harmonyObj
 }
 

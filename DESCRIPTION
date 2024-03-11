@@ -34,7 +34,7 @@ Imports:
     MatrixGenerics,
     matrixStats,
     Rcpp,
-    harmony,
+    harmony (>= 1.0.3),
     limma,
     BiocNeighbors
 Suggests: 
