@@ -3,6 +3,8 @@
 * Make `predict` function faster and less memory intensive for subset fits.
 * Speed-up internal function `get_groups`
 * Gracefully handle duplicated column names in `colData(fit)`
+* Give better error message in `test_de` if `cond(..)` is used for a fit
+that was not specified with a design formula (thanks @MaximilianNuber for reporting)
 
 # v1.0 (release)
 
