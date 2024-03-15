@@ -24,12 +24,17 @@ parse_contrast <- function(contrast, formula, simplify = FALSE) {
     }
   }, error = function(e){
     # Try to extract text from error message
-    match <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
-    if(length(match) == 2){
+    wrong_arg_error <- regmatches(e$message, regexec("object '(.+)' not found", e$message))[[1]]
+    no_cond_error <- grepl(e$message, "could not find function \"cond\"")
+    if(length(wrong_arg_error) == 2){
       covars1 <- paste0(paste0(covar, " = ?"), collapse = ", ")
       covars2 <- paste0(paste0(covar, " = ?"), collapse = ", ")
-      stop("Object '", match[2], "' not found. Please specify the contrast using:\n",
+      stop("Object '", wrong_arg_error[2], "' not found. Please specify the contrast using:\n",
            "'cond(", covars1, ") - cond(", covars2, ")'", call. = FALSE)
+    }else if(no_cond_error && is.null(formula)){
+      stop("'fit$design' or 'fit$alignment_design' is 'NULL'. This means that you cannot use 'cond(...)' to ",
+           "specify the contrast. Typically, 'fit$design' or 'fit$alignment_design' are 'NULL' if they are defined ",
+           "using a matrix and not with a formula.")
     }else{
       stop(e$message)
     }

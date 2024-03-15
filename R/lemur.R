@@ -55,7 +55,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
             "can cause problems for downstream analyses.")
   }
 
-  des <- handle_design_parameter(design, data, col_data)
+  des <- handle_design_parameter(design, data, col_data, verbose = verbose)
   al_des <- des
 
   if(! is(data, "SummarizedExperiment")){

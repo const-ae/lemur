@@ -1,5 +1,5 @@
 
-handle_design_parameter <- function(design, data, col_data){
+handle_design_parameter <- function(design, data, col_data, verbose = FALSE){
   n_samples <- ncol(data)
 
   ignore_degeneracy <- isTRUE(attr(design, "ignore_degeneracy"))
@@ -57,6 +57,10 @@ handle_design_parameter <- function(design, data, col_data){
          ") than the there are samples in the data matrix (", n_samples, " columns).\n",
          "Too few replicates / too many coefficients to fit model.\n",
          "The head of the design matrix: \n", glmGamPoi:::format_matrix(head(design_matrix, n = 3)))
+  }
+
+  if(verbose && is.null(design_formula)){
+    message("The 'design' was not specified with a formula. This means that you cannot use 'cond(...)' in 'test_de(...)'.")
   }
 
   # Check rank of design_matrix

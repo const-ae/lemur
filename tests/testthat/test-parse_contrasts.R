@@ -127,3 +127,10 @@ test_that("parse_contrast works in dynamic contexts", {
   expect_equal(res, res2)
   expect_equal(res, res3)
 })
+
+test_that("parse_contrast throws appropriate error message", {
+  expect_error(parse_contrast(cond(hello = "123"), formula = NULL))
+  data <- matrix(1, nrow = 5, ncol  =10)
+  expect_message(handle_design_parameter(matrix(1:10, ncol = 1), data, NULL, verbose = TRUE), "The 'design' was not specified with a formula")
+})
+

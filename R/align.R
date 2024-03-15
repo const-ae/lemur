@@ -40,7 +40,7 @@ align_harmony <- function(fit, design = fit$alignment_design,
     # It doesn't matter for harmony if the design is degenerate
     attr(design, "ignore_degeneracy") <- TRUE
   }
-  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
+  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL), verbose = verbose)$design_matrix
   act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
 
   if(! requireNamespace("harmony", quietly = TRUE)){
@@ -82,7 +82,7 @@ align_by_grouping <- function(fit, grouping, design = fit$alignment_design,
     grouping <- grouping[,! fit$is_test_data,drop=FALSE]
   }
 
-  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL))$design_matrix
+  design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL), verbose = verbose)$design_matrix
   act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
 
   res <- align_impl(fit$training_data$embedding, grouping, act_design_matrix,
