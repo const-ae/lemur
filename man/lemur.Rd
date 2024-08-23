@@ -17,49 +17,51 @@ lemur(
 )
 }
 \arguments{
-\item{data}{a matrix with observations in the columns and features in the rows.
-Or a \code{SummarizedExperiment} / \code{SingleCellExperiment} object}
+\item{data}{a matrix with observations in the columns and features in the rows,
+or a \code{SummarizedExperiment} / \code{SingleCellExperiment} object}
 
-\item{design}{a formula referring to global objects or column in the \code{colData} of \code{data}
-and \code{col_data} argument}
+\item{design}{a formula referring to global objects, 
+  \code{colData} (column metadata) of \code{data} if it is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
+  or column names of the \code{col_data} argument}
 
-\item{col_data}{an optional data frame with \code{ncol(data)} rows.}
+\item{col_data}{an optional data frame with \code{ncol(data)} rows, with
+  metadata on the observations (columns of \code{data}).}
 
-\item{n_embedding}{the dimension of the $k$-plane that is rotated through space.}
+\item{n_embedding}{the dimension of the linear subspace (latent space).}
 
 \item{linear_coefficient_estimator}{specify which estimator is used to center the conditions.
-\code{"linear"} runs simple regression it works well in many circumstances but can produce poor
-results if the composition of the cell types changes between conditions (e.g., one cell type
+\code{"linear"} runs simple regression. It works well in many circumstances, but can produce unsatisfactory
+results if the composition of the cell types changes drastically between conditions (e.g., one cell type
 disappears). \code{"mean"}, \code{"cluster_median"} and \code{"zero"} are alternative estimators, which
-are each supposed to be more robust against compositional changes but cannot account
+are each supposed to be more robust against compositional changes, but cannot account
 for genes that change for all cells between conditions.
 \code{"linear"} is the default as it works best with subsequent alignment steps.}
 
-\item{use_assay}{if \code{data} is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
-which assay should be used.}
+\item{use_assay}{if \code{data} is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object:
+which of its \code{assay} slots should be used?}
 
-\item{test_fraction}{the fraction of cells that are split of before the model fit to keep an
-independent set of test observations. Alternatively, a logical vector of length \code{ncol(data)}.
-Default: 20\% (\code{0.2}).}
+\item{test_fraction}{the fraction of cells (observations) that are set aside before the model fit, to keep an
+independent set of test observations. Alternatively, a logical vector of length \code{ncol(data)}.}
 
 \item{...}{additional parameters that are passed on to the internal function \code{lemur_impl}.}
 
-\item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
+\item{verbose}{Should the method print information during the fitting.}
 }
+
 \value{
-An object of class \code{lemur_fit} which extends \code{\link{SingleCellExperiment}}. Accordingly,
-all functions that work for \code{sce}'s also work for \code{lemur_fit}'s. In addition, we
-give easy access to the fitted values using the dollar notation (e.g., \code{fit$embedding}).
+An object of class \code{lemur_fit}, which extends \code{\link{SingleCellExperiment}}. Accordingly,
+all functions that work for that class also work for \code{lemur_fit}
+objects. In addition, slots of these objects can be accessed using the
+dollar notation, e.g., \code{fit$embedding}).
 For details see the \linkS4class{lemur_fit} help page.
 }
 \description{
-Main function to fit the latent embedding multivariate regression (LEMUR) model
+The main function of this package, to fit the latent embedding multivariate regression (LEMUR) model.
 }
 \examples{
-data(glioblastoma_example_data)
+data("glioblastoma_example_data")
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5)
 fit
-
 
 }
 \references{

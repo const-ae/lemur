@@ -1,7 +1,7 @@
 #' The `lemur_fit` class
 #'
 #' The `lemur_fit` class extends [`SingleCellExperiment`] and provides
-#' additional accessors to get the values of the values produced by [`lemur`].
+#' additional accessors to get the values of the fit produced by [`lemur`]. It is the class of the result returned by [`lemur`].
 #'
 #' @param object the `lemur_fit` object for the [`BiocGenerics::design`] generic
 #' @param x,i,j,...,drop the `lemur_fit` object and indices for the `[` subsetting operator
