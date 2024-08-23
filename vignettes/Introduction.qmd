@@ -46,15 +46,25 @@ options(width = 100)
 
 <!-- badges: end -->
 
-The goal of `lemur` is to simplify analysis the of multi-condition single-cell data. If you have collected a single-cell RNA-seq dataset with more than one condition, `lemur` predicts for each cell and gene how much the expression would change if the cell had been in the other condition. Furthermore, `lemur` finds neighborhoods of cells that show consistent differential expression. The results are statistically validated using a pseudo-bulk differential expression test on hold-out data using [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) or [edgeR]().
+The goal of [`lemur`](https://www.biorxiv.org/content/10.1101/2023.03.06.531268)
+is to simplify the analysis of multi-condition
+single-cell data. If you have collected a single-cell RNA-seq dataset
+with more than one condition, `lemur` predicts for each cell and gene
+what the expression data would be in all of the other
+conditions. Furthermore, `lemur` finds neighborhoods of cells that show
+consistent differential expression. The results are statistically
+validated using a pseudo-bulk differential expression test on hold-out
+data using
+[glmGamPoi](https://bioconductor.org/packages/glmGamPoi/)
+or [edgeR](https://bioconductor.org/packages/edgeR/).
 
-`lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268v1).
+`lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268).
 
 ![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png)
 
 ## Installation
 
-You can install `lemur` directly from Bioconductor (available since version 3.18). Just paste the following snippet into your R console:
+You can install `lemur` directly from Bioconductor. Just paste the following snippet into your R console:
 
 ```{r}
 #| label: install1
@@ -72,6 +82,14 @@ Alternatively, you can install the package from Github using `devtools`:
 #| eval: false
 devtools::install_github("const-ae/lemur")
 ```
+
+## A note to users
+
+We continue working on improvements to this package. 
+We are delighted if you decide to try out the package.
+Please use the [Bioconductor forum](https://support.bioconductor.org/) or 
+open an issue in the [GitHub repository](https://github.com/const-ae/lemur/) if you think you found a bug, have an idea for a
+cool feature, or have any questions about how LEMUR works. 
 
 ## Overview
 
