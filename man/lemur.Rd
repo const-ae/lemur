@@ -21,11 +21,11 @@ lemur(
 or a \code{SummarizedExperiment} / \code{SingleCellExperiment} object}
 
 \item{design}{a formula referring to global objects, 
-  \code{colData} (column metadata) of \code{data} if it is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
+  \code{colData} (column annotations) of \code{data} if it is a \code{SummarizedExperiment} / \code{SingleCellExperiment} object,
   or column names of the \code{col_data} argument}
 
 \item{col_data}{an optional data frame with \code{ncol(data)} rows, with
-  metadata on the observations (columns of \code{data}).}
+  annotations ("metadata") on the observations, i.e, on the columns of \code{data}.}
 
 \item{n_embedding}{the dimension of the linear subspace (latent space).}
 
@@ -60,7 +60,7 @@ The main function of this package, to fit the latent embedding multivariate regr
 }
 \examples{
 data("glioblastoma_example_data")
-fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5)
+fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition)
 fit
 
 }
