@@ -15,6 +15,9 @@ vignette: >
 lightbox: true
 ---
 
+<!-- 'Stangle' analogon: knitr::purl("Introduction.qmd")
+-->
+
 ```{r}
 #| label: setup_alt_IS_THIS_REALLY_NEEDED
 #| echo: false
@@ -287,8 +290,8 @@ neighborhood_coordinates <- neighborhoods |>
   left_join(tibble(cell_id = rownames(umap), umap), by = "cell_id") |>
   dplyr::select(name, cell_id, umap)
 
-p + geom_density2d(data = neighborhood_coordinates, breaks = 0.5, 
-                   contour_var = "ndensity", color = "black") 
+p + geom_density2d(data = neighborhood_coordinates, breaks = seq(0.2, 0.6, by = 0.1), 
+                   contour_var = "ndensity", color = "#808080") 
 ```
 
 To summarize our results, we can make a volcano plot of the differential expression results to better understand the expression differences across all genes.
