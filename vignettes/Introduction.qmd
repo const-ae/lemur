@@ -49,7 +49,7 @@ options(width = 100)
 
 <!-- badges: end -->
 
-![Artistic rendering of some LEMUR concepts](man/figures/lemur-art.jpg){fig-align="center"}
+![](man/figures/lemur-art.jpg){fig-align="center"}
 
 
 The goal of [`lemur`](https://www.biorxiv.org/content/10.1101/2023.03.06.531268)

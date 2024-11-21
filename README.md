@@ -8,12 +8,7 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-<figure>
-<img src="man/figures/lemur-art.jpg" data-fig-align="center"
-alt="Artistic rendering of some LEMUR concepts" />
-<figcaption aria-hidden="true">Artistic rendering of some LEMUR
-concepts</figcaption>
-</figure>
+<img src="man/figures/lemur-art.jpg" data-fig-align="center" />
 
 The goal of
 [`lemur`](https://www.biorxiv.org/content/10.1101/2023.03.06.531268) is
