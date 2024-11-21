@@ -8,6 +8,13 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
+<figure>
+<img src="man/figures/lemur-art.jpg" data-fig-align="center"
+alt="Artistic rendering of some LEMUR concepts" />
+<figcaption aria-hidden="true">Artistic rendering of some LEMUR
+concepts</figcaption>
+</figure>
+
 The goal of
 [`lemur`](https://www.biorxiv.org/content/10.1101/2023.03.06.531268) is
 to simplify the analysis of multi-condition single-cell data. If you
@@ -328,9 +335,8 @@ in @fig-lemur_umap.
 Next, we are going to try something ambitious: in the LEMUR model, the
 cells in a neighborhood are separated from the rest of the cells by a
 $(k-1)$-dimensional hyperplane in the $k$-dimensional latent space ($k$
-being the same as `n_embedding` from above, i.e., $k=$ 15). We can try
-to approximate this separation as a line in the two-dimensional UMAP
-plot.
+being the same as `n_embedding` from above, i.e., $k=$ ). We can try to
+approximate this separation as a line in the two-dimensional UMAP plot.
 
 To this end, we create a helper dataframe and use the `geom_density2d`
 function from `ggplot2`. To avoid the cutting of the boundary to the
