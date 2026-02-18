@@ -1,7 +1,7 @@
 #' The `lemur_fit` class
 #'
 #' The `lemur_fit` class extends [`SingleCellExperiment`] and provides
-#' additional accessors to get the values of the values produced by [`lemur`].
+#' additional accessors to get the values of the fit produced by [`lemur`]. It is the class of the result returned by [`lemur`].
 #'
 #' @param object the `lemur_fit` object for the [`BiocGenerics::design`] generic
 #' @param x,i,j,...,drop the `lemur_fit` object and indices for the `[` subsetting operator
@@ -10,17 +10,16 @@
 #'
 #' To access the values produced by [`lemur`], use the dollar notation (`$`):
 #' \describe{
-#'  \item{`fit$n_embedding`}{the number of embedding dimensions.}
-#'  \item{`fit$design`}{the specification of the design in [`lemur`]. Usually this is a [`stats::formula`].}
-#'  \item{`fit$base_point`}{a matrix (`nrow(fit) * fit$n_embedding`) with the base point for the Grassmann exponential map.}
-#'  \item{`fit$coefficients`}{a three-dimensional tensor (`nrow(fit) * fit$n_embedding * ncol(fit$design_matrix)`) with the coefficients for
-#'    the exponential map.}
-#'  \item{`fit$embedding`}{a matrix (`fit$n_embedding * ncol(fit)`) with the low dimensional position for each cell.}
-#'  \item{`fit$design_matrix`}{a matrix with covariates for each cell (`ncol(fit) * ncol(fit$design_matrix)`).}
-#'  \item{`fit$linear_coefficients`}{a matrix (`nrow(fit) * ncol(fit$design_matrix)`) with the coefficients for the linear regression.}
-#'  \item{`fit$alignment_coefficients`}{a 3D tensor with the coefficients for the alignment (`fit$n_embedding * fit$n_embedding * ncol(fit$design_matrix)`)}
-#'  \item{`fit$alignment_design`}{an alternative design specification for the alignment. This is typically a [`stats::formula`].}
-#'  \item{`fit$alignment_design_matrix`}{an alternative design matrix specification for the alignment.}
+#'  \item{`fit$n_embedding`}{the dimension of the latent space.}
+#'  \item{`fit$design`}{the specification of the design in [`lemur`]. Usually this is a design formula, see [`stats::formula`].}
+#'  \item{`fit$base_point`}{a matrix of size `nrow(fit)` x `fit$n_embedding` with the base point for the Grassmann exponential map.}
+#'  \item{`fit$coefficients`}{a three-dimensional tensor of size `nrow(fit)` x `fit$n_embedding` x `ncol(fit$design_matrix)` with the coefficients for the exponential map.}
+#'  \item{`fit$embedding`}{a matrix of size `fit$n_embedding` x `ncol(fit)` with the latent space coordinates of each cell.}
+#'  \item{`fit$design_matrix`}{a matrix with the covariate values for each cell, of size `ncol(fit)` x `ncol(fit$design_matrix)`.}
+#'  \item{`fit$linear_coefficients`}{a matrix (of size `nrow(fit)` x `ncol(fit$design_matrix)` with the coefficients for the linear regression.}
+#'  \item{`fit$alignment_coefficients`}{a 3-tensor with the coefficients for the alignment, of size `fit$n_embedding` x `fit$n_embedding` x `ncol(fit$design_matrix)`.}
+#'  \item{`fit$alignment_design`}{an alternative specification of the alignment, using a design, typically a [`stats::formula`].}
+#'  \item{`fit$alignment_design_matrix`}{an alternative specification of the alignment, using a design matrix.}
 #'  \item{`fit$contrast`}{a parsed version of the contrast specification from the `test_de` function or `NULL`.}
 #'  \item{`fit$colData`}{the column annotation `DataFrame`.}
 #'  \item{`fit$rowData`}{the row annotation `DataFrame`.}
@@ -34,8 +33,8 @@
 #' @aliases lemur_fit
 #'
 #' @examples
-#' # The easiest way to make a lemur_fit object, is to call `lemur`
-#' data(glioblastoma_example_data)
+#' # The easiest way to make a lemur_fit object is to call `lemur`
+#' data("glioblastoma_example_data")
 #' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
 #'              n_emb = 5, verbose = FALSE)
 #'

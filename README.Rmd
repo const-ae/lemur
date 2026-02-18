@@ -19,7 +19,7 @@ if(! exists("..options_set") || isFALSE(..options_set)){
 }
 ```
 
-```{r child = "vignettes/Introduction.Rmd"}
+```{r child = "vignettes/Introduction.qmd"}
 
 ```
 
