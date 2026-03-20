@@ -49,7 +49,7 @@ options(width = 100)
 
 <!-- badges: end -->
 
-![](man/figures/lemur-art.jpg){fig-align="center"}
+![](../man/figures/lemur-art.jpg){fig-align="center" width="80%"}
 
 [`lemur`](https://doi.org/10.1038/s41588-024-01996-0) is a first-line tool for the analysis of multi-condition single-cell data. If you have collected a single-cell RNA-seq dataset from more than one condition (e.g., different experimental treatments, different patient samples), `lemur` predicts for each cell and gene what the expression data would be in all of the other
 conditions. `lemur` then uses these predictions to find groups of cells that show similar patterns of differential expression across the conditions. We call these groups "neighborhoods". You can subsequently overlap these neighbourhoods with pre-existing cell type annotations, or in fact use the discovered neighbourhoods to refine the pre-existing cell type and state annotation for your data.
@@ -62,7 +62,7 @@ or [edgeR](https://bioconductor.org/packages/edgeR/).
 
 `lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268).
 
-![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png){width=100%}
+![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png){width="100%"}
 
 ## Installation
 
@@ -77,7 +77,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("lemur")
 ```
 
-Alternatively, you can install the package from Github using `devtools`:
+This will install the latest release version. Alternatively, you can install the development version from GitHub using `devtools`:
 
 ```{r}
 #| label: install2
@@ -124,7 +124,7 @@ We will now go through these steps one by one.
 
 We demonstrate `lemur` using data by [Zhao et al. (2021)](https://doi.org/10.1186/s13073-021-00894-y). The data consist of tumor biopsies from five glioblastomas, each of which was treated with the drug panobinostat and with a control. Accordingly, we look at ten samples in a paired experimental design.
 
-We start by loading required packages.
+We start by loading required packages^[The `set.seed` step, which resets the random number generator to a defined state, is not strictly necessary, and arguably should be omitted when you apply `lemur` to your own data. Here, we do it to ensure that this package vignette is rendered the same for everyone. The current implementation of `lemur` includes some random sampling steps.].
 
 ```{r}
 #| label: load_packages
@@ -136,7 +136,7 @@ library("lemur")
 set.seed(42)
 ```
 
-The `lemur` package ships with a reduced-size version of the glioblastoma data, which we use in the following.
+The `lemur` package ships with a reduced-size version of the glioblastoma data.
 
 ```{r}
 #| label: load_data
@@ -144,11 +144,11 @@ data("glioblastoma_example_data", package = "lemur")
 glioblastoma_example_data
 ```
 
-As is, the data separated by the known covariates `patient_id` and `condition`.
+A UMAP visualisation indicates that the cells' data separate them by the covariates `patient_id` and `condition`. 
 
 ```{r}
 #| label: fig-raw_umap
-#| fig-cap: "UMAP of the example dataset `glioblastoma_example_data`, prior to any between-condition alignment."
+#| fig-cap: "UMAP of `glioblastoma_example_data` prior to between-condition alignment."
 #| fig-width: 6
 #| fig-height: 4
 #| out-width: "80%"
@@ -161,10 +161,12 @@ as_tibble(colData(glioblastoma_example_data)) |>
     labs(title = "UMAP of logcounts") + coord_fixed()
 ```
 
-We fit the LEMUR model by calling the function `lemur`. We provide the experimental design using a formula. The elements of the formula can refer to columns of the `colData` of the `SingleCellExperiment` object. 
+We fit the LEMUR model by calling the function `lemur`. We provide the experimental design using a formula. The elements of the formula refer to columns of the `colData` of the `SingleCellExperiment` object. 
 
-We also set the number of latent dimensions, `n_embedding`, which has a similar interpretation as the number of dimensions in PCA. 
-The `test_fraction` argument sets the fraction of cells which are exclusively used to test for differential expression and not for inferring the LEMUR parameters. It balances the sensitivity to detect subtle patterns in the latent space against the power to detect differentially expressed genes. <!--FIXME Do we need to bother users with this parameter here? Just use a reasonable default, and later have a section on "variations", like in the [DESeq2 vignette](https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#variations-to-the-standard-workflow) where such things are mentioned?-->
+We need to set the number of latent dimensions, `n_embedding`, which has a similar interpretation as the number of dimensions in a principal component analysis. Its choice is a trade-off between data set size (larger data sets allow for higher values of `n_embedding`), biological complexity (samples with more different cell types require higher values of `n_embedding`), and compute resources (higher values of `n_embedding` require more memory and compute cycles). We recommend trying out a few different choices and veriying that the results do not substantially depend on it.
+
+The `test_fraction` argument sets the fraction of cells which are held out 
+from the fitting of the LEMUR model, and will only be used later for the differential expression testing^[There is a balancing act in the choice of `test_fraction`: smaller values increase the sensitivity to detect more subtle patterns in the latent space, larger values increase the statistical power of the differentially expression testing.].
 
 ```{r}
 #| label: fit_lemur
