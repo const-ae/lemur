@@ -35,7 +35,7 @@
 #' @export
 align_harmony <- function(fit, design = fit$alignment_design,
                           ridge_penalty = 0.01, max_iter = 10, ..., verbose = TRUE){
-  if(verbose) message("Select cells that are considered close with 'harmony'")
+  if(verbose) message("Selecting cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
     attr(design, "ignore_degeneracy") <- TRUE

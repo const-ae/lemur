@@ -183,16 +183,15 @@ The `lemur` function returns an object of class `r class(fit)`, which extends th
 fit$embedding |> str()
 ```
 
-Optionally, we can further align corresponding cells using manually annotated cell types (`align_by_grouping`) or an automated alignment procedure (e.g., `align_harmony`). This ensures that corresponding cells are close to each other in the `fit$embedding`.
+Optionally, we can do what is often called "batch correction": tweak the data such that corresponding cells from different patients and conditions are closer together in the embedding space (`fit$embedding`). This can be done either using explicit guidance from a cell type annotation (through the `align_by_grouping` function) or using an automated alignment procedure, e.g., via the `align_harmony` function, which calls the eponymous method from the `harmony` package.
 
 ```{r}
 #| label: align_lemur
+#| message: false
 fit <- align_harmony(fit)
 ```
 
-<!--FIXME "Select cells that are considered close with 'harmony'" -- should it not be 'Selecting' to avoid confusion with imperative verb form? Is the message even needed? -->
-
-@fig-lemur_umap shows a UMAP of `fit$embedding`. This is similar to working on the integrated PCA space in a traditional single-cell analysis.
+@fig-lemur_umap shows a UMAP visualisation of `fit$embedding`. This is similar to looking at an integrated PCA space in other single-cell analysis workflows.
 
 ```{r}
 #| label: fig-lemur_umap
