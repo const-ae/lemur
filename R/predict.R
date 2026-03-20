@@ -1,5 +1,3 @@
-
-
 #' Predict values from `lemur_fit` object
 #'
 #' @param object an `lemur_fit` object
@@ -10,7 +8,7 @@
 #'   it is a vector it is repeated `ncol(embedding)` times to create
 #'   a design matrix with the same entry for each cell.
 #' @param newcondition an unquoted expression with a call to `cond()` specifying
-#'   the covariates of the prediction. See the `contrast` argument in [test_de]
+#'   the covariates of the prediction. See the `contrast` argument in [compute_contrasts]
 #'   for more details. Note that combinations of multiple calls to `cond()` are
 #'   not allowed (e.g., `cond(a = 1) - cond(a = 2)`). If specified, `newdata`
 #'   and `newdesign` are ignored.
@@ -31,7 +29,7 @@
 #'
 #' @examples
 #'
-#' data(glioblastoma_example_data)
+#' data("glioblastoma_example_data")
 #' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
 #'              n_emb = 5, verbose = FALSE)
 #'
@@ -39,8 +37,8 @@
 #'
 #' pred_ctrl <- predict(fit, newdesign = c(1, 0, 0, 0, 0, 0))
 #' pred_trt <-  predict(fit, newdesign = c(1, 0, 0, 0, 0, 1))
-#' # This is the same as the test_de result
-#' fit <- test_de(fit, cond(condition = "panobinostat") - cond(condition = "ctrl"))
+#' # This is the same as the compute_contrasts result
+#' fit <- compute_contrasts(fit, cond(condition = "panobinostat") - cond(condition = "ctrl"))
 #' all.equal(SummarizedExperiment::assay(fit, "DE"), pred_trt - pred_ctrl,
 #'           check.attributes = FALSE)
 #'
@@ -150,9 +148,8 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
 #' @seealso [predict.lemur_fit]
 #'
 #' @examples
-#' data(glioblastoma_example_data)
-#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
-#'              n_emb = 5, verbose = FALSE)
+#' data("glioblastoma_example_data")
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5, verbose = FALSE)
 #'
 #' resid <- residuals(fit)
 #' dim(resid)
