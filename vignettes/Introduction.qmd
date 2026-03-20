@@ -52,7 +52,7 @@ options(width = 88)
 ![](../man/figures/lemur-art.jpg){fig-align="center" width="80%"}
 
 [`lemur`](https://doi.org/10.1038/s41588-024-01996-0) is a first-line tool for the analysis of multi-condition single-cell data. If you have collected a single-cell RNA-seq dataset from more than one condition (e.g., different experimental treatments, different patient samples), `lemur` predicts for each cell and gene what the expression data would be in all of the other
-conditions. `lemur` then uses these predictions to find groups of cells that show similar patterns of differential expression across the conditions. We call these groups "neighborhoods". You can subsequently overlap these neighbourhoods with pre-existing cell type annotations, or in fact use the discovered neighbourhoods to refine the pre-existing cell type and state annotation for your data.
+conditions. `lemur` then uses these predictions to find groups of cells that show similar patterns of differential expression across the conditions. We call these groups "neighbourhoods". You can subsequently overlap these neighbourhoods with pre-existing cell type annotations, or in fact use the discovered neighbourhoods to refine the pre-existing cell type and state annotation for your data.
 
 The differential expression results are statistically
 validated using a pseudo-bulk differential expression test on hold-out
@@ -60,7 +60,7 @@ data using
 [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/)
 or [edgeR](https://bioconductor.org/packages/edgeR/).
 
-`lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268).
+`lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [paper](https://doi.org/10.1038/s41588-024-01996-0).
 
 ![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png){width="100%"}
 
@@ -71,9 +71,7 @@ You can install `lemur` directly from Bioconductor. Just paste the following sni
 ```{r}
 #| label: install1
 #| eval: false
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install("lemur")
 ```
 
@@ -122,7 +120,7 @@ We will now go through these steps one by one.
 
 # A worked through example
 
-We demonstrate `lemur` using data by [Zhao et al. (2021)](https://doi.org/10.1186/s13073-021-00894-y). The data consist of tumor biopsies from five glioblastomas, each of which was treated with the drug panobinostat and with a control. Accordingly, we look at ten samples in a paired experimental design.
+We demonstrate `lemur` using data by [Zhao et al. (2021)](https://doi.org/10.1186/s13073-021-00894-y). The data consist of tumour biopsies from five glioblastomas, each of which was treated with the drug panobinostat and with a control. Accordingly, we look at ten samples in a paired experimental design.
 
 We start by loading required packages^[The `set.seed` step, which resets the random number generator to a defined state, is not strictly necessary, and arguably should be omitted when you apply `lemur` to your own data. Here, we do it to ensure that this package vignette is rendered the same for everyone. The current implementation of `lemur` includes some random sampling steps.].
 
@@ -136,15 +134,13 @@ library("lemur")
 set.seed(42)
 ```
 
-The `lemur` package ships with a reduced-size version of the glioblastoma data.
-
 ```{r}
 #| label: load_data
 data("glioblastoma_example_data", package = "lemur")
 glioblastoma_example_data
 ```
 
-A UMAP visualisation indicates that the cells' data separate them by the covariates `patient_id` and `condition`. 
+As you can see above, the `lemur` package ships with a reduced-size version of the glioblastoma data, with `r nrow(glioblastoma_example_data)` genes and `r ncol(glioblastoma_example_data)` cells. A UMAP visualisation indicates that the cells' data separate them by the covariates `patient_id` and `condition`. 
 
 ```{r}
 #| label: fig-raw_umap
@@ -157,16 +153,15 @@ orig_umap <- uwot::umap(as.matrix(t(logcounts(glioblastoma_example_data))))
 as_tibble(colData(glioblastoma_example_data)) |>
   mutate(umap = orig_umap) |>
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = patient_id, shape = condition), size = 0.5) +
+    geom_point(aes(colour = patient_id, shape = condition), size = 0.5) +
     labs(title = "UMAP of logcounts") + coord_fixed()
 ```
 
 We fit the LEMUR model by calling the function `lemur`. We provide the experimental design using a formula. The elements of the formula refer to columns of the `colData` of the `SingleCellExperiment` object. 
 
-We need to set the number of latent dimensions, `n_embedding`, which has a similar interpretation as the number of dimensions in a principal component analysis. Its choice is a trade-off between data set size (larger data sets allow for higher values of `n_embedding`), biological complexity (samples with more different cell types require higher values of `n_embedding`), and compute resources (higher values of `n_embedding` require more memory and compute cycles). We recommend trying out a few different choices and veriying that the results do not substantially depend on it.
+We need to set the number of latent dimensions, `n_embedding`, which has a similar interpretation as the number of dimensions in a principal component analysis (PCA). Its choice is a trade-off between data set size (larger data sets allow for higher values of `n_embedding`), biological complexity (samples with more different cell types require higher values of `n_embedding`), and compute resources (higher values of `n_embedding` require more memory and compute cycles). We recommend trying out a few different choices and verifying that the results do not substantially depend on it.
 
-The `test_fraction` argument sets the fraction of cells which are held out 
-from the fitting of the LEMUR model, and will only be used later for the differential expression testing^[There is a balancing act in the choice of `test_fraction`: smaller values increase the sensitivity to detect more subtle patterns in the latent space, larger values increase the statistical power of the differentially expression testing.].
+The `test_fraction` argument sets the fraction of cells that are held out from the fitting of the LEMUR model and will only be used later for the differential expression testing^[There is a balancing act in the choice of `test_fraction`: smaller values increase the sensitivity to detect more subtle patterns in the latent space, larger values increase the statistical power of the differentially expression testing.].
 
 ```{r}
 #| label: fit_lemur
@@ -204,7 +199,7 @@ umap <- uwot::umap(t(fit$embedding))
 as_tibble(fit$colData) |>
   mutate(umap = umap) |>
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = patient_id), size = 0.5) +
+    geom_point(aes(colour = patient_id), size = 0.5) +
     facet_wrap(vars(condition)) + coord_fixed()
 ```
 
@@ -212,7 +207,8 @@ Next, let's predict the effect of the panobinostat treatment for **each** cell a
 
 ```{r}
 #| label: lemur_compute_contrasts
-fit <- compute_contrasts(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+fit <- compute_contrasts(fit, 
+         contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 ```
 
 We can pick a gene, say _GAP43_, which in our data is represented by its Ensembl gene ID ENSG00000172020, and show its differential expression pattern on the UMAP plot:
@@ -231,32 +227,36 @@ df <- tibble(umap = umap) |>
   mutate(de = assay(fit, "DE")["ENSG00000172020", ])
  
 ggplot(df, aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = de)) +
-    scale_color_gradient2(low = "#FFD800", high= "#0056B9") + coord_fixed()
+    geom_point(aes(colour = de)) +
+    scale_colour_gradient2(low = "#FFD800", high= "#0056B9") + coord_fixed()
 
 ggplot(df, aes(x = de)) + geom_histogram(bins = 100)
 ```
 
-A gene that is down-regulated in most cells upon treatment is interesting, but perhaps even more interesting are genes that show differential expression only in certain subsets of the cells. We iterate through all genes and identify what we call neighbourhoods (sets of cells that are close together in latent space) that show a similar differential expression pattern (`assay(fit, "DE")`). The function `find_de_neighborhoods` then statistically screens the results of our search with pseudobulk diferential expression testing. For that, it uses the test data (`fit$test_data`) that were put aside when we called `lemur()`. In addition, `find_de_neighborhoods` assesses if the difference between the conditions is significantly larger for the cells inside the neighborhood than the cells outside the neighborhood (see columns starting with `did`, short for difference-in-difference).
+A gene that is down-regulated in most cells upon treatment is interesting, but perhaps even more interesting are genes that show differential expression only in certain subsets of the cells. We iterate through all genes and identify what we call neighbourhoods (sets of cells that are close together in latent space) that show a similar differential expression pattern (`assay(fit, "DE")`). The function `find_de_neighborhoods` then statistically screens the results of our search with pseudobulk differential expression testing. For that, it uses the test data (`fit$test_data`) that were put aside when we called `lemur()`. In addition, `find_de_neighborhoods` assesses if the difference between the conditions is significantly larger for the cells inside the neighbourhood than for the cells outside the neighbourhood (see columns starting with `did`, short for difference-in-difference).
 
-The `group_by` argument determines how the pseudobulk samples are formed. It specifies the columns in the `fit$colData` that are used to define a sample and is inspired by the `group_by` function in `dplyr`. Typically, you provide the covariates that were used for the experimental design.
+The `group_by` argument determines how the pseudobulk samples are formed. It specifies the columns in `fit$colData` that are used to define a sample and is inspired by the `group_by` function in `dplyr`. Typically, you provide the covariates that were used for the experimental design.
 <!-- plus the sample id (in this case `patient_id`) 
  # WH 2026-03-20: I removed this subclause as it seems unneeded and confusing. -->
 
 ```{r}
-#| label: fig-de_neighborhoods
+#| label: fig-de_neighbourhoods
 #| message: false 
 neighborhoods <- find_de_neighborhoods(fit, group_by = vars(patient_id, condition))
+```
 
+We print the results for the 5 neighbourhoods with the smallest p values. Here, we use `left_join` and `relocate` to add the gene symbol from the `fit` object.
+
+```{r}
+#| label: topgenes
 as_tibble(neighborhoods) |>
   left_join(as_tibble(rowData(fit)[,1:2]), by = c("name" = "gene_id")) |>
   relocate(symbol, .before = "name") |>
   arrange(pval) |>
   head(5)
 ```
-<!-- FIXME can the dplyr gymnastics be offloaded from the user? Why is it a data.frame if we use tibbles everywhere else -->
 
-Let's look at _SERPINE1_, which encodes PAI-1 (Plasminogen Activator Inhibitor-1), an inhibitor of fibrinolysis that regulates blood clotting, cell migration, and tissue remodeling. We see that it is upregulated by upon panobinostat treatement in a subset of cells (blue). We picked this gene because it (1) had a significant change between the panobinostat and negative control conditions (`adj_pval` column) and (2) showed larger differential expression for the cells inside the neighborhood than for the cells outside (`did_lfc` column).
+Let's look at _SERPINE1_, which encodes PAI-1 (Plasminogen Activator Inhibitor-1), an inhibitor of fibrinolysis that regulates blood clotting, cell migration, and tissue remodeling. We see that it is upregulated by upon panobinostat treatement in a subset of cells (blue). We picked this gene because it (1) had a significant change between the panobinostat and negative control conditions (`adj_pval` column) and (2) showed larger differential expression for the cells inside the neighbourhood than for the cells outside (`did_lfc` column).
 
 ```{r}
 #| label: fig-umap_de2
@@ -272,8 +272,8 @@ dplyr::filter(neighborhoods, name == sel_gene) |>
 p <- tibble(umap = umap) |>
   mutate(de = assay(fit, "DE")[sel_gene,]) |>
   ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = de)) +
-    scale_color_gradient2(low = "#FFD800", high= "#0056B9") +
+    geom_point(aes(colour = de)) +
+    scale_colour_gradient2(low = "#FFD800", high= "#0056B9") +
     coord_fixed()
 p
 ```
@@ -281,13 +281,13 @@ p
 <!--
 # WH 2026-03-20: I commented the following out since it seems too flimsy and unconvincing.
 
-Next, we are going to try something ambitious: in the LEMUR model, the cells in a neighborhood are separated from the rest of the cells by a $(k-1)$-dimensional hyperplane in the $k$-dimensional latent space ($k$ being the same as `n_embedding` from above, i.e., $k=$ `r fit$n_embedding`). We can try to approximate this separation as a line in the two-dimensional UMAP plot.
+Next, we are going to try something ambitious: in the LEMUR model, the cells in a neighbourhood are separated from the rest of the cells by a $(k-1)$-dimensional hyperplane in the $k$-dimensional latent space ($k$ being the same as `n_embedding` from above, i.e., $k=$ `r fit$n_embedding`). We can try to approximate this separation as a line in the two-dimensional UMAP plot.
 
 To this end, we create a helper dataframe and use the `geom_density2d` function from `ggplot2`. To avoid the cutting of the boundary to the extremes of the cell coordinates, add `lims` to the plot with an appropriately large limit.
 
 ```{r}
 #| label: fig-umap_de3
-#| fig-cap: "Same as @fig-umap_de2, with an attempt to draw a neighborhood boundary."
+#| fig-cap: "Same as @fig-umap_de2, with an attempt to draw a neighbourhood boundary."
 #| fig-width: 6
 #| fig-height: 4
 #| out-width: "80%"
@@ -299,7 +299,7 @@ neighborhood_coordinates <- neighborhoods |>
   dplyr::select(name, cell_id, umap)
 
 p + geom_density2d(data = neighborhood_coordinates, breaks = seq(0.2, 0.6, by = 0.1), 
-                   contour_var = "ndensity", color = "#808080") 
+                   contour_var = "ndensity", colour = "#808080") 
 ```
 -->
 
@@ -307,7 +307,7 @@ To get a further overview, we can make a volcano plot of the differential expres
 
 ```{r}
 #| label: fig-volcano_plot
-#| fig-cap: "Volcano plot, each point corresponds to one of the genes in our dataset, and the neighborhood that was found for it."
+#| fig-cap: "Volcano plot, each point corresponds to one of the genes in our dataset, and the neighbourhood that was found for it."
 #| fig-width: 4
 #| fig-height: 2.5
 #| out-width: "50%"
@@ -317,62 +317,65 @@ neighborhoods |>
     scale_colour_manual(values= c(`TRUE` = "orangered", `FALSE` = "thistle3"))
 ```
 
-<!--
-# WH 2026-03-20: I commented the following out since it seems tangential
+<!-- WH 2026-03-20: I deactivated the following chunk since it seems tangential. -->
 
 ```{r}
-#| label: fig-Neighborhood_size_vs_significance
-#| fig-cap: "Neighborhood size vs neighborhood significance."
+#| label: fig-neighbourhood_size_vs_significance
+#| fig-cap: "neighbourhood size vs neighbourhood significance."
 #| fig-width: 6
 #| fig-height: 4
 #| out-width: "50%"
+#| eval: false
+#| echo: false
 neighborhoods |>
   drop_na() |>
   ggplot(aes(x = n_cells, y = -log10(pval))) +
-    geom_point(aes(color  = adj_pval < 0.1)) 
+    geom_point(aes(colour = adj_pval < 0.1)) 
 ```
--->
 
 ## Using cell type annotation
 
-The analyses up to here were conducted without using pre-existing cell type annotation. Often, such additional cell type information is available or can be obtained from the data by other means. For instance, here, we can distinguish the tumor cells from non-malignment other cell, using the fact that the tumor cells had a deletion of Chromosome 10 and a duplication of Chromosome 7. We build a simple classifier to distinguish the cells accordingly. (This is just to illustrate the process; for a real analysis, we would use more sophisticated methods.)
+The analyses up to here were conducted without using pre-existing cell type annotation. Often, such additional cell type information is available or can be obtained from the data by other means. For instance, here, we can distinguish the tumour cells from other, non-malignant cells using the fact that the tumour cells had a deletion of Chromosome 10 and a duplication of Chromosome 7. We build a simple classifier to distinguish the cells accordingly. (This is just to illustrate the process; for a real analysis, you would use more sophisticated methods, and a more detailed cell type classification.)
 
 ```{r}
-#| label: fig-tumor_cell_annotation1
-#| fig-cap: "A simple gating strategy to find tumor cells"
+#| label: fig-tumour_cell_annotation1
+#| fig-cap: "A simple gating strategy to putatively annotate the tumour cells in our data"
 #| fig-width: 6
 #| fig-height: 4
 #| out-width: "60%"
-tumor_label_df <- tibble(cell_id = colnames(fit),
+thresh = c(chr7 = 0.8, chr10 = 2.5)
+tumour_label_df <- tibble(cell_id = colnames(fit),
        chr7_total_expr  = colMeans(logcounts(fit)[rowData(fit)$chromosome == "7",]),
        chr10_total_expr = colMeans(logcounts(fit)[rowData(fit)$chromosome == "10",])) |>
-  mutate(is_tumor = chr7_total_expr > 0.8 & chr10_total_expr < 2.5)
+  mutate(is_tumour = chr7_total_expr > thresh["chr7"] & chr10_total_expr < thresh["chr10"])
 
-ggplot(tumor_label_df, aes(x = chr10_total_expr, y = chr7_total_expr)) +
-    geom_point(aes(color = is_tumor), size = 0.5) +
-    geom_hline(yintercept = 0.8) +
-    geom_vline(xintercept = 2.5) 
+ggplot(tumour_label_df, aes(x = chr10_total_expr, y = chr7_total_expr, colour = is_tumour)) +
+  geom_point(size = 0.5) +
+  geom_hline(yintercept = thresh["chr7"]) +
+  geom_vline(xintercept = thresh["chr10"]) +
+  scale_colour_manual(values= c(`TRUE` = "orangered", `FALSE` = "#404040"))
 ```
 ```{r}
-#| label: fig-tumor_cell_annotation2
-#| fig-cap: "The tumor cells are enriched in parts of the big (left) blob."
+#| label: fig-tumour_cell_annotation2
+#| fig-cap: "The tumour cells appear enriched in the larger of the blobs."
 #| fig-width: 6
 #| fig-height: 4
 #| out-width: "60%"
 tibble(umap = umap) |>
-  mutate(is_tumor = tumor_label_df$is_tumor) |>
-  ggplot(aes(x = umap[,1], y = umap[,2])) +
-    geom_point(aes(color = is_tumor), size = 0.5) +
-    facet_wrap(vars(is_tumor)) + coord_fixed()
+  mutate(is_tumour = tumour_label_df$is_tumour) |>
+  ggplot(aes(x = umap[,1], y = umap[,2], colour = is_tumour)) +
+    geom_point(size = 0.5) +
+    facet_wrap(vars(is_tumour)) + coord_fixed() + 
+    scale_colour_manual(values= c(`TRUE` = "orangered", `FALSE` = "#404040"))
 ```
 
-We use this cell annotation to focus our neighborhood finding within the tumor cells, to find tumor subpopulations.
+We can use this cell annotation to re-run the neighbourhood finding, now only within the tumour cells, to find tumour subpopulations.
 
 ```{r}
-#| label: tumor_de_neighborhood
+#| label: tumour_de_neighbourhood
 #| paged.print: false
-tumor_fit <- fit[, tumor_label_df$is_tumor]
-tum_nei <- find_de_neighborhoods(tumor_fit, group_by = vars(patient_id, condition), verbose = FALSE)
+tumour_fit <- fit[, tumour_label_df$is_tumour]
+tum_nei <- find_de_neighborhoods(tumour_fit, group_by = vars(patient_id, condition), verbose = FALSE)
 
 as_tibble(tum_nei) |>
   left_join(as_tibble(rowData(fit)[,1:2]), by = c("name" = "gene_id")) |>
@@ -383,27 +386,28 @@ as_tibble(tum_nei) |>
   print(n = 10)
 ```
 
-Focusing on RPS11, we see that panobinostat mostly has no effect on its expression, except for a subpopulation of tumor cells where RPS11 was originally upregulated and panobinostat downregulates the expression. A small caveat: this analysis is conducted on a subset of all cells and should be interpreted carefully. Yet, this section demonstrates how `lemur` can be used to find tumor subpopulations which show differential responses to treatments.
+Let's, for example, explore the results for CXCL8. We see in @fig-tumour_de_neighbourhood_plot that it is lower expressed in our annotated tumour cells than in the others, and there is a subpopulation of our annotated tumour cells in which the panobinostat treatment upregulates it. 
+Caveat: this analysis is conducted on a subset of the data, using a primitive method to annotate the cells into just two types (tumour and non-tumour). For real analyses, you will be more careful. Nevertheless, this is the basic idea for how `lemur` can be used to find cell type subpopulations that differ in how they respond to a treatment.
 
 ```{r}
-#| label: fig-tumor_de_neighborhood_plot
+#| label: fig-tumour_de_neighbourhood_plot
 #| paged.print: false
-#| fig-cap: ""
-#| fig-width: 6
+#| fig-cap: "CXCL8 expression in different cell subsets"
+#| fig-width: 7
 #| fig-height: 4
 #| out-width: "80%"
-sel_gene <- "ENSG00000142534" # is RPS11
+sel_gene <- "ENSG00000169429" # CXCL8
 
 as_tibble(colData(fit)) |>
-  mutate(expr = assay(fit, "logcounts")[sel_gene,]) |>
-  mutate(is_tumor = tumor_label_df$is_tumor) |>
+  mutate(expr = assay(fit, "logcounts")[sel_gene, ]) |>
+  mutate(is_tumour = tumour_label_df$is_tumour) |>
   mutate(in_neighborhood = id %in% filter(tum_nei, name == sel_gene)$neighborhood[[1]]) |>
-  ggplot(aes(x = condition, y = expr)) +
-    geom_jitter(size = 0.3, stroke = 0) +
-    geom_point(data = . %>% summarize(expr = mean(expr), .by = c(condition, patient_id, is_tumor, in_neighborhood)),
-               aes(color = patient_id), size = 2) +
-    stat_summary(fun.data = mean_se, geom = "crossbar", color = "red") +
-    facet_wrap(vars(is_tumor, in_neighborhood), labeller = label_both) 
+  ggplot(aes(x = condition, y = ifelse(expr < 10, expr, 10))) +
+    geom_jitter(size = pi/4, stroke = 0) +
+    geom_point(data = . %>% summarize(expr = mean(expr), .by = c(condition, patient_id, is_tumour, in_neighborhood)),
+               aes(colour = patient_id), size = 2) +
+    stat_summary(fun.data = mean_se, geom = "crossbar", colour = "red") +
+    facet_wrap(vars(is_tumour, in_neighborhood), labeller = label_both) 
 
 ```
 
@@ -416,11 +420,11 @@ No. You need to call `lemur` with the unaligned data so that it can learn how mu
 
 ##### Can I call lemur with [sctransformed](https://github.com/satijalab/sctransform) instead of log-transformed data?
 
-Yes. You can call lemur with any variance stabilized count matrix. Based on a [previous project](https://www.biorxiv.org/content/10.1101/2021.06.24.449781v4), I recommend to use log-transformation, but other methods will work just fine.
+Yes. You can call `lemur` with any variance stabilized count matrix. Based on a [previous project](https://www.biorxiv.org/content/10.1101/2021.06.24.449781v4), I recommend to use log-transformation, but other methods can work just as well.
 
-##### My data appears less integrated after calling `lemur()` than before. What is happening?!
+##### My data appears less integrated after calling `lemur` than before. What is happening?!
 
-This is a known issue and can be caused if the data has large compositional shifts (for example, if one cell type disappears). The problem is that the initial linear regression step, which centers the conditions relative to each other, overcorrects and introduces a consistent shift in the latent space. You can either use `align_by_grouping` / `align_harmony` to correct for this effect or manually fix the regression coefficient to zero:
+This can happen if the data has large compositional shifts (for example, if one cell type disappears). The problem is that in this case, the initial linear regression step, which centers the conditions relative to each other, overcorrects and introduces a consistent shift in the latent space. You can either use `align_by_grouping` / `align_harmony` to correct for this effect or manually fix the regression coefficient to zero:
 
 ```{r}
 #| label: fix_linear_coef
@@ -429,19 +433,19 @@ This is a known issue and can be caused if the data has large compositional shif
 fit <- lemur(sce, design = ~ patient_id + condition, n_embedding = 15, linear_coefficient_estimator = "zero")
 ```
 
-##### The conditions still separate if I plot the data using UMAP / tSNE. Even after calling `align_harmony` / `align_neighbors`. What should I do?
+##### The conditions still separate if I plot the data using UMAP / t-SNE, even after calling `align_harmony` / `align_neighbors`. What should I do?
 
-You can try to increase `n_embedding`. If this still does not help, there is little use in inferring differential expression neighborhoods. But as I haven't encountered such a dataset yet, I would like to try it out myself. If you can share the data publicly, please open an issue.
+You can try to increase `n_embedding`. If this still does not help, the experimental design or the data quality may be unsuitable for inferring differential expression neighbourhoods. But as I haven't encountered such a dataset yet, I would like to try it out myself. If you can share the data, please open an issue.
 
 ##### How do I make `lemur` faster?
 
-Several parameters influence the duration to fit the LEMUR model and find differentially expressed neighborhoods:
+Several parameters influence the compute resource usage of fitting the LEMUR model and finding neighbourhoods. Here some suggestions and hints:
 
 -   Make sure that your data is stored in memory (not a `DelayedArray`) either as a sparse dgCMatrix or dense matrix.
 -   A larger `test_fraction` means fewer cells are used to fit the model (and more cells are used for the DE test), which speeds up many steps.
--   A smaller `n_embedding` reduces the latent dimensions of the fit, which makes the model less flexible, but speeds up the `lemur()` call.
+-   A smaller `n_embedding` reduces the latent dimensions of the fit, which makes the model less flexible, but speeds up the `lemur` call.
 -   Providing a pre-calculated set of matching cells and calling `align_grouping` is faster than `align_harmony`.
--   Setting `selection_procedure = "contrast"` in `find_de_neighborhoods` often produces better neighborhoods, but is a lot slower than `selection_procedure = "zscore"`.
+-   Setting `selection_procedure = "contrast"` in `find_de_neighborhoods` often produces better neighbourhoods, but is a lot slower than `selection_procedure = "zscore"`.
 -   Setting `size_factor_method = "ratio"` in `find_de_neighborhoods` makes the DE more powerful, but is a lot slower than `size_factor_method = "normed_sum"`.
 
 # Session Info
