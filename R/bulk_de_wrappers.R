@@ -1,5 +1,3 @@
-
-
 edger_fit <- function(counts, design, offset, col_data = NULL,
                       abundance.trend = TRUE, robust = TRUE){
 
@@ -16,7 +14,7 @@ edger_fit <- function(counts, design, offset, col_data = NULL,
 }
 
 
-edger_test_de <- function(edger_fit, contrast, design = NULL){
+edger_compute_contrasts <- function(edger_fit, contrast, design = NULL){
   cntrst <- parse_contrast({{contrast}}, design, simplify = TRUE)
 
   edger_fit <- edgeR::glmQLFTest(edger_fit, contrast = cntrst)
@@ -43,7 +41,7 @@ limma_fit <- function(values, design, col_data = NULL){
   lm_fit
 }
 
-limma_test_de <- function(lm_fit, contrast, design, values = NULL, shrink = TRUE, trend = TRUE, robust = TRUE){
+limma_compute_contrasts <- function(lm_fit, contrast, design, values = NULL, shrink = TRUE, trend = TRUE, robust = TRUE){
   cntrst <- matrix(parse_contrast({{contrast}}, formula = design, simplify = TRUE), ncol = 1)
   cntrst <- evaluate_contrast_tree(cntrst, cntrst, \(x, .) x)
 

@@ -28,7 +28,7 @@ it is a vector it is repeated \code{ncol(embedding)} times to create
 a design matrix with the same entry for each cell.}
 
 \item{newcondition}{an unquoted expression with a call to \code{cond()} specifying
-the covariates of the prediction. See the \code{contrast} argument in \link{test_de}
+the covariates of the prediction. See the \code{contrast} argument in \link{compute_contrasts}
 for more details. Note that combinations of multiple calls to \code{cond()} are
 not allowed (e.g., \code{cond(a = 1) - cond(a = 2)}). If specified, \code{newdata}
 and \code{newdesign} are ignored.}
@@ -55,7 +55,7 @@ Predict values from \code{lemur_fit} object
 }
 \examples{
 
-data(glioblastoma_example_data)
+data("glioblastoma_example_data")
 fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
              n_emb = 5, verbose = FALSE)
 
@@ -63,8 +63,8 @@ pred <- predict(fit)
 
 pred_ctrl <- predict(fit, newdesign = c(1, 0, 0, 0, 0, 0))
 pred_trt <-  predict(fit, newdesign = c(1, 0, 0, 0, 0, 1))
-# This is the same as the test_de result
-fit <- test_de(fit, cond(condition = "panobinostat") - cond(condition = "ctrl"))
+# This is the same as the compute_contrasts result
+fit <- compute_contrasts(fit, cond(condition = "panobinostat") - cond(condition = "ctrl"))
 all.equal(SummarizedExperiment::assay(fit, "DE"), pred_trt - pred_ctrl,
           check.attributes = FALSE)
 

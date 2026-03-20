@@ -1,5 +1,4 @@
-
-#' Predict log fold changes between conditions for each cell
+#' Predict log fold changes between conditions for each cell. Both names `compute_contrasts` and `test_de` bind to the same function, but the former is more evocative.
 #'
 #' @param fit the result of calling [`lemur()`]
 #' @param contrast Specification of the contrast: a call to `cond()` specifying a full observation
@@ -16,15 +15,15 @@
 #' @seealso [find_de_neighborhoods]
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' library(SingleCellExperiment)
+#' library("SummarizedExperiment")
+#' library("SingleCellExperiment")
 #'
-#' data(glioblastoma_example_data)
+#' data("glioblastoma_example_data")
 #' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
 #'              n_emb = 5, verbose = FALSE)
 #' # Optional alignment
 #' # fit <- align_harmony(fit)
-#' fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+#' fit <- compute_contrasts(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 #'
 #' # The fit object contains a new assay called "DE"
 #' assayNames(fit)
@@ -35,11 +34,12 @@
 #' mean(assay(fit, "DE")[1,])
 #'
 #' @export
-test_de <- function(fit,
-                    contrast,
-                    embedding = NULL,
-                    consider = c("embedding+linear", "embedding", "linear"),
-                    new_assay_name = "DE"){
+compute_contrasts <- function(fit,
+      contrast,
+      embedding = NULL,
+      consider = c("embedding+linear", "embedding", "linear"),
+      new_assay_name = "DE"){
+  
   if(is.null(embedding)){
     embedding <- fit$embedding
     use_provided_diff_emb <- FALSE
@@ -64,15 +64,17 @@ test_de <- function(fit,
   }else{
     assay(fit, new_assay_name) <- diff
     metadata(fit)[["contrast"]] <- cntrst
-
     fit
   }
 }
 
+#' @export
+#' @rdname compute_contrasts 
+test_de <- compute_contrasts 
 
 #' Differential embedding for each condition
 #'
-#' @inheritParams test_de
+#' @inheritParams compute_contrasts
 #' @param reduced_design an alternative specification of the null hypothesis.
 #' @param consider specify which part of the model are considered for the differential expression test.
 #' @param variance_est How or if the variance should be estimated. `'analytical'` is only compatible with `consider = "linear"`. `'resampling'` is the most flexible (to adapt the number

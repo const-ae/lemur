@@ -61,7 +61,7 @@ handle_design_parameter <- function(design, data, col_data, verbose = FALSE){
   }
 
   if(verbose && is.null(design_formula)){
-    message("The 'design' was not specified with a formula. This means that you cannot use 'cond(...)' in 'test_de(...)'.")
+    message("The 'design' was not specified with a formula. This means that you cannot use 'cond(...)' in 'compute_contrasts(...)'.")
   }
 
   # Check rank of design_matrix

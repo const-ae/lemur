@@ -18,10 +18,9 @@
 #' @returns The `fit` object with the updated `fit$embedding` and `fit$alignment_coefficients`.
 #'
 #' @examples
-#' data(glioblastoma_example_data)
-#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
-#'              n_emb = 5, verbose = FALSE)
-#' # Creating some grouping for illustration
+#' data("glioblastoma_example_data")
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5, verbose = FALSE)
+#' # Create some grouping for illustration
 #' cell_types <- sample(c("tumor cell", "neuron", "leukocyte"), size = ncol(fit), replace = TRUE)
 #' fit_al1 <- align_by_grouping(fit, grouping = cell_types)
 #'

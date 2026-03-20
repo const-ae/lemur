@@ -20,7 +20,7 @@
 #'  \item{`fit$alignment_coefficients`}{a 3-tensor with the coefficients for the alignment, of size `fit$n_embedding` x `fit$n_embedding` x `ncol(fit$design_matrix)`.}
 #'  \item{`fit$alignment_design`}{an alternative specification of the alignment, using a design, typically a [`stats::formula`].}
 #'  \item{`fit$alignment_design_matrix`}{an alternative specification of the alignment, using a design matrix.}
-#'  \item{`fit$contrast`}{a parsed version of the contrast specification from the `test_de` function or `NULL`.}
+#'  \item{`fit$contrast`}{a parsed version of the contrast specification from the `compute_contrasts` function or `NULL`.}
 #'  \item{`fit$colData`}{the column annotation `DataFrame`.}
 #'  \item{`fit$rowData`}{the row annotation `DataFrame`.}
 #' }

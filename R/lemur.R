@@ -1,5 +1,3 @@
-
-
 #' Main function to fit the latent embedding multivariate regression (LEMUR) model
 #'
 #' @param data a matrix with observations in the columns and features in the rows.
@@ -32,10 +30,10 @@
 #'   * Ahlmann-Eltze, C. & Huber, W. (2023). Analysis of multi-condition single-cell data with latent
 #'   embedding multivariate regression. bioRxiv [https://doi.org/10.1101/2023.03.06.531268](https://doi.org/10.1101/2023.03.06.531268)
 #'
-#' @seealso [`align_by_grouping`], [`align_harmony`], [`test_de`], [`find_de_neighborhoods`]
+#' @seealso [`align_by_grouping`], [`align_harmony`], [`compute_contrasts`], [`find_de_neighborhoods`]
 #'
 #' @examples
-#' data(glioblastoma_example_data)
+#' data("glioblastoma_example_data")
 #' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5)
 #' fit
 #'

@@ -1,4 +1,3 @@
-
 #' @importFrom glmGamPoi vars
 #'
 #' @returns see [glmGamPoi::vars].
@@ -20,7 +19,7 @@ glmGamPoi::vars
 #'   The function automatically includes all variables that are referenced in the
 #'   original design formula, so they don't need to be explicitly mentioned.
 #' @param contrast a specification of the contrast of interest. This defaults to the
-#'   `contrast` argument that was used for `test_de` and is stored in `fit$contrast`.
+#'   `contrast` argument that was used for `compute_contrasts` and is stored in `fit$contrast`.
 #' @param selection_procedure specify the algorithm that is used to select the
 #'   neighborhoods for each gene. Broadly, `selection_procedure = "zscore"` is faster
 #'   but less elaborate than `selection_procedure = "contrast"`.
@@ -33,7 +32,7 @@ glmGamPoi::vars
 #' @param min_neighborhood_size the minimum number of cells per neighborhood. Default: `50`.
 #' @param de_mat the matrix with the differential expression values. This is only relevant if
 #'   `selection_procedure = "zscore"` or `directions = "random"`. Defaults
-#'   to an assay called `"DE"` that is produced by `lemur::test_de()`.
+#'   to an assay called `"DE"` that is produced by `lemur::compute_contrasts()`.
 #' @param test_data a `SummarizedExperiment` object or a named list of matrices. The
 #'   data is used to test if the neighborhood inferred on the training data contain a
 #'   reliable significant change. If `test_method` is `"glmGamPoi"` or `"edgeR"` a test
@@ -85,12 +84,11 @@ glmGamPoi::vars
 #'   }
 #'
 #' @examples
-#' data(glioblastoma_example_data)
-#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition,
-#'              n_emb = 5, verbose = FALSE)
+#' data("glioblastoma_example_data")
+#' fit <- lemur(glioblastoma_example_data, design = ~ patient_id + condition, n_emb = 5, verbose = FALSE)
 #' # Optional alignment
 #' # fit <- align_harmony(fit)
-#' fit <- test_de(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
+#' fit <- compute_contrasts(fit, contrast = cond(condition = "panobinostat") - cond(condition = "ctrl"))
 #' nei <- find_de_neighborhoods(fit, group_by = vars(patient_id))
 #' head(nei)
 #'
@@ -161,7 +159,7 @@ find_de_neighborhoods <- function(fit,
     # There is one direction vector for each gene
     if(directions == "random"){
       if(is.null(de_mat)) stop("'directions = \"random\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
-                               "argument or call 'fit <- test_de(fit, ...)'")
+                               "argument or call 'fit <- compute_contrasts(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       dirs <- select_directions_from_random_points(control_parameters$select_directions_from_random_points.n_random_directions,
                                                    training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
@@ -169,7 +167,7 @@ find_de_neighborhoods <- function(fit,
       dirs <- select_directions_from_contrast(training_fit, {{contrast}})
     }else if(directions == "axis_parallel"){
       if(is.null(de_mat)) stop("'directions = \"axis_parallel\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
-                               "argument or call 'fit <- test_de(fit, ...)'")
+                               "argument or call 'fit <- compute_contrasts(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       dirs <- select_directions_from_axes(training_fit$embedding, de_mat[,!fit$is_test_data,drop=FALSE])
     }
@@ -184,7 +182,7 @@ find_de_neighborhoods <- function(fit,
     if(verbose) message("Find optimal neighborhood using ", selection_procedure, ".")
     if(selection_procedure == "zscore"){
       if(is.null(de_mat)) stop("'selection_procedure = \"zscore\"' needs the predicted difference between two conditions. Please provide a valid 'de_mat'",
-                               "argument or call 'fit <- test_de(fit, ...)'")
+                               "argument or call 'fit <- compute_contrasts(fit, ...)'")
       stopifnot(all(dim(de_mat) == dim(fit)))
       de_regions <- find_de_neighborhoods_with_z_score(training_fit, dirs, de_mat[,!fit$is_test_data,drop=FALSE],
                                                        independent_embedding = projected_indep_data,
@@ -321,7 +319,7 @@ find_de_neighborhoods <- function(fit,
 
 select_directions_from_axes <- function(embedding, de_mat){
   if(is.null(de_mat)){
-    stop("'de_mat' is NULL. Please first call 'lemur::test_de()' to calculate the differential expression matrix.")
+    stop("'de_mat' is NULL. Please first call 'lemur::compute_contrasts()' to calculate the differential expression matrix.")
   }
   dirs <- diag(nrow = nrow(embedding))
   correlation <- cor(t(embedding), t(de_mat))
@@ -331,7 +329,7 @@ select_directions_from_axes <- function(embedding, de_mat){
 
 select_directions_from_random_points <- function(n_random_directions, embedding, de_mat){
   if(is.null(de_mat)){
-    stop("'de_mat' is NULL. Please first call 'lemur::test_de()' to calculate the differential expression matrix.")
+    stop("'de_mat' is NULL. Please first call 'lemur::compute_contrasts()' to calculate the differential expression matrix.")
   }
   n_cells <- ncol(embedding)
   point_pairs <- matrix(sample.int(n_cells, 2 * n_random_directions, replace = TRUE), nrow = 2)
@@ -365,7 +363,7 @@ select_directions_from_contrast <- function(fit, contrast){
 
 select_directions_from_canonical_correlation <- function(embedding, de_mat){
   if(is.null(de_mat)){
-    stop("'de_mat' is NULL. Please first call 'lemur::test_de()' to calculate the differential expression matrix.")
+    stop("'de_mat' is NULL. Please first call 'lemur::compute_contrasts()' to calculate the differential expression matrix.")
   }
   stop("Not yet implemented")
 }
@@ -520,7 +518,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
     if(verbose) message("Fit edgeR model on pseudobulk data")
     glm_regions <- edger_fit(assay(region_psce, "masked_counts"), design = design, offset = log(size_factor_matrix + 1e-10),
                            col_data = SummarizedExperiment::colData(region_psce))
-    de_res <- edger_test_de(glm_regions, {{contrast}}, design)
+    de_res <- edger_compute_contrasts(glm_regions, {{contrast}}, design)
   }
 
   if(add_diff_in_diff){
@@ -545,7 +543,7 @@ neighborhood_count_test <- function(de_regions, counts, group_by, contrast, desi
       did_res <- glmGamPoi::test_de(did_fit, contrast = c(-cntrst, cntrst))
     }else if(method == "edgeR"){
       did_fit <- edger_fit(comb_mat, design = comb_design_mat, offset = log(mod_size_factor_matrix + 1e-10))
-      did_res <- edger_test_de(did_fit,  c(-cntrst, cntrst))
+      did_res <- edger_compute_contrasts(did_fit,  c(-cntrst, cntrst))
     }
     colnames(did_res) <- paste0("did_", colnames(did_res))
 
@@ -597,7 +595,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
 
   if(verbose) message("Fit limma model")
   lm_fit <- limma_fit(M, design, col_data = split_res$key)
-  de_res <- limma_test_de(lm_fit, {{contrast}}, design, values = M, shrink = shrink)
+  de_res <- limma_compute_contrasts(lm_fit, {{contrast}}, design, values = M, shrink = shrink)
 
   if(add_diff_in_diff){
     mm <- lm_fit$design
@@ -613,7 +611,7 @@ neighborhood_normal_test <- function(de_regions, values, group_by, contrast, des
     comb_design_mat <- unname(rbind(cbind(mm, zero_mat), cbind(zero_mat, mm)))
     if(verbose) message("Fit diff-in-diff effect")
     did_fit <- limma_fit(comb_mat, comb_design_mat)
-    did_res <- limma_test_de(did_fit, c(-cntrst, cntrst), design = NULL, values = comb_mat, shrink = shrink)
+    did_res <- limma_compute_contrasts(did_fit, c(-cntrst, cntrst), design = NULL, values = comb_mat, shrink = shrink)
     colnames(did_res) <- paste0("did_", colnames(did_res))
 
     cbind(de_regions, de_res[,-1], did_res[,c("did_pval", "did_adj_pval", "did_lfc")])
