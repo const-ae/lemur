@@ -51,14 +51,10 @@ options(width = 100)
 
 ![](man/figures/lemur-art.jpg){fig-align="center"}
 
+[`lemur`](https://doi.org/10.1038/s41588-024-01996-0) is a first-line tool for the analysis of multi-condition single-cell data. If you have collected a single-cell RNA-seq dataset from more than one condition (e.g., different experimental treatments, different patient samples), `lemur` predicts for each cell and gene what the expression data would be in all of the other
+conditions. `lemur` then uses these predictions to find groups of cells that show similar patterns of differential expression across the conditions. We call these groups "neighborhoods". You can subsequently overlap these neighbourhoods with pre-existing cell type annotations, or in fact use the discovered neighbourhoods to refine the pre-existing cell type and state annotation for your data.
 
-The goal of [`lemur`](https://www.biorxiv.org/content/10.1101/2023.03.06.531268)
-is to simplify the analysis of multi-condition
-single-cell data. If you have collected a single-cell RNA-seq dataset
-with more than one condition, `lemur` predicts for each cell and gene
-what the expression data would be in all of the other
-conditions. Furthermore, `lemur` finds neighborhoods of cells that show
-consistent differential expression. The results are statistically
+The differential expression results are statistically
 validated using a pseudo-bulk differential expression test on hold-out
 data using
 [glmGamPoi](https://bioconductor.org/packages/glmGamPoi/)
@@ -66,7 +62,7 @@ or [edgeR](https://bioconductor.org/packages/edgeR/).
 
 `lemur` implements a novel framework to disentangle the effects of known covariates, latent cell states, and their interactions. At the core, is a combination of matrix factorization and regression analysis implemented as geodesic regression on Grassmann manifolds. We call this _latent embedding multivariate regression_. For more details see our [preprint](https://www.biorxiv.org/content/10.1101/2023.03.06.531268).
 
-![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png)
+![Schematic of the matrix decomposition at the core of LEMUR](man/figures/equation_schematic.png){width=100%}
 
 ## Installation
 
