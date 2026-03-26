@@ -263,7 +263,7 @@ aggregate_matrix <- function(mat, group_split, aggr_fnc, col_sel = TRUE, ...){
     lgl[idx] <- TRUE
     lgl
   })
-  if(all(col_sel == TRUE)){
+  if(all(col_sel)){
     new_data_mat <- t(mply_dbl(group_split_lgl, \(split_sel){
       aggr_fnc(mat, cols = split_sel, ...)
     }, ncol = nrow(mat)))
@@ -332,7 +332,7 @@ pseudoinverse <- function(X){
   not_null <- svd$d > max(tol * svd$d[1L], 0)
   if(all(not_null)){
     with(svd, v %*% (1/d * t(u)))
-  }else if(all(! not_null)){
+  }else if(!any(not_null)){
     matrix(0, nrow = ncol(X), ncol = nrow(X))
   }else{
     with(svd, v[,not_null,drop=FALSE] %*% (1/d[not_null] * t(u[,not_null,drop=FALSE])))
