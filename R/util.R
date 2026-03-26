@@ -92,7 +92,7 @@ stack_rows <- function(x){
 #' @describeIn mply_dbl Each list element becomes a row in a matrix
 stack_cols <- function(x){
   stopifnot(is.list(x))
-  do.call(cbind, x)
+  list2DF(x)
 }
 
 #' Make a cube from a list of matrices
