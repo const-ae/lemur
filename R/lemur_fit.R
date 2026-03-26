@@ -145,7 +145,7 @@ S4Vectors::setValidity2("lemur_fit", function(obj){
   if(! is.null(col_names) && length(col_names) != length(unique(col_names))) msg <- c(msg, "`colnames` are not unique")
   if(! is.null(row_names) && length(row_names) != length(unique(row_names))) msg <- c(msg, "`rownames` are not unique")
   if(is.logical(row_mask)) msg <- c(msg, "`row_mask` is a logical. This is no longer allowed (changed in version 1.0.4 to fix a bug). Please rerun `lemur`.")
-  if(max(row_mask) > n_features_original || min(row_mask) < 0 || any(is.na(row_mask))) msg <- c(msg, "`row_mask` contains illegal index. This is a bug!")
+  if(max(row_mask) > n_features_original || min(row_mask) < 0 || anyNA(row_mask)) msg <- c(msg, "`row_mask` contains illegal index. This is a bug!")
 
   if(is.null(msg)){
     TRUE

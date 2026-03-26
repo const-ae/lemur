@@ -68,7 +68,7 @@ lemur <- function(data, design = ~ 1, col_data = NULL,
   # Create indicator vector which cells are used for training and which for testing
   is_test_data <- rep(FALSE, ncol(data))
   if(is.logical(test_fraction) && length(ncol(data))){
-    if(any(is.na(test_fraction))) stop("test_fraction must not contain 'NA's.")
+    if(anyNA(test_fraction)) stop("test_fraction must not contain 'NA's.")
     is_test_data <- test_fraction
   }else if(length(test_fraction) != 1){
     stop("'test_fraction' must be a boolean vector of length 'ncol(data)' or a single number between 0 and 1.")
@@ -194,7 +194,7 @@ lemur_impl <- function(Y, design_matrix,
   }
 
   # Make sure that axes are ordered by variance
-  if(prod(dim(embedding)) > 0 && all(!is.na(embedding))){
+  if(prod(dim(embedding)) > 0 && !anyNA(embedding)){
     svd_emb <- svd(embedding)
     rot <- svd_emb$u
     base_point <- base_point %*% rot
