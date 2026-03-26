@@ -81,7 +81,7 @@ project_on_lemur_fit <- function(fit, data, col_data = NULL, use_assay = "logcou
 }
 
 project_on_lemur_fit_impl <- function(Y, design_matrix, alignment_design_matrix, coefficients, linear_coefficients, alignment_coefficients, base_point){
-  Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+  Y_clean <- Y - tcrossprod(linear_coefficients, design_matrix)
   embedding <- project_data_on_diffemb(Y_clean, design = design_matrix, coefficients = coefficients, base_point = base_point)
   embedding <- apply_linear_transformation(embedding, alignment_coefficients, alignment_design_matrix)
   # TODO: subset to row_mask? And then potentially also remove the check in find_de_neighborhoods line 143.

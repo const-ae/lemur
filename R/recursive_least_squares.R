@@ -21,13 +21,13 @@ recursive_least_squares <- function(y, X){
   k <- ncol(X)
   res <- matrix(NA, nrow = k, ncol = n)
   gamma <- solve(crossprod(X[seq_len(k),]))
-  beta <- gamma %*% t(X[seq_len(k),]) %*% y[seq_len(k)]
+  beta <- gamma %*% crossprod(X[seq_len(k),], y[seq_len(k)])
   res[,k] <- beta
   for(idx in seq(k+1, n)){
     yi <- y[idx]
     xi <- t(X[idx,,drop=FALSE])
-    gamma <- gamma - (gamma %*% xi %*% t(xi) %*% gamma) / c(1 + t(xi) %*% gamma %*% xi)
-    beta <- beta - gamma %*% xi %*% (t(xi) %*% beta - yi)
+    gamma <- gamma - (gamma %*% xi %*% crossprod(xi, gamma)) / c(1 + crossprod(xi, gamma %*% xi))
+    beta <- beta - gamma %*% xi %*% (crossprod(xi, beta) - yi)
     res[,idx] <- beta
   }
   res
@@ -74,9 +74,9 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge
     if(count[gi] == 1){
       X_act[gi,] <- xi
       n_obs <- n_obs + 1L
-      gamma <- gamma - (gamma %*% xi %*% t(xi) %*% gamma) / c(1 + t(xi) %*% gamma %*% xi)
+      gamma <- gamma - (gamma %*% xi %*% crossprod(xi, gamma)) / c(1 + crossprod(xi, gamma %*% xi))
       # Below is a more efficient version of: beta <- gamma %*% t(X_act) %*% m
-      beta <- beta + gamma %*% xi %*% (m[gi] - t(xi) %*% beta)
+      beta <- beta + gamma %*% xi %*% (m[gi] - crossprod(xi, beta))
     }else{
       beta <- beta + gamma %*% (xi * delta_m)
     }
@@ -84,7 +84,7 @@ bulked_recursive_least_squares_contrast <- function(y, X, group, contrast, ridge
     rss <- max(1e-6, sum((m - X_act %*% beta)^2))
     # Avoid zero or negative numbers
     covar <- rss / max(1e-8, n_obs - k) * gamma
-    se_sq <- contrast %*% covar %*% t(contrast)
+    se_sq <- tcrossprod(contrast %*% covar, contrast)
     if(se_sq > 0){
       t_stat[idx] <- sum(drop(contrast) * beta) / sqrt(se_sq)
     }

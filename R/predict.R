@@ -104,7 +104,7 @@ predict_impl <- function(object, newdata = NULL, newdesign = NULL,
     stop("The number of rows in 'newdesign' (", nrow(newdesign) ,") and 'alignment_design_matrix'(", nrow(alignment_design_matrix) ,")  must be the same")
   }
   approx <- if(with_linear_model){
-    linear_coefficients[row_mask,,drop=FALSE] %*% t(newdesign)
+    tcrossprod(linear_coefficients[row_mask,,drop=FALSE], newdesign)
   }else{
     matrix(0, nrow = length(row_mask), ncol = nrow(newdesign))
   }

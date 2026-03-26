@@ -153,7 +153,7 @@ lemur_impl <- function(Y, design_matrix,
   if(linear_coefficient_estimator == "zero"){
     Y_clean <- Y
   }else{
-    Y_clean <- Y - linear_coefficients %*% t(design_matrix)
+    Y_clean <- Y - tcrossprod(linear_coefficients, design_matrix)
   }
   if(!is.matrix(base_point)){
     if(verbose) message("Find base point for differential embedding")
@@ -180,7 +180,7 @@ lemur_impl <- function(Y, design_matrix,
                                                  coefficients = coefficients, base_point = base_point)
   }
   if(verbose){
-    residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - linear_coefficients %*% t(design_matrix)
+    residuals <- Y - project_diffemb_into_data_space(embedding, design = design_matrix, coefficients = coefficients, base_point = base_point) - tcrossprod(linear_coefficients, design_matrix)
     error <- sum(residuals^2)
     message("Final error: ", sprintf("%.3g", error))
   }
@@ -221,7 +221,7 @@ find_base_point <- function(Y_clean, base_point, n_embedding){
     stopifnot(ncol(base_point) == n_embedding)
 
     # Check if it is orthogonal
-    orth <- t(base_point) %*% base_point
+    orth <- crossprod(base_point)
     if(sum((orth - diag(nrow = n_embedding))^2) > 1e-8){
       stop("The provided 'base_point'  is not orthogonal")
     }
@@ -254,7 +254,7 @@ project_data_on_diffemb <- function(Y_clean, design, coefficients, base_point){
   mm_groups <- get_groups(design)
   for(gr in unique(mm_groups)){
     covars <- design[which(mm_groups == gr)[1], ]
-    res[,mm_groups == gr] <- t(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point)) %*% Y_clean[,mm_groups == gr,drop=FALSE]
+    res[,mm_groups == gr] <- crossprod(grassmann_map(sum_tangent_vectors(coefficients, covars), base_point), Y_clean[,mm_groups == gr,drop=FALSE])
   }
   res
 }
