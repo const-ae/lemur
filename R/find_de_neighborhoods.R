@@ -17,7 +17,7 @@ glmGamPoi::vars
 #'   data that represents the independent unit of replication of the experiment
 #'   (e.g., the mouse or patient ID). The argument has to be wrapped in `vars(...)`.
 #'   The function automatically includes all variables that are referenced in the
-#'   original design formula, so they don't need to be explicitly mentioned.
+#'   original design formula, so they do not need to (but can) be explicitly mentioned here.
 #' @param contrast a specification of the contrast of interest. This defaults to the
 #'   `contrast` argument that was used for `compute_contrasts` and is stored in `fit$contrast`.
 #' @param selection_procedure specify the algorithm that is used to select the
@@ -123,36 +123,38 @@ find_de_neighborhoods <- function(fit,
     list(select_directions_from_random_points.n_random_directions = 50,
          find_de_neighborhoods_with_contrast.ridge_penalty = 0.1,
          neighborhood_test.shrink = TRUE,
-         make_neighborhoods_consistent.knn = 25, make_neighborhoods_consistent.cell_inclusion_threshold = 10,
+         make_neighborhoods_consistent.knn = 25,
+         make_neighborhoods_consistent.cell_inclusion_threshold = 10,
          null_confounded_neighborhoods.normal_quantile = 0.99,
          merge_indices_columns = NA)
 
   test_data <- handle_test_data_parameter(fit, test_data, test_data_col_data, continuous_assay_name)
-  if(nrow(fit) != nrow(test_data)){
-    stop("The number of features in 'fit' and 'independent_data' differ.")
-  }else{
-    if(! is.null(rownames(fit)) && ! is.null(rownames(test_data)) &&
-       any(rownames(fit) != rownames(test_data))){
-      stop("The rownames differ between 'fit' and 'independent_data'.")
-    }
-  }
+  
+  if(nrow(fit) != nrow(test_data))
+    stop("The number of rows of 'fit' and 'independent_data' should be the same, but are different.")
+  if(!is.null(rownames(fit)) && !is.null(rownames(test_data)) && any(rownames(fit) != rownames(test_data)))
+    stop("The rownames of 'fit' and 'independent_data' should be the same, but they differ.")
+
   merge_indices_columns <- isTRUE(control_parameters$merge_indices_columns) ||
     (is.na(control_parameters$merge_indices_columns) && identical(test_data, fit$test_data))
 
-  if(use_empty_test_projection){
-    projected_indep_data <- matrix(nrow = fit$n_embedding, ncol = 0)
-  }else if(use_existing_test_projection){
-    projected_indep_data <- fit$embedding[,fit$is_test_data,drop=FALSE]
-  }else{
-    if(! all(metadata(fit)$row_mask == seq_len(nrow(fit$base_point)))){
+  projected_indep_data <- if(use_empty_test_projection) {
+    matrix(nrow = fit$n_embedding, ncol = 0)
+  } else if(use_existing_test_projection) {
+    fit$embedding[,fit$is_test_data,drop=FALSE]
+  } else {
+    if(!all(metadata(fit)$row_mask == seq_len(nrow(fit$base_point))))
       stop("The 'fit' argument of 'find_de_neighborhoods' must not be subsetted.")
-    }
+    
     attr(design, "ignore_degeneracy") <- TRUE
     attr(alignment_design, "ignore_degeneracy") <- TRUE
-    projected_indep_data <- project_on_lemur_fit(training_fit, data = test_data, use_assay = continuous_assay_name,
-                                                 design = design, alignment_design = alignment_design, return = "matrix")
+    project_on_lemur_fit(training_fit,
+                         data = test_data,
+                         use_assay = continuous_assay_name,
+                         design = design,
+                         alignment_design = alignment_design,
+                         return = "matrix")
   }
-
 
   if(is.character(directions)){
     directions <- match.arg(directions)
@@ -225,8 +227,8 @@ find_de_neighborhoods <- function(fit,
     })
 
     if(make_neighborhoods_consistent){
-      # Add cells which neighbor more than 10 cells in the neighborhood,
-      # remove cells which have less than 10 neighbors in the neighborhood.
+      # Add cells that have more than 10 cells in the neighborhood,
+      # remove cells that have less than 10 neighbors in the neighborhood.
       de_regions[["independent_indices"]] <- make_neighborhoods_consistent(projected_indep_data, de_regions[["independent_indices"]], {{contrast}},
                                                                            design = fit$design, col_data = colData(test_data),
                                                                            knn = control_parameters$make_neighborhoods_consistent.knn,
