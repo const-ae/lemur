@@ -11,6 +11,17 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// set_harmony_Zcorr
+void set_harmony_Zcorr(SEXP harmonyObj, const arma::Mat<float>& Z_new);
+RcppExport SEXP _lemur_set_harmony_Zcorr(SEXP harmonyObjSEXP, SEXP Z_newSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type harmonyObj(harmonyObjSEXP);
+    Rcpp::traits::input_parameter< const arma::Mat<float>& >::type Z_new(Z_newSEXP);
+    set_harmony_Zcorr(harmonyObj, Z_new);
+    return R_NilValue;
+END_RCPP
+}
 // cumz_which_abs_max
 List cumz_which_abs_max(NumericVector x, int min_neighborhood_size);
 RcppExport SEXP _lemur_cumz_which_abs_max(SEXP xSEXP, SEXP min_neighborhood_sizeSEXP) {
@@ -50,6 +61,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_lemur_set_harmony_Zcorr", (DL_FUNC) &_lemur_set_harmony_Zcorr, 2},
     {"_lemur_cumz_which_abs_max", (DL_FUNC) &_lemur_cumz_which_abs_max, 2},
     {"_lemur_cum_brls_which_abs_max", (DL_FUNC) &_lemur_cum_brls_which_abs_max, 6},
     {"_lemur_count_neighbors_fast", (DL_FUNC) &_lemur_count_neighbors_fast, 2},
