@@ -47,14 +47,15 @@ align_harmony <- function(fit, design = fit$alignment_design,
   }
   training_fit <- fit$training_data
   # Ignore best practice and call private methods from harmony
-  harm_obj <- harmony_init(training_fit$embedding, act_design_matrix, ..., verbose = verbose)
+  harm_obj <- harmony_init(training_fit$embedding, act_design_matrix, ..., verbose = verbose)$obj
+
   for(idx in seq_len(max_iter)){
     harm_obj <- harmony_max_div_clustering(harm_obj)
 
     alignment <- align_impl(training_fit$embedding, harm_obj$R, act_design_matrix, ridge_penalty = ridge_penalty)
 
-    harm_obj$Z_corr <- alignment$embedding
-    harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
+    set_harmony_Zcorr(harm_obj$.pointer, alignment$embedding)
+
     if(harm_obj$check_convergence(1)){
       if(verbose) message("Converged")
       break
