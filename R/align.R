@@ -9,6 +9,8 @@
 #' @param ridge_penalty specification how much the flexibility of the transformation
 #'   should be regularized. Default: `0.01`
 #' @param max_iter argument specific for `align_harmony`. The number of iterations. Default: `10`
+#' @param epsilon_harmony argument specific for `align_harmony`. Convergence threshold
+#'   for the outer alignment loop. Default: `1e-4`
 #' @param preserve_position_of_NAs argument specific for `align_by_grouping`.
 #'   Boolean flag to decide if `NA`s in the `grouping` mean that these cells should stay where they are (if
 #'   possible) or if they are free to move around. Default: `FALSE`
@@ -34,7 +36,7 @@
 #'
 #' @export
 align_harmony <- function(fit, design = fit$alignment_design,
-                          ridge_penalty = 0.01, max_iter = 10, ..., verbose = TRUE){
+                          ridge_penalty = 0.01, max_iter = 10, ..., epsilon_harmony = 1e-4, verbose = TRUE){
   if(verbose) message("Select cells that are considered close with 'harmony'")
   if(is.null(attr(design, "ignore_degeneracy"))){
     # It doesn't matter for harmony if the design is degenerate
@@ -43,22 +45,23 @@ align_harmony <- function(fit, design = fit$alignment_design,
   design_matrix <- handle_design_parameter(design, fit, glmGamPoi:::get_col_data(fit, NULL), verbose = verbose)$design_matrix
   act_design_matrix <- design_matrix[!fit$is_test_data,,drop=FALSE]
 
-  if(! requireNamespace("harmony", quietly = TRUE)){
-    stop("'harmony' is not installed. Please install it from CRAN.")
-  }
   training_fit <- fit$training_data
-  # Ignore best practice and call private methods from harmony
-  harm_obj <- harmony_init(training_fit$embedding, act_design_matrix, ..., verbose = verbose)
+  cl <- init_max_diversity_clustering(training_fit$embedding, act_design_matrix, ..., verbose = verbose)
+  new_embedding <- NULL
+  harmony_objective <- rep(NA_real_, max_iter)
   for(idx in seq_len(max_iter)){
-    harm_obj <- harmony_max_div_clustering(harm_obj)
+    cl <- run_max_diversity_clustering(cl, embedding = new_embedding)
 
-    alignment <- align_impl(training_fit$embedding, harm_obj$R, act_design_matrix, ridge_penalty = ridge_penalty)
+    alignment <- align_impl(training_fit$embedding, cl$R, act_design_matrix, ridge_penalty = ridge_penalty)
+    new_embedding <- alignment$embedding
 
-    harm_obj$Z_corr <- alignment$embedding
-    harm_obj$Z_cos <- t(t(harm_obj$Z_corr) / sqrt(colSums(harm_obj$Z_corr^2)))
-    if(harm_obj$check_convergence(1)){
-      if(verbose) message("Converged")
-      break
+    harmony_objective[idx] <- utils::tail(cl$objective_kmeans, 1)
+    if(idx > 1){
+      rel_change <- (harmony_objective[idx - 1] - harmony_objective[idx]) / abs(harmony_objective[idx - 1])
+      if(rel_change < epsilon_harmony){
+        if(verbose) message("Converged")
+        break
+      }
     }
   }
 

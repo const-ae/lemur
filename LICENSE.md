@@ -19,3 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Exception
+
+`R/max_diversity_clustering.R` is licensed under GPL-3, not under the MIT
+license above. It is a re-implementation of the maximum diversity clustering
+step from the `harmony` R package (https://github.com/immunogenomics/harmony),
+which is GPL-3 licensed; see that file's header for details.

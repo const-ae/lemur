@@ -11,6 +11,7 @@ align_harmony(
   ridge_penalty = 0.01,
   max_iter = 10,
   ...,
+  epsilon_harmony = 1e-04,
   verbose = TRUE
 )
 
@@ -35,6 +36,9 @@ should be regularized. Default: \code{0.01}}
 \item{max_iter}{argument specific for \code{align_harmony}. The number of iterations. Default: \code{10}}
 
 \item{...}{additional parameters that are passed on to relevant functions}
+
+\item{epsilon_harmony}{argument specific for \code{align_harmony}. Convergence threshold
+for the outer alignment loop. Default: \code{1e-4}}
 
 \item{verbose}{Should the method print information during the fitting. Default: \code{TRUE}.}
 
