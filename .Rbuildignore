@@ -6,3 +6,4 @@
 ^vignettes/man/figures/README-.*$
 ^doc$
 ^Meta$
+^tests/testthat/fixtures/max_diversity_clustering/.*\.rds$

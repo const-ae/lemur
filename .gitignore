@@ -6,3 +6,9 @@
 tmp_scripts
 inst/doc
 *.DS_Store
+
+# Golden test fixtures for max diversity clustering are regenerated from a
+# patched harmony 1.2.4 checkout (see data-raw/generate_max_diversity_clustering_fixtures.R)
+# rather than committed, since they're sizable binary files. Autobuild/CI
+# systems skip the tests that need them (see tests/testthat/test-max_diversity_clustering.R).
+tests/testthat/fixtures/max_diversity_clustering/*.rds

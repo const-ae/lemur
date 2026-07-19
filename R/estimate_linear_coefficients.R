@@ -21,20 +21,20 @@ estimate_linear_coefficient <- function(Y, design_matrix, method = c("linear", "
   }else if(method == "cluster_median"){
     min_cluster_membership <- 0.01
     pca <- pca(Y, n = 20)
-    harm_obj <- harmony_init(pca$embedding, design_matrix, nclust = 30, verbose = FALSE)
-    harm_obj <- harmony_max_div_clustering(harm_obj)
+    cl <- init_max_diversity_clustering(pca$embedding, design_matrix, nclust = 30, verbose = FALSE)
+    cl <- run_max_diversity_clustering(cl)
     Yt <- as.matrix(t(Y))
-    coef <- do.call(cbind, lapply(seq_len(nrow(harm_obj$R)), \(cl){
-      threshold <- min(min_cluster_membership, max(harm_obj$R) * 0.5)
-      sel <- harm_obj$R[cl, ] > threshold
+    coef <- do.call(cbind, lapply(seq_len(nrow(cl$R)), \(cluster){
+      threshold <- min(min_cluster_membership, max(cl$R) * 0.5)
+      sel <- cl$R[cluster, ] > threshold
       tryCatch({
-        fit <- lm.wfit(design_matrix[sel,,drop=FALSE], y = Yt[sel,,drop=FALSE], w = harm_obj$R[cl, sel])
+        fit <- lm.wfit(design_matrix[sel,,drop=FALSE], y = Yt[sel,,drop=FALSE], w = cl$R[cluster, sel])
         as.numeric(t(fit$coefficients))
       }, error = function(e){
         rep(NA_real_, nrow(Y) * ncol(design_matrix))
       })
     }))
-    wmed <- matrixStats::rowWeightedMedians(coef, w = rowSums(harm_obj$R), na.rm = TRUE, interpolate = FALSE)
+    wmed <- matrixStats::rowWeightedMedians(coef, w = rowSums(cl$R), na.rm = TRUE, interpolate = FALSE)
     matrix(wmed, nrow = nrow(Y), ncol = ncol(design_matrix))
   }
 }

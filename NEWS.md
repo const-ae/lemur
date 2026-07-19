@@ -1,3 +1,11 @@
+# development version
+
+* Remove the dependency on the `harmony` package. The maximum diversity
+clustering step that `align_harmony` relies on is now implemented natively
+in pure R (see `init_max_diversity_clustering`/`run_max_diversity_clustering`),
+avoiding breakage from upstream `harmony` changes. `align_harmony`'s
+behavior and arguments are unchanged.
+
 # v1.3
 
 * `lemur` now automatically inserts the variables from the design formula into
