@@ -1,4 +1,4 @@
-# development version
+# v1.10.1
 
 * Remove the dependency on the `harmony` package. The maximum diversity
 clustering step that `align_harmony` relies on is now implemented natively
