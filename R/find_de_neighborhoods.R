@@ -675,7 +675,7 @@ pseudobulk_size_factors_for_neighborhoods <- function(counts, mask, col_data, gr
         sf[! absent_sample] <- apply(Y, 2, function(cnts) {
           exp(median((log(cnts) - log_geo_means)[is.finite(log_geo_means) & cnts > 0]))
         })
-        if(any(! is.finite(sf))){
+        if(!all(is.finite(sf))){
           # Something went wrong (maybe the data was too sparse), fall back to "normed_sum"
           drop(aggregate_matrix(matrix(cell_col_sums * mask_row, nrow = 1), group_split, MatrixGenerics::rowSums2))
         }else{

@@ -5,12 +5,12 @@ grassmann_map <- function(x, base_point){
   # Adapted from https://github.com/JuliaManifolds/Manifolds.jl/blob/master/src/manifolds/GrassmannStiefel.jl#L93
   if(ncol(base_point) == 0 || nrow(base_point) == 0){
     base_point
-  }else if(any(is.na(x))){
+  }else if(anyNA(x)){
     matrix(NA, nrow = nrow(x), ncol = ncol(x))
   }else{
     svd <- svd(x)
-    z <- base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)) %*% t(svd$v) +
-      svd$u %*% diag(sin(svd$d), nrow = length(svd$d)) %*% t(svd$v)
+    z <- tcrossprod(base_point %*% svd$v %*% diag(cos(svd$d), nrow = length(svd$d)), svd$v) +
+      tcrossprod(svd$u %*% diag(sin(svd$d), nrow = length(svd$d)), svd$v)
     # Calling `qr.Q(qr(z))` is problematic because it can flip the signs
     z
   }
@@ -25,11 +25,11 @@ grassmann_log <- function(p, q){
   if(n == 0 || k == 0){
     p
   }else{
-    z <- t(q) %*% p
-    At <- t(q) - z %*% t(p)
+    z <- crossprod(q, p)
+    At <- t(q) - tcrossprod(z, p)
     Bt <- lm.fit(z, At)$coefficients
     svd <- svd(t(Bt), k, k)
-    svd$u %*% diag(atan(svd$d), nrow = k) %*% t(svd$v)
+    tcrossprod(svd$u %*% diag(atan(svd$d), nrow = k), svd$v)
   }
 }
 
@@ -38,7 +38,7 @@ project_grassmann <- function(x){
 }
 
 project_grassmann_tangent <- function(x, base_point){
-  x - base_point %*% t(base_point) %*% x
+  x - base_point %*% crossprod(base_point, x)
 }
 
 
